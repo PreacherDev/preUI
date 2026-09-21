@@ -146,7 +146,8 @@ function CalendarWeekNumber({ children, week: _week, ...props }: WeekNumberProps
  * `locale`, `numberOfMonths`, `captionLayout` …). The cell size is the CSS variable `--cell-size` (default: the small
  * control height `--pui-control-h-sm`, 2rem),
  * e.g. `className="[--cell-size:2.25rem]"`.
- * Every month shows six weeks (`fixedWeeks`, default `true`), so the height never changes while navigating.
+ * Every month takes six weeks of space (`fixedWeeks`, default `true`), so the height never changes while
+ * navigating; a trailing week made only of next-month days stays empty.
  */
 export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
   {
@@ -222,7 +223,11 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
             "flex h-6 flex-1 select-none items-center justify-center text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground",
             defaultClassNames.weekday,
           ),
-          week: cn("mt-1 flex w-full", defaultClassNames.week),
+          // A filler week made only of next-month days (fixedWeeks) keeps its space but shows nothing.
+          week: cn(
+            "mt-1 flex w-full [&:not(:has(>[role=gridcell]:not([data-outside])))]:invisible",
+            defaultClassNames.week,
+          ),
           week_number_header: cn("w-[var(--cell-size)] select-none", defaultClassNames.week_number_header),
           week_number: cn("select-none text-xs font-normal text-pui-muted-foreground", defaultClassNames.week_number),
           day: cn(
