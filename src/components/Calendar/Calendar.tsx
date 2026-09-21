@@ -233,6 +233,8 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
           day: cn(
             "group/day relative flex aspect-square h-full w-full select-none items-center justify-center p-0 text-center",
             "[&:last-child[data-selected=true]_button]:rounded-r-pui-md",
+            // The range ends visually at the month edge, next to an (unmarked) outside day.
+            "[&[data-selected=true]:has(+[data-outside])_button]:rounded-r-pui-md [[data-outside]+&[data-selected=true]_button]:rounded-l-pui-md",
             props.showWeekNumber
               ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-pui-md"
               : "[&:first-child[data-selected=true]_button]:rounded-l-pui-md",
@@ -242,7 +244,10 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
           range_middle: cn("rounded-none", defaultClassNames.range_middle),
           range_end: cn("rounded-r-pui-md bg-pui-primary/tint", defaultClassNames.range_end),
           today: cn(defaultClassNames.today),
-          outside: cn("text-pui-muted-foreground opacity-50 [&_button]:text-pui-muted-foreground", defaultClassNames.outside),
+          outside: cn(
+            "!rounded-none !bg-transparent text-pui-muted-foreground opacity-50 [&_button]:!rounded-pui-md [&_button]:text-pui-muted-foreground",
+            defaultClassNames.outside,
+          ),
           disabled: cn("text-pui-muted-foreground [&_button]:text-pui-muted-foreground", defaultClassNames.disabled),
           hidden: cn("invisible", defaultClassNames.hidden),
           ...classNames,
@@ -284,6 +289,9 @@ export const CalendarDayButton = forwardRef<HTMLButtonElement, CalendarDayButton
     [modifiers.focused, forwardedRef],
   );
 
+  // Days of the neighbouring month never show the selection: with several months side by side the
+  // range would otherwise appear twice (e.g. 1–2 Oct inside September and again in October).
+  const outside = Boolean(modifiers.outside);
   const inRange = modifiers.range_start || modifiers.range_end || modifiers.range_middle;
 
   return (
@@ -291,10 +299,10 @@ export const CalendarDayButton = forwardRef<HTMLButtonElement, CalendarDayButton
       ref={ref}
       data-slot="calendar-day-button"
       data-day={day.isoDate}
-      data-selected-single={Boolean(modifiers.selected && !inRange)}
-      data-range-start={Boolean(modifiers.range_start)}
-      data-range-end={Boolean(modifiers.range_end)}
-      data-range-middle={Boolean(modifiers.range_middle)}
+      data-selected-single={Boolean(modifiers.selected && !inRange && !outside)}
+      data-range-start={Boolean(modifiers.range_start && !outside)}
+      data-range-end={Boolean(modifiers.range_end && !outside)}
+      data-range-middle={Boolean(modifiers.range_middle && !outside)}
       data-today={Boolean(modifiers.today && !modifiers.selected && !modifiers.outside)}
       className={cn(
         buttonVariants({ variant: "ghost", size: "icon-sm" }),
