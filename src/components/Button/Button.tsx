@@ -1,42 +1,54 @@
+import { Button as BaseButton } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { useIcon } from "../../icons";
-import { cn } from "../../utils/cn";
+import { mergeClassName } from "../../utils/cn";
 
 export const buttonVariants = cva(
   [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap select-none",
-    "rounded-pui border border-transparent font-medium leading-none",
-    "transition-colors duration-150",
-    "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-pui-ring",
-    "disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap select-none",
+    "rounded-pui-md border border-transparent font-medium",
+    "transition-colors duration-pui-fast ease-pui",
+    "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
+    "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+    "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   ],
   {
     variants: {
       variant: {
-        primary:
-          "bg-pui-primary text-pui-primary-foreground enabled:hover:bg-pui-primary-hover",
+        /** Tinted accent button — the default call to action. */
+        default: "border-pui-primary/tint-border bg-pui-primary/tint text-pui-primary hover:bg-pui-primary/tint-hover",
+        /** Solid fill — reserved for the one confirming action in a dialog or wizard. */
+        solid:
+          "bg-pui-primary text-pui-primary-foreground hover:bg-pui-primary/90 focus-visible:ring-offset-pui focus-visible:ring-offset-pui-background",
         secondary:
-          "bg-pui-secondary text-pui-secondary-foreground enabled:hover:bg-pui-secondary-hover",
+          "border-pui-border bg-pui-secondary text-pui-secondary-foreground hover:bg-pui-accent",
         outline:
-          "border-pui-border bg-transparent text-pui-foreground enabled:hover:bg-pui-accent",
-        ghost: "bg-transparent text-pui-foreground enabled:hover:bg-pui-accent",
+          "border-pui-border text-pui-foreground hover:bg-pui-accent hover:text-pui-accent-foreground",
+        ghost:
+          "text-pui-muted-foreground hover:bg-pui-accent hover:text-pui-accent-foreground",
+        positive:
+          "border-pui-positive/tint-border bg-pui-positive/tint text-pui-positive hover:bg-pui-positive/tint-hover",
         destructive:
-          "bg-pui-destructive text-pui-destructive-foreground enabled:hover:bg-pui-destructive-hover",
+          "border-pui-negative/tint-border bg-pui-negative/tint text-pui-negative hover:bg-pui-negative/tint-hover",
+        /** Text-only, like a link. Hover changes the colour only (no underline, per the handoff). */
+        link: "text-pui-primary hover:text-pui-primary/80",
       },
       size: {
-        sm: "h-8 px-3 text-[0.8125rem]",
-        md: "h-10 px-4 text-sm",
-        lg: "h-12 px-6 text-base",
-        icon: "h-10 w-10 p-0",
+        default: "h-pui-control px-3.5 text-sm",
+        sm: "h-pui-control-sm px-2.5 text-xs",
+        lg: "h-pui-control-lg px-5 text-sm",
+        icon: "size-pui-control p-0",
+        "icon-sm": "size-pui-control-sm p-0",
+        "icon-lg": "size-pui-control-lg p-0",
       },
       fullWidth: {
         true: "w-full",
       },
     },
     defaultVariants: {
-      variant: "primary",
-      size: "md",
+      variant: "default",
+      size: "default",
     },
   },
 );
@@ -45,7 +57,7 @@ type ButtonVariantProps = VariantProps<typeof buttonVariants>;
 export type ButtonVariant = NonNullable<ButtonVariantProps["variant"]>;
 export type ButtonSize = NonNullable<ButtonVariantProps["size"]>;
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends BaseButton.Props {
   variant?: ButtonVariant;
   size?: ButtonSize;
   /** Shows a spinner and disables the button. */
@@ -56,9 +68,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-const iconClass = "inline-flex shrink-0 [&>svg]:h-[1.15em] [&>svg]:w-[1.15em]";
-
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+/**
+ * Button built on Base UI. Use `render` to swap the element (e.g. `render={<div />} nativeButton={false}`).
+ * For links, style an `<a>` with `buttonVariants()` instead.
+ */
+export const Button = forwardRef<HTMLElement, ButtonProps>(function Button(
   {
     variant,
     size,
@@ -77,30 +91,33 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   const Spinner = useIcon("spinner");
 
   return (
-    <button
+    <BaseButton
       ref={ref}
       type={type}
-      className={cn(buttonVariants({ variant, size, fullWidth }), className)}
+      className={mergeClassName(buttonVariants({ variant, size, fullWidth }), className)}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       data-loading={loading || undefined}
+      data-slot="button"
+      data-variant={variant ?? "default"}
+      data-size={size ?? "default"}
       {...props}
     >
       {loading ? (
-        <Spinner className="h-[1.15em] w-[1.15em] shrink-0 animate-spin" aria-hidden="true" />
+        <Spinner data-slot="button-spinner" className="animate-spin" aria-hidden="true" />
       ) : (
         leftIcon && (
-          <span className={iconClass} aria-hidden="true">
+          <span data-slot="button-icon" data-position="left" className="inline-flex" aria-hidden="true">
             {leftIcon}
           </span>
         )
       )}
       {children}
       {rightIcon && !loading && (
-        <span className={iconClass} aria-hidden="true">
+        <span data-slot="button-icon" data-position="right" className="inline-flex" aria-hidden="true">
           {rightIcon}
         </span>
       )}
-    </button>
+    </BaseButton>
   );
 });
