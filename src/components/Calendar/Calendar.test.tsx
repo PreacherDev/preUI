@@ -31,6 +31,8 @@ describe("Calendar", () => {
     const FEB_2021 = new Date(2021, 1, 1);
     const { unmount } = render(<Calendar defaultMonth={FEB_2021} weekStartsOn={1} />);
     expect(screen.getAllByRole("row")).toHaveLength(6); // six weeks
+    // Filler weeks made only of next-month days keep their space but are hidden.
+    expect(screen.getAllByRole("row")[5]).toHaveClass("[&:not(:has(>[role=gridcell]:not([data-outside])))]:invisible");
     unmount();
     render(<Calendar defaultMonth={FEB_2021} weekStartsOn={1} fixedWeeks={false} />);
     expect(screen.getAllByRole("row")).toHaveLength(4);
