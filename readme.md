@@ -14,8 +14,10 @@ Requires `react >= 18` and `tailwindcss ^3.4` in your project. Base UI is instal
 Add the preset and the package's build output to your `tailwind.config.js`:
 
 ```js
+const { createPreuiPreset } = require("@pre_scripts/preui/tailwind");
+
 module.exports = {
-  presets: [require("@pre_scripts/preui/tailwind")],
+  presets: [createPreuiPreset()],
   content: [
     "./src/**/*.{js,ts,jsx,tsx}",
     "./node_modules/@pre_scripts/preui/dist/**/*.{js,cjs}", // so Tailwind generates preUI's classes
