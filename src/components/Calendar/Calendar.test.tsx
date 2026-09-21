@@ -26,6 +26,16 @@ describe("Calendar", () => {
     expect(screen.getByRole("button", { name: /next month/i })).toBeInTheDocument();
   });
 
+  it("always renders six weeks so the height stays constant (fixedWeeks)", () => {
+    // February 2021 starts on a Monday and has 28 days: four weeks without fixedWeeks.
+    const FEB_2021 = new Date(2021, 1, 1);
+    const { unmount } = render(<Calendar defaultMonth={FEB_2021} weekStartsOn={1} />);
+    expect(screen.getAllByRole("row")).toHaveLength(6); // six weeks
+    unmount();
+    render(<Calendar defaultMonth={FEB_2021} weekStartsOn={1} fixedWeeks={false} />);
+    expect(screen.getAllByRole("row")).toHaveLength(4);
+  });
+
   it("selects a day", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
