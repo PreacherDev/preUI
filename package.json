@@ -1,13 +1,48 @@
 {
-  "name": "preui",
+  "name": "@pre_scripts/preui",
   "version": "0.0.1",
-  "description": "A React UI component library",
+  "description": "React UI components built on Base UI and Tailwind CSS v3",
+  "keywords": [
+    "react",
+    "ui",
+    "components",
+    "component-library",
+    "tailwind",
+    "tailwindcss",
+    "typescript",
+    "base-ui",
+    "headless",
+    "dark-theme",
+    "shadcn",
+    "recharts",
+    "markdown",
+    "rich-text",
+    "code-editor",
+    "syntax-highlighting"
+  ],
+  "author": "PRE_SCRIPTS",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PreacherDev/preUI-0.0.1.git"
+  },
+  "homepage": "https://github.com/PreacherDev/preUI-0.0.1#readme",
+  "bugs": {
+    "url": "https://github.com/PreacherDev/preUI-0.0.1/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "preui": "./bin/preui.mjs"
+  },
   "exports": {
     ".": {
       "import": {
@@ -17,6 +52,106 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./chart": {
+      "import": {
+        "types": "./dist/chart.d.ts",
+        "default": "./dist/chart.js"
+      },
+      "require": {
+        "types": "./dist/chart.d.cts",
+        "default": "./dist/chart.cjs"
+      }
+    },
+    "./calendar": {
+      "import": {
+        "types": "./dist/calendar.d.ts",
+        "default": "./dist/calendar.js"
+      },
+      "require": {
+        "types": "./dist/calendar.d.cts",
+        "default": "./dist/calendar.cjs"
+      }
+    },
+    "./carousel": {
+      "import": {
+        "types": "./dist/carousel.d.ts",
+        "default": "./dist/carousel.js"
+      },
+      "require": {
+        "types": "./dist/carousel.d.cts",
+        "default": "./dist/carousel.cjs"
+      }
+    },
+    "./command": {
+      "import": {
+        "types": "./dist/command.d.ts",
+        "default": "./dist/command.js"
+      },
+      "require": {
+        "types": "./dist/command.d.cts",
+        "default": "./dist/command.cjs"
+      }
+    },
+    "./resizable": {
+      "import": {
+        "types": "./dist/resizable.d.ts",
+        "default": "./dist/resizable.js"
+      },
+      "require": {
+        "types": "./dist/resizable.d.cts",
+        "default": "./dist/resizable.cjs"
+      }
+    },
+    "./form": {
+      "import": {
+        "types": "./dist/form.d.ts",
+        "default": "./dist/form.js"
+      },
+      "require": {
+        "types": "./dist/form.d.cts",
+        "default": "./dist/form.cjs"
+      }
+    },
+    "./data-table": {
+      "import": {
+        "types": "./dist/data-table.d.ts",
+        "default": "./dist/data-table.js"
+      },
+      "require": {
+        "types": "./dist/data-table.d.cts",
+        "default": "./dist/data-table.cjs"
+      }
+    },
+    "./code": {
+      "import": {
+        "types": "./dist/code.d.ts",
+        "default": "./dist/code.js"
+      },
+      "require": {
+        "types": "./dist/code.d.cts",
+        "default": "./dist/code.cjs"
+      }
+    },
+    "./markdown": {
+      "import": {
+        "types": "./dist/markdown.d.ts",
+        "default": "./dist/markdown.js"
+      },
+      "require": {
+        "types": "./dist/markdown.d.cts",
+        "default": "./dist/markdown.cjs"
+      }
+    },
+    "./editor": {
+      "import": {
+        "types": "./dist/editor.d.ts",
+        "default": "./dist/editor.js"
+      },
+      "require": {
+        "types": "./dist/editor.d.cts",
+        "default": "./dist/editor.cjs"
       }
     },
     "./icons/lucide": {
@@ -38,48 +173,191 @@
         "types": "./dist/tailwind.d.cts",
         "default": "./dist/tailwind.cjs"
       }
-    }
+    },
+    "./fonts.css": "./dist/fonts.css",
+    "./tokens.css": "./dist/tokens.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown && node scripts/generate-tokens.mjs",
+    "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
+    "@base-ui/react": "^1.8.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.1"
   },
   "peerDependencies": {
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/language-data": "^6.0.0",
+    "@codemirror/search": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@fontsource-variable/inter": ">=5",
+    "@fontsource/jetbrains-mono": ">=5",
+    "@lezer/highlight": "^1.0.0",
+    "@tanstack/react-table": "^9.0.0",
+    "@tanstack/table-core": "^9.0.0",
+    "@tiptap/core": "^3.0.0",
+    "@tiptap/extensions": "^3.0.0",
+    "@tiptap/markdown": "^3.0.0",
+    "@tiptap/pm": "^3.0.0",
+    "@tiptap/react": "^3.0.0",
+    "@tiptap/starter-kit": "^3.0.0",
+    "cmdk": "^1.0.0",
+    "embla-carousel-react": "^8.0.0",
     "lucide-react": ">=0.300.0",
     "react": ">=18",
+    "react-day-picker": "^10.0.0",
     "react-dom": ">=18",
+    "react-hook-form": "^7.0.0",
+    "react-markdown": "^10.0.0",
+    "react-resizable-panels": "^4.0.0",
+    "recharts": "^3.0.0",
+    "remark-gfm": "^4.0.0",
+    "shiki": "^4.0.0",
     "tailwindcss": "^3.4.0"
   },
   "peerDependenciesMeta": {
+    "@codemirror/autocomplete": {
+      "optional": true
+    },
+    "@codemirror/commands": {
+      "optional": true
+    },
+    "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/language-data": {
+      "optional": true
+    },
+    "@codemirror/search": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@fontsource-variable/inter": {
+      "optional": true
+    },
+    "@fontsource/jetbrains-mono": {
+      "optional": true
+    },
+    "@lezer/highlight": {
+      "optional": true
+    },
+    "@tanstack/react-table": {
+      "optional": true
+    },
+    "@tanstack/table-core": {
+      "optional": true
+    },
+    "@tiptap/core": {
+      "optional": true
+    },
+    "@tiptap/extensions": {
+      "optional": true
+    },
+    "@tiptap/markdown": {
+      "optional": true
+    },
+    "@tiptap/pm": {
+      "optional": true
+    },
+    "@tiptap/react": {
+      "optional": true
+    },
+    "@tiptap/starter-kit": {
+      "optional": true
+    },
+    "cmdk": {
+      "optional": true
+    },
+    "embla-carousel-react": {
+      "optional": true
+    },
     "lucide-react": {
+      "optional": true
+    },
+    "react-day-picker": {
+      "optional": true
+    },
+    "react-hook-form": {
+      "optional": true
+    },
+    "react-markdown": {
+      "optional": true
+    },
+    "react-resizable-panels": {
+      "optional": true
+    },
+    "recharts": {
+      "optional": true
+    },
+    "remark-gfm": {
+      "optional": true
+    },
+    "shiki": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.5",
+    "@codemirror/view": "^6.43.12",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@lezer/highlight": "^1.2.3",
+    "@tanstack/react-table": "^9.2.4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/extensions": "^3.31.3",
+    "@tiptap/markdown": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "cmdk": "^1.1.1",
+    "embla-carousel-react": "^8.6.0",
     "jsdom": "^29.1.1",
     "lucide-react": "^1.47.0",
     "react": "^19.3.0",
+    "react-day-picker": "^10.0.1",
     "react-dom": "^19.3.0",
+    "react-hook-form": "^7.88.0",
+    "react-is": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^4.13.1",
+    "recharts": "^3.10.1",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.4.3",
     "tailwindcss": "^3.4.19",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.21.10",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

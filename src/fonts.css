@@ -1,0 +1,8 @@
+/*
+ * Optional: loads the fonts the preUI design uses, bundled locally (no Google Fonts request).
+ * Requires: npm install @fontsource-variable/inter @fontsource/jetbrains-mono
+ * Usage:    import "@pre_scripts/preui/fonts.css";
+ */
+@import "@fontsource-variable/inter";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
