@@ -146,12 +146,14 @@ function CalendarWeekNumber({ children, week: _week, ...props }: WeekNumberProps
  * `locale`, `numberOfMonths`, `captionLayout` …). The cell size is the CSS variable `--cell-size` (default: the small
  * control height `--pui-control-h-sm`, 2rem),
  * e.g. `className="[--cell-size:2.25rem]"`.
+ * Every month shows six weeks (`fixedWeeks`, default `true`), so the height never changes while navigating.
  */
 export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
   {
     className,
     classNames,
     showOutsideDays = true,
+    fixedWeeks = true,
     captionLayout = "label",
     buttonVariant = "ghost",
     formatters,
@@ -170,6 +172,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
     <CalendarRefContext.Provider value={ref}>
       <DayPicker
         showOutsideDays={showOutsideDays}
+        fixedWeeks={fixedWeeks}
         className={cn(
           "group/calendar p-3 text-sm text-pui-foreground [--cell-size:var(--pui-control-h-sm)]",
           "rtl:[&_.rdp-button\\_next>svg]:rotate-180 rtl:[&_.rdp-button\\_previous>svg]:rotate-180",
