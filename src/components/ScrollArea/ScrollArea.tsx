@@ -70,7 +70,10 @@ export const ScrollArea = forwardRef<ComponentRef<typeof BaseScrollArea.Root>, S
           data-slot="scroll-area-viewport"
           {...viewportProps}
           className={cn(
-            "size-full min-h-0 flex-1 overscroll-contain rounded-[inherit] outline-none focus-visible:ring-pui focus-visible:ring-inset focus-visible:ring-pui-ring",
+            "size-full min-h-0 flex-1 rounded-[inherit] outline-none focus-visible:ring-pui focus-visible:ring-inset focus-visible:ring-pui-ring",
+            // Contain the scroll only on an axis that actually overflows. A horizontal-only area (a wide
+            // table) must let the wheel through to the page behind it instead of swallowing it.
+            "data-[has-overflow-x]:overscroll-x-contain data-[has-overflow-y]:overscroll-y-contain",
             fade && edgeFadeViewport,
             viewportClassName,
           )}
