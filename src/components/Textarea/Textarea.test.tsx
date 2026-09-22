@@ -61,3 +61,10 @@ describe("Textarea data attributes", () => {
     expect(screen.getByRole("textbox", { name: "Notiz" })).toHaveAttribute("data-slot", "textarea");
   });
 });
+
+describe("Textarea aria-invalid", () => {
+  it("styles aria-invalid like data-invalid", () => {
+    render(<Textarea aria-invalid="true" aria-label="Note" />);
+    expect(screen.getByLabelText("Note")).toHaveClass("aria-[invalid=true]:border-pui-negative");
+  });
+});

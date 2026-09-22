@@ -26,7 +26,7 @@ export const Textarea = forwardRef<ComponentRef<typeof BaseField.Control>, Texta
           "flex min-h-20 w-full min-w-0 resize-none rounded-pui-md border border-pui-input bg-pui-background px-3 py-2",
           "text-sm leading-snug text-pui-foreground placeholder:text-pui-muted-foreground",
           "outline-none transition-colors duration-pui-fast ease-pui focus-visible:border-pui-ring",
-          "data-[invalid]:border-pui-negative",
+          "data-[invalid]:border-pui-negative aria-[invalid=true]:border-pui-negative",
           "disabled:cursor-not-allowed disabled:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
         ],
         className,

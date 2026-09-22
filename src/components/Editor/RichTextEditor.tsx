@@ -71,6 +71,13 @@ export interface RichTextEditorProps {
   extensions?: AnyExtension[];
   /** Called once the Tiptap editor has been created. */
   onEditorReady?: (editor: Editor) => void;
+  /**
+   * Creates the Tiptap editor during the first render instead of in an effect after mounting. Default `false`
+   * (Tiptap's SSR-safe setting): the server and the hydration pass render the empty frame, the editor appears
+   * right after mounting. Set `true` in client-only apps to have the editor (and `ref.editor`) in the very first
+   * paint — never with server rendering. Read once when the editor is created.
+   */
+  immediatelyRender?: boolean;
   id?: string;
 }
 
@@ -119,6 +126,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     contentClassName,
     extensions: extraExtensions,
     onEditorReady,
+    immediatelyRender = false,
     id,
   },
   ref,
@@ -195,7 +203,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     });
 
     return {
-      immediatelyRender: true,
+      immediatelyRender,
       shouldRerenderOnTransaction: false,
       editable,
       autofocus: autoFocus ? "end" : false,
@@ -305,18 +313,23 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         className,
       )}
     >
-      {showToolbar && editor && (
+      {showToolbar && (
         <div
           data-slot="rich-text-editor-toolbar"
           className="sticky top-0 z-10 rounded-t-[inherit] border-b border-pui-border bg-pui-background px-1 py-1"
         >
-          <RichTextEditorToolbar
-            editor={editor}
-            items={toolbarItems}
-            labels={labels}
-            linkOpen={linkOpen}
-            onLinkOpenChange={setLinkOpen}
-          />
+          {editor ? (
+            <RichTextEditorToolbar
+              editor={editor}
+              items={toolbarItems}
+              labels={labels}
+              linkOpen={linkOpen}
+              onLinkOpenChange={setLinkOpen}
+            />
+          ) : (
+            // Until the editor exists (server render / first client paint): keep the toolbar's height.
+            <div aria-hidden="true" className="h-pui-control-sm" />
+          )}
         </div>
       )}
       {/* The content scrolls in a preUI ScrollArea (max height on its root); ProseMirror scrolls the

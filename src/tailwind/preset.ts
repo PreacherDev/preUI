@@ -155,10 +155,15 @@ const withForeground = (name: string) => ({
 /**
  * Tailwind v3 preset for preUI.
  *
- * tailwind.config.js:
- *   presets: [require("@pre_scripts/preui/tailwind")],           // token defaults injected
- *   presets: [createPreuiPreset({ injectTokens: false })],       // tokens come from your own CSS
- *   content: ["./src/**\/*.{ts,tsx}", "./node_modules/@pre_scripts/preui/dist/**\/*.{js,cjs}"],
+ * tailwind.config.js (CommonJS):
+ *   const { createPreuiPreset } = require("@pre_scripts/preui/tailwind");
+ *   module.exports = {
+ *     presets: [createPreuiPreset()],                              // token defaults injected
+ *     // presets: [createPreuiPreset({ injectTokens: false })],    // tokens come from your own CSS
+ *     content: ["./src/**\/*.{ts,tsx}", "./node_modules/@pre_scripts/preui/dist/**\/*.{js,cjs}"],
+ *   };
+ *
+ * ESM (tailwind.config.mjs / .ts): `import { createPreuiPreset } from "@pre_scripts/preui/tailwind"`.
  */
 export function createPreuiPreset({ injectTokens = true }: PreuiPresetOptions = {}) {
   return {
@@ -253,6 +258,16 @@ export function createPreuiPreset({ injectTokens = true }: PreuiPresetOptions = 
         "pui-2xs": ["0.625rem", { lineHeight: "0.875rem" }], // 10px — counter badges
         "pui-eyebrow": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.12em" }], // 11px — uppercase labels
       },
+      // Indeterminate Progress: a 40%-wide bar sliding across the track (animate-pui-progress-indeterminate).
+      keyframes: {
+        "pui-progress-indeterminate": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(250%)" },
+        },
+      },
+      animation: {
+        "pui-progress-indeterminate": "pui-progress-indeterminate 1.5s ease-in-out infinite",
+      },
     },
   },
   plugins: [
@@ -276,6 +291,9 @@ export function createPreuiPreset({ injectTokens = true }: PreuiPresetOptions = 
         },
         "*:hover::-webkit-scrollbar-thumb": { backgroundColor: "hsl(var(--pui-muted-foreground) / 0.35)" },
         "*:hover::-webkit-scrollbar-thumb:hover": { backgroundColor: "hsl(var(--pui-muted-foreground) / 0.6)" },
+        // Small-viewport height for full-height layouts (Sidebar); browsers without svh units (Chromium < 108,
+        // e.g. CEF / FiveM) fall back to 100vh via var(--pui-viewport-height, 100vh).
+        "@supports (height: 100svh)": { ":root": { "--pui-viewport-height": "100svh" } },
         "@supports (-moz-appearance: none)": {
           "*": { scrollbarWidth: "thin", scrollbarColor: "transparent transparent" },
           "*:hover": { scrollbarColor: "hsl(var(--pui-muted-foreground) / 0.35) transparent" },

@@ -30,6 +30,12 @@ export interface DataTableColumnMeta {
    * width share the remaining space — widths no longer depend on the rows currently shown.
    */
   width?: string;
+  /**
+   * Fixed layout only: the smallest width (CSS length) a column *without* `width` may shrink to, default `"8rem"`.
+   * The table's minimum width is the sum of all widths / minimum widths; on narrower screens it scrolls
+   * horizontally instead of squeezing unsized columns to nothing.
+   */
+  minWidth?: string;
   /** Extra classes for the column's `<th>`. */
   headerClassName?: string;
   /** Extra classes for the column's `<td>`s. */

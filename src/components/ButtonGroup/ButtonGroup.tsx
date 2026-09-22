@@ -2,6 +2,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Separator } from "../Separator/Separator";
 
 export const buttonGroupVariants = cva(
@@ -13,9 +14,11 @@ export const buttonGroupVariants = cva(
     "rounded-pui-md transition-shadow duration-pui-fast ease-pui",
     "has-[>input:focus-visible]:ring-pui has-[>input:focus-visible]:ring-pui-ring",
     "has-[>textarea:focus-visible]:ring-pui has-[>textarea:focus-visible]:ring-pui-ring",
+    // Same without :has() (Chromium < 105), attribute set by useHasFallback.
+    "data-[has-focused-field]:ring-pui data-[has-focused-field]:ring-pui-ring",
     "[&>input:focus-visible]:border-pui-input [&>textarea:focus-visible]:border-pui-input",
     // Nested groups sit apart instead of merging.
-    "has-[>[data-slot=button-group]]:gap-2",
+    "has-[>[data-slot=button-group]]:gap-2 data-[has-nested-group]:gap-2",
   ],
   {
     variants: {
@@ -43,14 +46,20 @@ export interface ButtonGroupProps extends ComponentPropsWithoutRef<"div"> {
   orientation?: ButtonGroupOrientation;
 }
 
+const buttonGroupHasRules: HasFallbackRule[] = [
+  { attr: "data-has-focused-field", has: ":scope > input:focus-visible, :scope > textarea:focus-visible" },
+  { attr: "data-has-nested-group", has: ":scope > [data-slot=button-group]" },
+];
+
 /** Joins adjacent buttons, inputs and selects into one control by merging their borders and radii. */
 export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
   { className, orientation = "horizontal", ...props },
   ref,
 ) {
+  const groupRef = useHasFallbackRef(ref, buttonGroupHasRules);
   return (
     <div
-      ref={ref}
+      ref={groupRef}
       role="group"
       data-slot="button-group"
       data-orientation={orientation}

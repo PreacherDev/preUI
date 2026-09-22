@@ -4,9 +4,10 @@ import { cn } from "../../utils/cn";
 
 export const alertVariants = cva(
   [
-    "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-pui border px-4 py-3 text-sm",
-    "has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-3",
-    "[&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:shrink-0",
+    // The icon column is `auto`: 0 without an icon, icon + its 12px margin with one (no `:has()` needed,
+    // which Chromium < 105 lacks).
+    "relative grid w-full grid-cols-[auto_1fr] items-start gap-y-0.5 rounded-pui border px-4 py-3 text-sm",
+    "[&>svg]:mr-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:shrink-0",
   ],
   {
     variants: {

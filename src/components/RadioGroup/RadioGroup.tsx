@@ -1,15 +1,16 @@
 import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
-import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
+import { forwardRef, type ReactElement, type Ref, type RefAttributes } from "react";
 import { mergeClassName, type StateClassName } from "../../utils/cn";
 
-export type RadioGroupProps = ComponentPropsWithoutRef<typeof BaseRadioGroup>;
+/** Props of `RadioGroup`; `Value` is inferred from `value` / `defaultValue` / `onValueChange` like in Base UI. */
+export type RadioGroupProps<Value = any> = BaseRadioGroup.Props<Value>;
 
-/** Single selection from a list of `RadioGroupItem`s. Label it with `aria-labelledby` or `FieldSet`. */
-export const RadioGroup = forwardRef<ComponentRef<typeof BaseRadioGroup>, RadioGroupProps>(function RadioGroup(
-  { className, ...props },
-  ref,
-) {
+/**
+ * Single selection from a list of `RadioGroupItem`s. Label it with `aria-labelledby` or `FieldSet`.
+ * Generic like Base UI's: `<RadioGroup<"a" | "b"> onValueChange={(value) => …}>` types `value`.
+ */
+export const RadioGroup = forwardRef(function RadioGroup({ className, ...props }: RadioGroupProps, ref: Ref<HTMLDivElement>) {
   return (
     <BaseRadioGroup
       ref={ref}
@@ -18,7 +19,7 @@ export const RadioGroup = forwardRef<ComponentRef<typeof BaseRadioGroup>, RadioG
       {...props}
     />
   );
-});
+}) as <Value = any>(props: RadioGroupProps<Value> & RefAttributes<HTMLDivElement>) => ReactElement;
 
 export interface RadioGroupItemProps extends BaseRadio.Root.Props {
   /** Classes for the inner dot. */

@@ -88,3 +88,22 @@ describe("Item", () => {
     expect(itemVariants().split(/\s+/)).toContain("border-transparent");
   });
 });
+
+describe("Item list semantics", () => {
+  it("plain items inside ItemGroup are list items; render items keep their role", () => {
+    render(
+      <>
+        <ItemGroup>
+          <Item>Eins</Item>
+          <Item render={<a href="#zwei" />}>Zwei</Item>
+        </ItemGroup>
+        <Item data-testid="standalone">Drei</Item>
+      </>,
+    );
+    expect(screen.getByRole("list")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByRole("listitem")).toHaveTextContent("Eins");
+    expect(screen.getByRole("link", { name: "Zwei" })).toBeInTheDocument();
+    expect(screen.getByTestId("standalone")).not.toHaveAttribute("role");
+  });
+});

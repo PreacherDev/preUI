@@ -66,14 +66,14 @@ export const Command = forwardRef<ComponentRef<typeof CommandPrimitive>, Command
 
 export interface CommandDialogProps extends Omit<ComponentProps<typeof Dialog>, "children"> {
   children?: ReactNode;
-  /** Accessible (visually hidden) dialog title. */
+  /** Accessible (visually hidden) dialog title. Default `"Command Palette"`. */
   title?: string;
-  /** Accessible (visually hidden) dialog description. */
+  /** Accessible (visually hidden) dialog description. Default `"Search for a command to run…"`. */
   description?: string;
   /** Class name of the dialog popup. */
   className?: string;
   showCloseButton?: boolean;
-  /** Accessible label of the close button. */
+  /** Accessible label of the close button. Default `"Close"` (from `DialogContent`). */
   closeLabel?: string;
   /** Props for the inner `Command` (e.g. `filter`, `loop`, `shouldFilter`). */
   commandProps?: CommandProps;
@@ -82,7 +82,7 @@ export interface CommandDialogProps extends Omit<ComponentProps<typeof Dialog>, 
 /** A Command palette inside a modal Dialog. Control it with `open` / `onOpenChange`. */
 export function CommandDialog({
   title = "Command Palette",
-  description = "Search for a command to run...",
+  description = "Search for a command to run…",
   children,
   className,
   showCloseButton = true,

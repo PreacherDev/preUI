@@ -3,6 +3,7 @@ import { Input as BaseInput } from "@base-ui/react/input";
 import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type MouseEvent } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Button, type ButtonProps } from "../Button/Button";
 
 export type InputGroupProps = ComponentPropsWithoutRef<"div">;
@@ -11,13 +12,31 @@ export type InputGroupProps = ComponentPropsWithoutRef<"div">;
  * A field-looking container that combines a borderless `InputGroupInput` / `InputGroupTextarea`
  * with addons (icons, text, buttons). Set `data-disabled` / `data-invalid` or let the control drive it.
  */
+// Emulates the `has-[…]` rules below in browsers without :has() (Chromium < 105, e.g. CEF / FiveM).
+const inputGroupHasRules: HasFallbackRule[] = [
+  { attr: "data-has-textarea", has: ":scope > textarea" },
+  { attr: "data-has-input", has: ":scope > input" },
+  { attr: "data-has-inline-start", has: ":scope > [data-align=inline-start]" },
+  { attr: "data-has-inline-end", has: ":scope > [data-align=inline-end]" },
+  { attr: "data-has-block-start", has: ":scope > [data-align=block-start]" },
+  { attr: "data-has-block-end", has: ":scope > [data-align=block-end]" },
+  { attr: "data-has-disabled", has: ":disabled" },
+  {
+    attr: "data-has-invalid",
+    has: "[data-slot=input-group-control][data-invalid], [data-slot=input-group-control][aria-invalid=true]",
+  },
+  { attr: "data-has-button", has: ":scope > button", target: ":scope > [data-slot=input-group-addon]" },
+  { attr: "data-has-kbd", has: ":scope > kbd", target: ":scope > [data-slot=input-group-addon]" },
+];
+
 export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(function InputGroup(
   { className, ...props },
   ref,
 ) {
+  const groupRef = useHasFallbackRef(ref, inputGroupHasRules);
   return (
     <div
-      ref={ref}
+      ref={groupRef}
       role="group"
       data-slot="input-group"
       className={cn(
@@ -25,15 +44,20 @@ export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(function I
         "outline-none transition-colors duration-pui-fast ease-pui",
         "focus-within:border-pui-ring",
         // Height grows for textareas and block addons.
-        "has-[>textarea]:h-auto",
+        // (Each `has-[…]` rule has a `data-[has-…]` twin for browsers without :has(), see inputGroupHasRules.)
+        "has-[>textarea]:h-auto data-[has-textarea]:h-auto",
         "has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col",
+        "data-[has-block-start]:h-auto data-[has-block-start]:flex-col",
         "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col",
+        "data-[has-block-end]:h-auto data-[has-block-end]:flex-col",
         // Tighter control padding next to inline addons.
         "[&:has(>[data-align=inline-start])>input]:pl-2 [&:has(>[data-align=inline-end])>input]:pr-2",
+        "[&[data-has-inline-start]>input]:pl-2 [&[data-has-inline-end]>input]:pr-2",
         "[&:has(>[data-align=block-start])>input]:pb-3 [&:has(>[data-align=block-end])>input]:pt-3",
+        "[&[data-has-block-start]>input]:pb-3 [&[data-has-block-end]>input]:pt-3",
         // States.
-        "data-[disabled]:opacity-50 has-[:disabled]:opacity-50",
-        "data-[invalid]:border-pui-negative",
+        "data-[disabled]:opacity-50 has-[:disabled]:opacity-50 data-[has-disabled]:opacity-50",
+        "data-[invalid]:border-pui-negative data-[has-invalid]:border-pui-negative",
         "has-[[data-slot=input-group-control][data-invalid]]:border-pui-negative",
         "has-[[data-slot=input-group-control][aria-invalid=true]]:border-pui-negative",
         className,
@@ -52,11 +76,14 @@ export const inputGroupAddonVariants = cva(
   {
     variants: {
       align: {
-        "inline-start": "order-first pl-3 has-[>button]:-ml-1.5 has-[>kbd]:-ml-1",
-        "inline-end": "order-last pr-3 has-[>button]:-mr-1.5 has-[>kbd]:-mr-1",
+        "inline-start":
+          "order-first pl-3 has-[>button]:-ml-1.5 has-[>kbd]:-ml-1 data-[has-button]:-ml-1.5 data-[has-kbd]:-ml-1",
+        "inline-end":
+          "order-last pr-3 has-[>button]:-mr-1.5 has-[>kbd]:-mr-1 data-[has-button]:-mr-1.5 data-[has-kbd]:-mr-1",
         "block-start":
-          "order-first w-full justify-start px-3 pt-3 [&.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5",
-        "block-end": "order-last w-full justify-start px-3 pb-3 [&.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5",
+          "order-first w-full justify-start px-3 pt-3 [&.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5 group-data-[has-input]/input-group:pt-2.5",
+        "block-end":
+          "order-last w-full justify-start px-3 pb-3 [&.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5 group-data-[has-input]/input-group:pb-2.5",
       },
     },
     defaultVariants: {

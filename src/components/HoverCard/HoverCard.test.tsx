@@ -55,3 +55,13 @@ describe("HoverCard", () => {
     expect(popup.parentElement).toHaveAttribute("data-slot", "hover-card-positioner");
   });
 });
+
+describe("HoverCardContent positioner props", () => {
+  it("passes positionerProps to the positioner", async () => {
+    const user = userEvent.setup();
+    render(<Example alignOffset={4} positionerProps={{ className: "custom-positioner" }} />);
+    await user.hover(screen.getByRole("link"));
+    const popup = (await screen.findByText("12 Mitarbeitende, gegründet 2021.")).parentElement!;
+    expect(popup.parentElement).toHaveClass("z-50", "custom-positioner");
+  });
+});

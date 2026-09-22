@@ -10,6 +10,7 @@ export {
   SelectTrigger,
   SelectValue,
 } from "./Select";
+export type { FieldSize } from "./select-styles";
 export type {
   SelectContentProps,
   SelectGroupProps,

@@ -56,12 +56,17 @@ export interface DataTableProps<TData extends RowData> {
   tableClassName?: string;
   /**
    * `fixed` (default): column widths come from `meta.width` / the header and stay put while sorting,
-   * filtering and paging. `auto`: the browser sizes columns by their current content.
+   * filtering and paging; columns without a width share the rest but never shrink below `meta.minWidth`
+   * (default `8rem`) — the table scrolls horizontally instead. `auto`: the browser sizes columns by their
+   * current content.
    */
   layout?: "fixed" | "auto";
   /** Classes for the table's bordered, scrolling container. */
   containerClassName?: string;
 }
+
+/** Smallest width of a column without `meta.width` in the fixed layout (`meta.minWidth` overrides it). */
+const DEFAULT_MIN_COLUMN_WIDTH = "8rem";
 
 /**
  * Data table built on TanStack Table v9 and the preUI `Table` parts: optional search toolbar with column
@@ -142,6 +147,16 @@ export function DataTable<TData extends RowData>({
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const showToolbar = filterColumn != null || enableColumnVisibility || toolbar != null;
 
+  // table-layout: fixed ignores min-width on cells, so the table itself gets the sum of the column widths
+  // (unsized columns count with their minimum) as min-width.
+  const visibleColumns = table.getVisibleLeafColumns();
+  const tableMinWidth =
+    layout === "fixed" && visibleColumns.length > 0
+      ? `calc(${visibleColumns
+          .map((column) => column.columnDef.meta?.width ?? column.columnDef.meta?.minWidth ?? DEFAULT_MIN_COLUMN_WIDTH)
+          .join(" + ")})`
+      : undefined;
+
   return (
     <div data-slot="data-table" className={cn("flex flex-col gap-3", className)}>
       {showToolbar && (
@@ -156,7 +171,11 @@ export function DataTable<TData extends RowData>({
         </DataTableToolbar>
       )}
       <div data-slot="data-table-content">
-        <Table className={cn(layout === "fixed" && "table-fixed", tableClassName)} containerClassName={containerClassName}>
+        <Table
+          className={cn(layout === "fixed" && "table-fixed", tableClassName)}
+          style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
+          containerClassName={containerClassName}
+        >
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

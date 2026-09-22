@@ -227,3 +227,16 @@ describe("Carousel slots", () => {
     expect(container.querySelectorAll('[data-slot="carousel-item"]')).toHaveLength(3);
   });
 });
+
+describe("Carousel vertical slides", () => {
+  it("vertical slides keep their basis height (min-h-0)", () => {
+    render(
+      <Carousel orientation="vertical" aria-label="Vertikal">
+        <CarouselContent className="h-48">
+          <CarouselItem className="basis-1/2">A</CarouselItem>
+        </CarouselContent>
+      </Carousel>,
+    );
+    expect(screen.getByRole("group")).toHaveClass("min-h-0", "pt-4");
+  });
+});

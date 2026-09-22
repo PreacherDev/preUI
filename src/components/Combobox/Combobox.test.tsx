@@ -127,3 +127,13 @@ describe("Combobox", () => {
     await waitFor(() => expect(screen.queryByText("Berlin")).not.toBeInTheDocument());
   });
 });
+
+describe("ComboboxInput icon", () => {
+  it("has no icon by default; true adds the search icon", () => {
+    const { container, unmount } = render(<Combobox items={["a"]}><ComboboxInput aria-label="A" /></Combobox>);
+    expect(container.querySelector('[data-slot="combobox-icon"]')).toBeNull();
+    unmount();
+    const second = render(<Combobox items={["a"]}><ComboboxInput aria-label="B" icon /></Combobox>);
+    expect(second.container.querySelector('[data-slot="combobox-icon"] svg')).not.toBeNull();
+  });
+});

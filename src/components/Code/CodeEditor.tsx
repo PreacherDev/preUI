@@ -510,7 +510,8 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(function
           reserveTrack={false}
           // Scroll containers still pass their content's min-content width up; long lines must not widen
           // whatever the editor sits in, so the scroll area's inline size comes only from the layout around it.
-          className="min-h-0 flex-1 [contain:inline-size]"
+          // Chromium < 105 (CEF / FiveM) lacks contain: inline-size: width 0 + min-width 100% has the same effect.
+          className="min-h-0 flex-1 [contain:inline-size] supports-[not_(contain:inline-size)]:w-0 supports-[not_(contain:inline-size)]:min-w-full"
           // The editor content is the focus target; the viewport needn't be a tab stop of its own.
           viewportRef={viewportRef}
           viewportProps={{ tabIndex: -1 }}

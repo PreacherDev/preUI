@@ -5,8 +5,8 @@ import { cn, mergeClassName } from "../../utils/cn";
 export const Popover = BasePopover.Root;
 
 export type PopoverProps = BasePopover.Root.Props;
-export type PopoverTriggerProps = BasePopover.Trigger.Props;
-export type PopoverCloseProps = BasePopover.Close.Props;
+export interface PopoverTriggerProps extends BasePopover.Trigger.Props {}
+export interface PopoverCloseProps extends ComponentPropsWithoutRef<typeof BasePopover.Close> {}
 
 /** Opens the popover. Renders a `<button>` (`data-slot="popover-trigger"`). */
 export const PopoverTrigger = forwardRef<HTMLButtonElement, PopoverTriggerProps>(function PopoverTrigger(props, ref) {
@@ -22,11 +22,15 @@ export interface PopoverContentProps extends ComponentPropsWithoutRef<typeof Bas
   side?: BasePopover.Positioner.Props["side"];
   align?: BasePopover.Positioner.Props["align"];
   sideOffset?: BasePopover.Positioner.Props["sideOffset"];
+  /** Shift along the alignment axis (px). Default `0`. */
+  alignOffset?: BasePopover.Positioner.Props["alignOffset"];
+  /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
+  positionerProps?: Omit<BasePopover.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
 }
 
 /** Portal + Positioner + Popup in one, styled as a floating surface. */
 export const PopoverContent = forwardRef<ComponentRef<typeof BasePopover.Popup>, PopoverContentProps>(
-  function PopoverContent({ className, side = "bottom", align = "center", sideOffset = 6, ...props }, ref) {
+  function PopoverContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, ...props }, ref) {
     return (
       <BasePopover.Portal data-slot="popover-portal">
         <BasePopover.Positioner
@@ -34,7 +38,9 @@ export const PopoverContent = forwardRef<ComponentRef<typeof BasePopover.Popup>,
           side={side}
           align={align}
           sideOffset={sideOffset}
-          className="z-50 outline-none"
+          alignOffset={alignOffset}
+          {...positionerProps}
+          className={mergeClassName("z-50 outline-none", positionerProps?.className)}
         >
           <BasePopover.Popup
             ref={ref}

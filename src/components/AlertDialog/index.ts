@@ -19,6 +19,8 @@ export type {
   AlertDialogFooterProps,
   AlertDialogHeaderProps,
   AlertDialogOverlayProps,
+  AlertDialogPortalProps,
   AlertDialogProps,
   AlertDialogTitleProps,
+  AlertDialogTriggerProps,
 } from "./AlertDialog";

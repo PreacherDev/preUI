@@ -98,9 +98,9 @@ export function ModalSections({ children, header, footer }: ModalSectionsProps) 
 export const Dialog = BaseDialog.Root;
 
 export type DialogProps = BaseDialog.Root.Props;
-export type DialogTriggerProps = BaseDialog.Trigger.Props;
-export type DialogCloseProps = BaseDialog.Close.Props;
-export type DialogPortalProps = BaseDialog.Portal.Props;
+export interface DialogTriggerProps extends BaseDialog.Trigger.Props {}
+export interface DialogCloseProps extends ComponentPropsWithoutRef<typeof BaseDialog.Close> {}
+export interface DialogPortalProps extends ComponentPropsWithoutRef<typeof BaseDialog.Portal> {}
 
 /** Opens the dialog. Renders a `<button>` (`data-slot="dialog-trigger"`). */
 export const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(function DialogTrigger(props, ref) {

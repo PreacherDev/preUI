@@ -105,3 +105,35 @@ describe("Pagination", () => {
     expect(button).not.toHaveClass("size-7");
   });
 });
+
+describe("Pagination a11y fixes", () => {
+  it("PaginationEllipsis: the label is exposed, the icon hidden", () => {
+    render(<PaginationEllipsis data-testid="ellipsis" />);
+    expect(screen.getByTestId("ellipsis")).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByText("More pages").closest("[aria-hidden]")).toBeNull();
+  });
+
+  it("an aria-disabled PaginationLink leaves the tab order and doesn't activate", async () => {
+    const onClick = vi.fn();
+    render(
+      <PaginationLink href="#p2" aria-disabled="true" onClick={onClick}>
+        2
+      </PaginationLink>,
+    );
+    const link = screen.getByRole("link", { name: "2" });
+    expect(link).toHaveAttribute("tabindex", "-1");
+    link.focus();
+    await userEvent.keyboard("{Enter}");
+    link.click();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("an enabled PaginationLink still calls onClick", async () => {
+    const onClick = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+    render(<PaginationLink href="#p3" onClick={onClick}>3</PaginationLink>);
+    const link = screen.getByRole("link", { name: "3" });
+    expect(link).not.toHaveAttribute("tabindex");
+    await userEvent.click(link);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});

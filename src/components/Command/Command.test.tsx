@@ -141,7 +141,7 @@ describe("CommandDialog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Öffnen" }));
     const dialog = await screen.findByRole("dialog", { name: "Command Palette" });
-    expect(dialog).toHaveAccessibleDescription("Search for a command to run...");
+    expect(dialog).toHaveAccessibleDescription("Search for a command to run…");
     expect(screen.getByRole("option", { name: "Neues Projekt" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
 

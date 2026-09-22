@@ -202,7 +202,8 @@ Base UI setzt State-Attribute (`data-open`, `data-checked`, `data-pressed`, `dat
 - Farbe: `transition-colors duration-150 ease-out` (`ease-out` = `cubic-bezier(0,0,0.2,1)` wie im Handoff).
 - Ebenen (Dialog, Popover, Menü, Toast): 200 ms, fade + zoom-95 über
   `data-[starting-style]:…` / `data-[ending-style]:…` und `origin-[var(--transform-origin)]` bei Popups.
-- Progress: `duration-500`. Keine Federn, kein Bounce, keine Dauerbewegung. Kein `backdrop-blur`.
+- Progress: `duration-500`. Keine Federn, kein Bounce, keine Dauerbewegung (Ausnahme: indeterminate Progress,
+  `motion-safe:` + statischer Fallback bei `prefers-reduced-motion`). Kein `backdrop-blur`.
 
 ## Referenzwerte je Muster (aus dem Handoff)
 
@@ -223,6 +224,17 @@ Base UI setzt State-Attribute (`data-open`, `data-checked`, `data-pressed`, `dat
 
 Wo das Handoff nichts sagt (z. B. Slider, Accordion, Avatar), aus diesen Mustern ableiten: gleiche Flächen,
 Rahmen, Radien, Höhen, Hover- und Fokusregeln.
+
+## Browser-Support (Chromium 103, FiveM/CEF) und SSR
+
+- Kein CSS, das Chromium 103 nicht kann, ohne Fallback: `:has()` nur zusammen mit `useHasFallback`
+  (`src/utils/use-has-fallback.ts`, Klassen-Zwilling `data-[has-…]:…`) oder besser per Daten-Attribut aus React;
+  kein `svh`/`dvh` (→ `var(--pui-viewport-height,100vh)`), keine Container Queries, kein `color-mix()`, kein
+  unpräfixiertes `mask-image` ohne `-webkit-mask-image`, keine Einzel-Properties `translate`/`scale`/`rotate`.
+- Keine JS-APIs jenseits Chromium 103 (`toSorted`, `Object.groupBy`, `Promise.withResolvers` …).
+- SSR: während des Renderns nie `window`, `document`, `matchMedia` oder Cookies lesen (Media Queries über
+  `useMediaQuery` aus `src/utils/use-media-query.ts`), kein `Math.random()`/`Date.now()` im Render, Zahlen/Daten nur
+  mit explizitem Locale formatieren (Default `"en-US"`, als `locale`-Prop überschreibbar).
 
 ## Tests
 

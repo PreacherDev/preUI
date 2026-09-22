@@ -210,7 +210,7 @@ describe("ChartTooltipContent", () => {
     expect(screen.getByText("Mo")).toBeInTheDocument();
     expect(screen.getByText("Einnahmen")).toBeInTheDocument();
     expect(screen.getByText("Ausgaben")).toBeInTheDocument();
-    expect(screen.getByText((3100).toLocaleString())).toHaveClass("tabular-nums", "font-semibold");
+    expect(screen.getByText((3100).toLocaleString("en-US"))).toHaveClass("tabular-nums", "font-semibold");
     const surface = screen.getByText("Mo").parentElement!;
     expect(surface).toHaveClass(
       "bg-pui-tooltip",

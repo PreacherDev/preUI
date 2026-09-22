@@ -35,17 +35,27 @@ export interface ComboboxInputProps extends Omit<BaseInputProps, "className" | "
   /** Class for the `<input>` itself. */
   inputClassName?: BaseInputProps["className"];
   size?: FieldSize;
-  /** Leading icon, e.g. `<SearchIcon />`. Pass `true` for the built-in search icon. */
-  icon?: ReactNode | true;
-  /** Show a clear button while a value is selected. */
+  /**
+   * Leading icon: a node (e.g. `<SearchIcon />`), `true` for the built-in search icon, `false` / `null` for none.
+   * Default: none — a combobox reads like a select (same `icon` type as `AutocompleteInput`, whose default is
+   * the search icon).
+   */
+  icon?: ReactNode | boolean;
+  /** Show a clear button while a value is selected. Default `true`. */
   showClear?: boolean;
-  /** Show a chevron button that opens the list. */
+  /** Show a chevron button that opens the list. Default `true` (like shadcn's ComboboxInput). */
   showTrigger?: boolean;
+  /** Accessible label of the clear button. Default `"Clear"`. */
   clearLabel?: string;
+  /** Accessible label of the chevron trigger. Default `"Open"`. */
   triggerLabel?: string;
 }
 
-/** Field with the input, an optional leading icon, a clear button and a chevron trigger. */
+/**
+ * Select-like field: input, clear button and chevron trigger; no leading icon by default (`icon` adds one).
+ * `AutocompleteInput` is the search-style counterpart (search icon, no trigger by default) — both take the
+ * same props.
+ */
 export const ComboboxInput = forwardRef<ComponentRef<typeof BaseCombobox.Input>, ComboboxInputProps>(
   function ComboboxInput(
     {
@@ -134,7 +144,7 @@ export const ComboboxChips = forwardRef<ComponentRef<typeof BaseCombobox.InputGr
   },
 );
 
-export type ComboboxChipsInputProps = BaseInputProps;
+export interface ComboboxChipsInputProps extends BaseInputProps {}
 
 /** Bare input placed after the chips inside `ComboboxChips`. */
 export const ComboboxChipsInput = forwardRef<ComponentRef<typeof BaseCombobox.Input>, ComboboxChipsInputProps>(
@@ -219,7 +229,7 @@ export const ComboboxContent = forwardRef<ComponentRef<typeof BaseCombobox.Popup
   },
 );
 
-export type ComboboxListProps = ComponentPropsWithoutRef<typeof BaseCombobox.List>;
+export interface ComboboxListProps extends ComponentPropsWithoutRef<typeof BaseCombobox.List> {}
 
 /**
  * The scrolling list. It is rendered as the viewport of a preUI ScrollArea (floating thumb, no native
@@ -232,7 +242,7 @@ export const ComboboxList = forwardRef<ComponentRef<typeof BaseCombobox.List>, C
   return <BaseCombobox.List ref={ref} className={mergeClassName(listClass, className)} render={renderListInScrollArea} {...props} />;
 });
 
-export type ComboboxItemProps = ComponentPropsWithoutRef<typeof BaseCombobox.Item>;
+export interface ComboboxItemProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Item> {}
 
 /** Option with a check mark on the right when selected. */
 export const ComboboxItem = forwardRef<ComponentRef<typeof BaseCombobox.Item>, ComboboxItemProps>(function ComboboxItem(
@@ -250,7 +260,7 @@ export const ComboboxItem = forwardRef<ComponentRef<typeof BaseCombobox.Item>, C
   );
 });
 
-export type ComboboxEmptyProps = ComponentPropsWithoutRef<typeof BaseCombobox.Empty>;
+export interface ComboboxEmptyProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Empty> {}
 
 /** Shown when no item matches. Collapses otherwise. */
 export const ComboboxEmpty = forwardRef<ComponentRef<typeof BaseCombobox.Empty>, ComboboxEmptyProps>(
@@ -259,16 +269,16 @@ export const ComboboxEmpty = forwardRef<ComponentRef<typeof BaseCombobox.Empty>,
   },
 );
 
-export type ComboboxStatusProps = ComponentPropsWithoutRef<typeof BaseCombobox.Status>;
+export interface ComboboxStatusProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Status> {}
 
-/** Live status line, e.g. "Suche läuft …" for async lists. */
+/** Live status line, e.g. "Searching…" for async lists. */
 export const ComboboxStatus = forwardRef<ComponentRef<typeof BaseCombobox.Status>, ComboboxStatusProps>(
   function ComboboxStatus({ className, ...props }, ref) {
     return <BaseCombobox.Status ref={ref} data-slot="combobox-status" className={mergeClassName(emptyClass, className)} {...props} />;
   },
 );
 
-export type ComboboxGroupProps = ComponentPropsWithoutRef<typeof BaseCombobox.Group>;
+export interface ComboboxGroupProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Group> {}
 
 export const ComboboxGroup = forwardRef<ComponentRef<typeof BaseCombobox.Group>, ComboboxGroupProps>(
   function ComboboxGroup({ className, ...props }, ref) {
@@ -276,7 +286,7 @@ export const ComboboxGroup = forwardRef<ComponentRef<typeof BaseCombobox.Group>,
   },
 );
 
-export type ComboboxLabelProps = ComponentPropsWithoutRef<typeof BaseCombobox.GroupLabel>;
+export interface ComboboxLabelProps extends ComponentPropsWithoutRef<typeof BaseCombobox.GroupLabel> {}
 
 export const ComboboxLabel = forwardRef<ComponentRef<typeof BaseCombobox.GroupLabel>, ComboboxLabelProps>(
   function ComboboxLabel({ className, ...props }, ref) {
@@ -284,7 +294,7 @@ export const ComboboxLabel = forwardRef<ComponentRef<typeof BaseCombobox.GroupLa
   },
 );
 
-export type ComboboxSeparatorProps = ComponentPropsWithoutRef<typeof BaseCombobox.Separator>;
+export interface ComboboxSeparatorProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Separator> {}
 
 export const ComboboxSeparator = forwardRef<ComponentRef<typeof BaseCombobox.Separator>, ComboboxSeparatorProps>(
   function ComboboxSeparator({ className, ...props }, ref) {

@@ -58,6 +58,10 @@ export interface EmptyMediaProps extends ComponentPropsWithoutRef<"div"> {
   variant?: EmptyMediaVariant;
 }
 
+/**
+ * Icon or avatar above the title. Renders `data-slot="empty-icon"` — the slot name shadcn/ui uses for this part,
+ * kept for CSS compatibility with shadcn themes.
+ */
 export const EmptyMedia = forwardRef<HTMLDivElement, EmptyMediaProps>(function EmptyMedia(
   { className, variant = "default", ...props },
   ref,

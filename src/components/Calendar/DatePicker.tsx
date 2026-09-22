@@ -1,8 +1,9 @@
-import { forwardRef, useCallback, useEffect, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { forwardRef, useCallback, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import type { DateRange, DayPickerLocale, PropsBase } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger, type PopoverContentProps } from "../Popover/Popover";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useMediaQuery } from "../../utils/use-media-query";
 import { Calendar } from "./Calendar";
 
 /** Calendar props a picker passes through (selection and locale are managed by the picker). */
@@ -15,7 +16,10 @@ interface PickerBaseProps extends TriggerProps {
   placeholder?: ReactNode;
   /** Locale for the calendar and the default date format, e.g. `de` from `react-day-picker/locale`. */
   locale?: DayPickerLocale;
-  /** Formats a date for the trigger. Default: `toLocaleDateString` of the locale (medium date style). */
+  /**
+   * Formats a date for the trigger. Default: `toLocaleDateString` with the `locale`'s code (medium date style),
+   * falling back to `"en-US"` — never the runtime locale, so server and client render the same text.
+   */
   formatDate?: (date: Date) => string;
   disabled?: boolean;
   /** Leading icon in the trigger. Defaults to the `calendar` icon from the IconProvider; pass `null` to hide it. */
@@ -67,22 +71,13 @@ function useControllable<T>(
   return [current, set] as const;
 }
 
+/** SSR-safe (`false` on the server and while hydrating), see `useMediaQuery`. */
 function useIsWide(query = "(min-width: 640px)") {
-  const get = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(query).matches;
-  const [wide, setWide] = useState(get);
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mql = window.matchMedia(query);
-    const onChange = () => setWide(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, [query]);
-  return wide;
+  return useMediaQuery(query);
 }
 
 function defaultFormat(locale?: DayPickerLocale) {
-  return (date: Date) => date.toLocaleDateString(locale?.code, { dateStyle: "medium" });
+  return (date: Date) => date.toLocaleDateString(locale?.code ?? "en-US", { dateStyle: "medium" });
 }
 
 const fieldTriggerClassName = [

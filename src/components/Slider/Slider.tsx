@@ -8,10 +8,16 @@ import {
   type RefAttributes,
 } from "react";
 import { mergeClassName, type StateClassName } from "../../utils/cn";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 
 type SliderRawValue = number | readonly number[];
 
 export type SliderProps<Value extends SliderRawValue = SliderRawValue> = BaseSlider.Root.Props<Value> & {
+  /**
+   * Locale for formatting the value (`SliderValue`, `aria-valuetext`) with `Intl.NumberFormat`.
+   * Default `"en-US"` — not the runtime locale, so server and client render the same text.
+   */
+  locale?: Intl.LocalesArgument;
   /** Accessible label per thumb, e.g. `["Minimum", "Maximum"]` for a range. */
   thumbLabels?: string[];
   controlClassName?: StateClassName<BaseSlider.Control.State>;
@@ -19,6 +25,11 @@ export type SliderProps<Value extends SliderRawValue = SliderRawValue> = BaseSli
   indicatorClassName?: StateClassName<BaseSlider.Indicator.State>;
   thumbClassName?: StateClassName<BaseSlider.Thumb.State>;
 };
+
+// The thumb's focus ring (`has-[:focus-visible]`) for browsers without :has() (Chromium < 105).
+const sliderHasRules: HasFallbackRule[] = [
+  { attr: "data-has-focus-visible", has: ":focus-visible", target: "[data-slot=slider-thumb]" },
+];
 
 const thumbCount = (value: unknown) => (Array.isArray(value) ? value.length : 1);
 
@@ -35,6 +46,7 @@ export const Slider = forwardRef(function Slider(
     indicatorClassName,
     thumbClassName,
     thumbLabels,
+    locale = "en-US",
     children,
     ...props
   }: SliderProps,
@@ -43,11 +55,13 @@ export const Slider = forwardRef(function Slider(
   const values = props.value ?? props.defaultValue;
   const count = thumbCount(values);
   const isRange = Array.isArray(values);
+  const rootRef = useHasFallbackRef(ref, sliderHasRules);
 
   return (
     <BaseSlider.Root
-      ref={ref}
+      ref={rootRef}
       data-slot="slider"
+      locale={locale}
       className={mergeClassName(
         "flex w-full flex-col gap-1.5 data-[orientation=vertical]:h-full data-[orientation=vertical]:w-auto",
         className,
@@ -89,6 +103,12 @@ export const Slider = forwardRef(function Slider(
                   "block size-4 select-none rounded-full bg-pui-foreground shadow-[0_2px_4px_rgb(0_0_0/0.4)] outline-none",
                   "transition-shadow duration-pui-fast ease-pui",
                   "has-[:focus-visible]:ring-pui has-[:focus-visible]:ring-pui-ring",
+                  // Same without :has() (Chromium < 105), attribute set by useHasFallback on the root.
+                  "data-[has-focus-visible]:ring-pui data-[has-focus-visible]:ring-pui-ring",
+                  // Base UI centres the thumb with the `translate` property (Chromium 104+); older engines
+                  // (CEF / FiveM on Chromium 103) get the same offset as a transform.
+                  "supports-[not_(translate:0)]:-translate-x-1/2 supports-[not_(translate:0)]:-translate-y-1/2",
+                  "supports-[not_(translate:0)]:data-[orientation=vertical]:translate-y-1/2",
                 ],
                 thumbClassName,
               )}

@@ -128,3 +128,30 @@ describe("ScrollArea", () => {
     expect(screen.getByTestId("root").className).not.toContain("--pui-fade");
   });
 });
+
+describe("ScrollArea content width", () => {
+  const content = (container: HTMLElement) => container.querySelector<HTMLElement>('[data-slot="scroll-area-content"]')!;
+
+  it("vertical-only: the content follows the viewport width (!min-w-0 beats Base UI's inline fit-content)", () => {
+    const { container } = render(<ScrollArea className="h-20"><pre>{"x".repeat(200)}</pre></ScrollArea>);
+    expect(content(container).style.minWidth).toBe("fit-content");
+    expect(content(container)).toHaveClass("!min-w-0");
+    expect(content(container)).not.toHaveClass("min-w-full");
+  });
+
+  it("horizontal / both: the content may grow wider than the viewport", () => {
+    for (const orientation of ["horizontal", "both"] as const) {
+      const { container, unmount } = render(<ScrollArea orientation={orientation}>wide</ScrollArea>);
+      expect(content(container)).toHaveClass("min-w-full");
+      expect(content(container)).not.toHaveClass("!min-w-0");
+      unmount();
+    }
+  });
+
+  it("edge fade sets the prefixed -webkit-mask-image too (Chromium < 120)", () => {
+    const { container } = render(<ScrollArea orientation="horizontal">wide</ScrollArea>);
+    const viewport = container.querySelector('[data-slot="scroll-area-viewport"]')!;
+    expect(viewport.className).toContain("[-webkit-mask-image:");
+    expect(viewport.className).toContain("[mask-image:");
+  });
+});

@@ -25,7 +25,11 @@ module.exports = {
 };
 ```
 
-ESM config (`tailwind.config.mjs` / `.ts`) works too: `import preui from "@pre_scripts/preui/tailwind"`.
+ESM config (`tailwind.config.mjs` / `.ts`) works too: `import { createPreuiPreset } from "@pre_scripts/preui/tailwind"`
+(the default export is the preset with tokens injected). In CommonJS the shorthand `presets: [require("@pre_scripts/preui/tailwind")]`
+works as well — the CJS module is a callable preset that Tailwind invokes.
+
+The `/tailwind` entry also exports `tokens` (all token defaults), `tokensToCss()` and `tokensHeader` (used by `npx preui init`).
 
 The preset sets the theme tokens on `:root`, enables tabular figures and makes `font-sans` / `font-mono` use the preUI fonts.
 Give your page the base surface, e.g. `<body class="bg-pui-background text-pui-foreground font-sans text-sm">`.
@@ -69,18 +73,29 @@ Components that build on another library have their own entry point, so you only
 
 | Import from | Components | Install |
 |---|---|---|
-| `@pre_scripts/preui/chart` | ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent | `recharts` `react-is` |
-| `@pre_scripts/preui/calendar` | Calendar, DatePicker, DateRangePicker | `react-day-picker` |
-| `@pre_scripts/preui/carousel` | Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext | `embla-carousel-react` |
-| `@pre_scripts/preui/command` | Command, CommandDialog, CommandInput, CommandList, CommandItem … | `cmdk` |
+| `@pre_scripts/preui/chart` | ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle, `useChart` | `recharts` `react-is` |
+| `@pre_scripts/preui/calendar` | Calendar, CalendarDayButton, DatePicker, DateRangePicker | `react-day-picker` |
+| `@pre_scripts/preui/carousel` | Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, `useCarousel` | `embla-carousel-react` |
+| `@pre_scripts/preui/command` | Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator, CommandShortcut | `cmdk` |
 | `@pre_scripts/preui/resizable` | ResizablePanelGroup, ResizablePanel, ResizableHandle | `react-resizable-panels` |
-| `@pre_scripts/preui/form` | Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage | `react-hook-form` |
-| `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions | `@tanstack/react-table` |
-| `@pre_scripts/preui/code` | CodeBlock (syntax highlighting, copy, line numbers), CodeInline, CodeEditor | `shiki`, `@codemirror/*` (state, view, language, commands, language-data, search, autocomplete), `@lezer/highlight` |
+| `@pre_scripts/preui/form` | Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, `useFormField` | `react-hook-form` |
+| `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableToolbar, DataTableViewOptions, `createSelectColumn`, `createDataTableColumnHelper`, `dataTableFeatures`, re-exported `createColumnHelper` / `flexRender` | `@tanstack/react-table` `@tanstack/table-core` |
+| `@pre_scripts/preui/code` | CodeBlock (syntax highlighting, copy, line numbers), CodeInline, CodeEditor, `syntaxColor`, `syntaxPalette` | `shiki`, `@codemirror/*` (state, view, language, commands, language-data, search, autocomplete), `@lezer/highlight` |
 | `@pre_scripts/preui/markdown` | Markdown (GFM tables, task lists, highlighted code) | `react-markdown` `remark-gfm` + the `/code` packages |
-| `@pre_scripts/preui/editor` | RichTextEditor (WYSIWYG, stores Markdown), MarkdownEditor (write/preview) | `@tiptap/core` `@tiptap/react` `@tiptap/pm` `@tiptap/starter-kit` `@tiptap/markdown` `@tiptap/extensions` + the `/markdown` packages |
+| `@pre_scripts/preui/editor` | RichTextEditor (WYSIWYG, stores Markdown), MarkdownEditor (write/preview), `proseClassName`, default labels / toolbar lists (`defaultRichTextEditorLabels`, `defaultRichTextEditorToolbar`, `richTextEditorToolbarGroups`, `defaultMarkdownEditorLabels`, `markdownEditorToolbarGroups`, `MARKDOWN_EDITOR_COMPACT_WIDTH`) | `@tiptap/core` `@tiptap/react` `@tiptap/pm` `@tiptap/starter-kit` `@tiptap/markdown` `@tiptap/extensions` + the `/markdown` packages |
 
 The main package also exports a Base UI `Form` (native form with server-side errors); the `/form` entry is shadcn's react-hook-form `Form`.
+
+Besides the components, the main package exports:
+
+| Export | Purpose |
+|---|---|
+| `buttonVariants`, `badgeVariants`, `alertVariants`, `avatarVariants`, `buttonGroupVariants`, `toggleVariants`, `toggleGroupVariants`, `toolbarVariants`, `inputVariants`, `inputGroupAddonVariants`, `inputGroupButtonVariants`, `numberFieldVariants`, `itemVariants`, `itemMediaVariants`, `emptyMediaVariants`, `progressIndicatorVariants`, `meterIndicatorVariants`, `navigationMenuTriggerStyle`, `sidebarMenuButtonVariants` | Style helpers (cva), e.g. to style a plain `<a>` like a button |
+| `cn`, `mergeClassName` | Class merging (tailwind-merge); `mergeClassName` also accepts Base UI's function-form `className` |
+| `IconProvider`, `useIcon`, `defaultIcons` | Icon slots (see [Icons](#icons)) |
+| `Toaster`, `toast` | Toasts (Sonner-style API) |
+| `useSidebar`, `getSidebarStateFromCookie`, `SIDEBAR_COOKIE_NAME`, `SIDEBAR_COOKIE_MAX_AGE`, `SIDEBAR_KEYBOARD_SHORTCUT`, `SIDEBAR_WIDTH`, `SIDEBAR_WIDTH_ICON`, `SIDEBAR_WIDTH_MOBILE` | Sidebar state and constants (see [Server rendering](#server-rendering-ssr)) |
+| `useAutocompleteFilter`, `useComboboxFilter` | Base UI's filter hooks for custom item filtering |
 
 Every part accepts `className` (merged with the defaults, later classes win). Where shadcn uses Radix' `asChild`,
 preUI uses Base UI's `render` prop:
@@ -158,6 +173,68 @@ import { MarkdownEditor, RichTextEditor } from "@pre_scripts/preui/editor";
 Syntax colours follow the theme tokens; override single roles with `--pui-syntax-keyword`, `--pui-syntax-string` … .
 Markdown is rendered safely by default (raw HTML skipped, unsafe URLs stripped). The rich-text editor stores Markdown,
 so formats Markdown doesn't have (underline, colours) are intentionally not offered.
+
+## Server rendering (SSR)
+
+preUI renders on the server (Next.js, TanStack Start, Remix …) without hydration mismatches:
+
+- Nothing reads `window`, `matchMedia` or cookies during render. The sidebar and the date range picker render their
+  desktop / single-month variant on the server and switch right after hydration (the desktop sidebar is hidden below
+  `md` by CSS, so phones never see it).
+- Numbers and dates are formatted with `"en-US"` unless you pass a locale — never with the runtime locale, which
+  differs between server and browser: `locale` on `Progress`, `Meter`, `Slider`, `NumberField` (e.g. `locale="de-DE"`),
+  and a react-day-picker `locale` (or `formatDate`) on `DatePicker` / `DateRangePicker`.
+- `RichTextEditor` creates its Tiptap editor after mounting (`immediatelyRender={false}`, Tiptap's SSR setting);
+  set `immediatelyRender` in client-only apps to have it in the first paint. The CodeMirror editors always mount
+  in an effect.
+- The sidebar persists its desktop state in the `sidebar_state` cookie. Read it on the server and pass it on, like
+  shadcn/ui does:
+
+```tsx
+import { SidebarProvider, getSidebarStateFromCookie } from "@pre_scripts/preui";
+
+// in a server loader / layout where the request is available
+const defaultOpen = getSidebarStateFromCookie(request.headers.get("cookie")) ?? true;
+
+<SidebarProvider defaultOpen={defaultOpen}>…</SidebarProvider>
+```
+
+## Browser support
+
+Current Chrome / Edge, Firefox and Safari, and **Chromium 103+** — so preUI runs in CEF-based game UIs such as
+**FiveM NUI**. The package itself is compiled for `chrome103` / `node18`, and components avoid CSS that Chromium 103
+lacks, or ship a fallback:
+
+| Feature (Chromium version) | How preUI handles it |
+|---|---|
+| `:has()` (105) | Kept for modern browsers; a tiny effect mirrors each rule as a `data-has-*` attribute where `:has()` is unsupported (Calendar, Card and Alert need no `:has()` at all) |
+| `translate` property (104) | Slider thumb gets an equivalent `transform` via `@supports not (translate: 0)` |
+| `mask-image` unprefixed (120) | ScrollArea edge fade also sets `-webkit-mask-image` |
+| `svh` units (108) | Sidebar height uses `var(--pui-viewport-height, 100vh)`; the preset sets it to `100svh` where supported |
+| `contain: inline-size` (105) | CodeEditor / MarkdownEditor preview fall back to `width: 0; min-width: 100%` |
+| Firefox-only `scrollbar-width` / `scrollbar-color` | Limited to Firefox via `@supports`, Chromium keeps the `::-webkit-scrollbar` styling |
+
+Purely cosmetic features degrade silently (e.g. `text-wrap: balance` on `ItemDescription`).
+
+### FiveM / CEF (Chromium 103)
+
+Build your NUI for the engine, so your bundler lowers syntax and CSS for it:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  build: { target: "chrome103" }, // also lowers the CSS (cssTarget defaults to target)
+});
+```
+
+- Tested: the whole playground built with `build.target: "chrome103"` renders in Chromium 103.0.5058 without console
+  errors and matches current Chrome (overlays, menus, selects, calendar, sidebar, editors).
+- Dependencies are compatible: Base UI and Immer feature-detect newer APIs (`checkVisibility`, `Iterator.from`);
+  Shiki's JavaScript regex engine detects the supported RegExp features (`target: "auto"`, falls back to ES2018 without
+  the `v` flag).
+- Your own CSS: avoid `:has()`, `svh`/`dvh`, container queries, `color-mix()`, CSS nesting (unless your build lowers
+  it) and unprefixed `mask-image` — Chromium 103 ignores them.
+- No `window.matchMedia`/`ResizeObserver` polyfills are needed; both exist in Chromium 103.
 
 ## Icons
 

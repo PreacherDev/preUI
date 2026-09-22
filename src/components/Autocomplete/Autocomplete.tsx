@@ -34,17 +34,25 @@ export interface AutocompleteInputProps extends Omit<BaseInputProps, "className"
   /** Class for the `<input>` itself. */
   inputClassName?: BaseInputProps["className"];
   size?: FieldSize;
-  /** Leading icon. Defaults to the built-in search icon; pass `null` to hide it. */
-  icon?: ReactNode;
-  /** Show a clear button while the input has text. */
+  /**
+   * Leading icon: a node, `true` for the built-in search icon, `false` / `null` for none.
+   * Default: the search icon (same `icon` type as `ComboboxInput`, whose default is none).
+   */
+  icon?: ReactNode | boolean;
+  /** Show a clear button while the input has text. Default `true`. */
   showClear?: boolean;
-  /** Show a chevron button that opens the suggestions. */
+  /** Show a chevron button that opens the suggestions. Default `false` (search field look). */
   showTrigger?: boolean;
+  /** Accessible label of the clear button. Default `"Clear"`. */
   clearLabel?: string;
+  /** Accessible label of the chevron trigger. Default `"Open"`. */
   triggerLabel?: string;
 }
 
-/** Search-style field: leading search icon, input, clear button (and optional chevron trigger). */
+/**
+ * Search-style field: leading search icon, input, clear button (chevron trigger with `showTrigger`).
+ * `ComboboxInput` is the select-like counterpart (no icon, trigger shown by default) — both take the same props.
+ */
 export const AutocompleteInput = forwardRef<ComponentRef<typeof BaseAutocomplete.Input>, AutocompleteInputProps>(
   function AutocompleteInput(
     {
@@ -63,7 +71,7 @@ export const AutocompleteInput = forwardRef<ComponentRef<typeof BaseAutocomplete
     const Search = useIcon("search");
     const Close = useIcon("close");
     const ChevronDown = useIcon("chevronDown");
-    const leading = icon === undefined ? <Search /> : icon;
+    const leading = icon === undefined || icon === true ? <Search /> : icon;
     return (
       <BaseAutocomplete.InputGroup
         data-slot="autocomplete-input-group"
@@ -140,7 +148,7 @@ export const AutocompleteContent = forwardRef<ComponentRef<typeof BaseAutocomple
   },
 );
 
-export type AutocompleteListProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.List>;
+export interface AutocompleteListProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.List> {}
 
 /**
  * The scrolling list. It is rendered as the viewport of a preUI ScrollArea (floating thumb, no native
@@ -152,7 +160,7 @@ export const AutocompleteList = forwardRef<ComponentRef<typeof BaseAutocomplete.
   },
 );
 
-export type AutocompleteItemProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.Item>;
+export interface AutocompleteItemProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Item> {}
 
 /** Suggestion row. */
 export const AutocompleteItem = forwardRef<ComponentRef<typeof BaseAutocomplete.Item>, AutocompleteItemProps>(
@@ -161,7 +169,7 @@ export const AutocompleteItem = forwardRef<ComponentRef<typeof BaseAutocomplete.
   },
 );
 
-export type AutocompleteEmptyProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.Empty>;
+export interface AutocompleteEmptyProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Empty> {}
 
 /** Shown when no suggestion matches. Collapses otherwise. */
 export const AutocompleteEmpty = forwardRef<ComponentRef<typeof BaseAutocomplete.Empty>, AutocompleteEmptyProps>(
@@ -170,7 +178,7 @@ export const AutocompleteEmpty = forwardRef<ComponentRef<typeof BaseAutocomplete
   },
 );
 
-export type AutocompleteStatusProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.Status>;
+export interface AutocompleteStatusProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Status> {}
 
 export const AutocompleteStatus = forwardRef<ComponentRef<typeof BaseAutocomplete.Status>, AutocompleteStatusProps>(
   function AutocompleteStatus({ className, ...props }, ref) {
@@ -178,7 +186,7 @@ export const AutocompleteStatus = forwardRef<ComponentRef<typeof BaseAutocomplet
   },
 );
 
-export type AutocompleteGroupProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.Group>;
+export interface AutocompleteGroupProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Group> {}
 
 export const AutocompleteGroup = forwardRef<ComponentRef<typeof BaseAutocomplete.Group>, AutocompleteGroupProps>(
   function AutocompleteGroup({ className, ...props }, ref) {
@@ -186,7 +194,7 @@ export const AutocompleteGroup = forwardRef<ComponentRef<typeof BaseAutocomplete
   },
 );
 
-export type AutocompleteLabelProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.GroupLabel>;
+export interface AutocompleteLabelProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.GroupLabel> {}
 
 export const AutocompleteLabel = forwardRef<
   ComponentRef<typeof BaseAutocomplete.GroupLabel>,
@@ -195,7 +203,7 @@ export const AutocompleteLabel = forwardRef<
   return <BaseAutocomplete.GroupLabel ref={ref} data-slot="autocomplete-label" className={mergeClassName(groupLabelClass, className)} {...props} />;
 });
 
-export type AutocompleteSeparatorProps = ComponentPropsWithoutRef<typeof BaseAutocomplete.Separator>;
+export interface AutocompleteSeparatorProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Separator> {}
 
 export const AutocompleteSeparator = forwardRef<
   ComponentRef<typeof BaseAutocomplete.Separator>,

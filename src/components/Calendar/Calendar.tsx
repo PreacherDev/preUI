@@ -30,9 +30,11 @@ import {
   Weeks,
   type ChevronProps,
   type DayButtonProps,
+  type DayProps,
   type DropdownProps,
   type RootProps,
   type WeekNumberProps,
+  type WeekProps,
 } from "react-day-picker";
 import { buttonVariants, type ButtonVariant } from "../Button/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Select/Select";
@@ -73,6 +75,34 @@ function withSlot<P extends object>(Component: (props: P) => ReactElement, slot:
   return SlotComponent;
 }
 
+/**
+ * Week row. `data-filler`: a week made only of days of the neighbouring month (the trailing filler week of
+ * `fixedWeeks`) — set here instead of a CSS `:has()` rule, which Chromium < 105 (e.g. CEF / FiveM) lacks.
+ */
+function CalendarWeekRow(props: WeekProps): ReactElement {
+  const filler = props.week.days.every((day) => day.outside);
+  return <Week data-slot="calendar-week" data-filler={filler || undefined} {...props} />;
+}
+
+/**
+ * Day cell. `data-month-start` / `data-month-end` mark the first / last day of the displayed month, i.e. the cells
+ * next to an (unmarked) outside day, so a selected range visually ends at the month edge (no `:has()` needed).
+ */
+function CalendarDayCell(props: DayProps): ReactElement {
+  const { day } = props;
+  const { dateLib } = day;
+  const monthStart = !day.outside && !dateLib.isSameMonth(dateLib.addDays(day.date, -1), day.displayMonth);
+  const monthEnd = !day.outside && !dateLib.isSameMonth(dateLib.addDays(day.date, 1), day.displayMonth);
+  return (
+    <Day
+      data-slot="calendar-day"
+      data-month-start={monthStart || undefined}
+      data-month-end={monthEnd || undefined}
+      {...props}
+    />
+  );
+}
+
 /** `data-slot` on every part: `calendar-month`, `calendar-day`, `calendar-day-button` … */
 const slotComponents = {
   Months: withSlot(Months, "calendar-months"),
@@ -88,8 +118,8 @@ const slotComponents = {
   Weekday: withSlot(Weekday, "calendar-weekday"),
   WeekNumberHeader: withSlot(WeekNumberHeader, "calendar-week-number-header"),
   Weeks: withSlot(Weeks, "calendar-weeks"),
-  Week: withSlot(Week, "calendar-week"),
-  Day: withSlot(Day, "calendar-day"),
+  Week: CalendarWeekRow,
+  Day: CalendarDayCell,
   Footer: withSlot(Footer, "calendar-footer"),
 };
 
@@ -182,7 +212,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
         captionLayout={captionLayout}
         formatters={{
           formatMonthDropdown: (month, dateLib) =>
-            dateLib ? dateLib.format(month, "LLL") : month.toLocaleString("default", { month: "short" }),
+            dateLib ? dateLib.format(month, "LLL") : month.toLocaleString("en-US", { month: "short" }),
           ...formatters,
         }}
         classNames={{
@@ -206,7 +236,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
             defaultClassNames.dropdowns,
           ),
           dropdown_root: cn(
-            "relative rounded-pui-md border border-pui-input bg-pui-background transition-colors duration-pui-fast ease-pui has-[:focus-visible]:border-pui-ring",
+            "relative rounded-pui-md border border-pui-input bg-pui-background transition-colors duration-pui-fast ease-pui focus-within:border-pui-ring",
             defaultClassNames.dropdown_root,
           ),
           dropdown: cn("absolute inset-0 cursor-pointer bg-pui-popover opacity-0", defaultClassNames.dropdown),
@@ -225,7 +255,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
           ),
           // A filler week made only of next-month days (fixedWeeks) keeps its space but shows nothing.
           week: cn(
-            "mt-1 flex w-full [&:not(:has(>[role=gridcell]:not([data-outside])))]:invisible",
+            "mt-1 flex w-full data-[filler]:invisible",
             defaultClassNames.week,
           ),
           week_number_header: cn("w-[var(--cell-size)] select-none", defaultClassNames.week_number_header),
@@ -234,7 +264,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calen
             "group/day relative flex aspect-square h-full w-full select-none items-center justify-center p-0 text-center",
             "[&:last-child[data-selected=true]_button]:rounded-r-pui-md",
             // The range ends visually at the month edge, next to an (unmarked) outside day.
-            "[&[data-selected=true]:has(+[data-outside])_button]:rounded-r-pui-md [[data-outside]+&[data-selected=true]_button]:rounded-l-pui-md",
+            "[&[data-selected=true][data-month-end]_button]:rounded-r-pui-md [&[data-selected=true][data-month-start]_button]:rounded-l-pui-md",
             props.showWeekNumber
               ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-pui-md"
               : "[&:first-child[data-selected=true]_button]:rounded-l-pui-md",

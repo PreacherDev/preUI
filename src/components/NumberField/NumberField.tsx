@@ -36,6 +36,11 @@ const stepperClassName = [
 
 export interface NumberFieldProps extends BaseNumberField.Root.Props {
   size?: NumberFieldSize;
+  /**
+   * Locale for formatting and parsing the value (`Intl.NumberFormat`). Default `"en-US"` — not the runtime
+   * locale, so server and client render the same value. Pass e.g. `"de-DE"` for `1.234,5`.
+   */
+  locale?: Intl.LocalesArgument;
   placeholder?: string;
   /** Accessible label of the minus button. */
   decrementLabel?: string;
@@ -59,6 +64,7 @@ export const NumberField = forwardRef<HTMLDivElement, NumberFieldProps>(function
     incrementLabel = "Increase",
     inputClassName,
     inputProps,
+    locale = "en-US",
     ...props
   },
   ref,
@@ -71,6 +77,7 @@ export const NumberField = forwardRef<HTMLDivElement, NumberFieldProps>(function
       ref={ref}
       data-slot="number-field"
       data-size={size ?? "default"}
+      locale={locale}
       className={mergeClassName(numberFieldVariants({ size }), className)}
       {...props}
     >

@@ -8,5 +8,10 @@ export {
 export type { RichTextEditorLabels, RichTextEditorToolbarItem } from "./RichTextEditorToolbar";
 export { proseClassName } from "./prose";
 export type { Editor as TiptapEditor } from "@tiptap/core";
-export { MarkdownEditor, defaultMarkdownEditorLabels, markdownEditorToolbarGroups } from "./MarkdownEditor";
+export {
+  MARKDOWN_EDITOR_COMPACT_WIDTH,
+  MarkdownEditor,
+  defaultMarkdownEditorLabels,
+  markdownEditorToolbarGroups,
+} from "./MarkdownEditor";
 export type { MarkdownEditorLabels, MarkdownEditorLayout, MarkdownEditorProps, MarkdownEditorToolbarItem } from "./MarkdownEditor";

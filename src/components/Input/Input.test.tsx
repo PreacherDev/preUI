@@ -57,3 +57,10 @@ describe("Input data attributes", () => {
     expect(input).toHaveClass("h-pui-control-lg", "duration-pui-fast", "ease-pui");
   });
 });
+
+describe("Input aria-invalid", () => {
+  it("styles aria-invalid like data-invalid", () => {
+    render(<Input aria-invalid="true" aria-label="Mail" />);
+    expect(screen.getByLabelText("Mail")).toHaveClass("aria-[invalid=true]:border-pui-negative", "data-[invalid]:border-pui-negative");
+  });
+});
