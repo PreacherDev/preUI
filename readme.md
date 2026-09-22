@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/PreacherDev/preUI-0.0.1/main/assets/logo.png" width="96" height="96" alt="">
+</p>
+
 # preUI
 
 React components built on **[Base UI](https://base-ui.com)** (behavior & accessibility) and **Tailwind CSS v3** (styling).
