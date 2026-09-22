@@ -154,4 +154,18 @@ describe("ScrollArea content width", () => {
     expect(viewport.className).toContain("[-webkit-mask-image:");
     expect(viewport.className).toContain("[mask-image:");
   });
+
+  it("contains the scroll per axis, so an area that only overflows sideways lets the wheel through", () => {
+    render(
+      <ScrollArea data-testid="root" orientation="both">
+        <p>Inhalt</p>
+      </ScrollArea>,
+    );
+    const viewport = screen.getByTestId("root").querySelector('[data-slot="scroll-area-viewport"]')!;
+    expect(viewport).toHaveClass(
+      "data-[has-overflow-x]:overscroll-x-contain",
+      "data-[has-overflow-y]:overscroll-y-contain",
+    );
+    expect(viewport.className).not.toContain(" overscroll-contain");
+  });
 });
