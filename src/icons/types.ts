@@ -53,6 +53,9 @@ export type IconName =
   | "link"
   | "undo"
   | "redo"
-  | "eye";
+  | "eye"
+  | "sun"
+  | "moon"
+  | "monitor";
 
 export type IconSet = Record<IconName, IconComponent>;

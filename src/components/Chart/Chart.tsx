@@ -25,13 +25,17 @@ import { cn } from "../../utils/cn";
 // ---------------------------------------------------------------------------
 
 /**
- * Theme name for per-theme series colours: `"default"` applies everywhere, any other name applies under
- * `[data-theme="<name>"]` (your own themes, defined with preUI tokens).
+ * Key of a per-theme series colour:
+ * - `"default"`: applies everywhere (fallback for a scheme without its own key),
+ * - `"dark"`: the dark scheme (the default scheme, so it also applies without any `data-scheme`),
+ * - `"light"`: under `[data-scheme="light"]`,
+ * - any other name: under `[data-theme="<name>"]` (your own themes, defined with preUI tokens).
  */
-export type ChartTheme = "default" | (string & {});
+export type ChartTheme = "default" | "dark" | "light" | (string & {});
 
-/** Ancestor selector that activates a theme's colours. */
-const themeSelector = (theme: string) => (theme === "default" ? "" : `[data-theme="${theme}"]`);
+/** Ancestor selector that activates a theme's colours (`dark` / `default` are the base, no selector). */
+const themeSelector = (theme: string) =>
+  theme === "default" || theme === "dark" ? "" : theme === "light" ? '[data-scheme="light"]' : `[data-theme="${theme}"]`;
 
 /**
  * Per-series configuration, keyed by `dataKey` (or `nameKey` value).
@@ -45,7 +49,11 @@ export type ChartConfig = Record<
     icon?: ComponentType;
   } & (
     | { color?: string; theme?: never }
-    | { color?: never; theme: { default: string } & Partial<Record<string, string>> }
+    | {
+        color?: never;
+        /** Colours per scheme / theme — needs a `default` or a `dark` (base) colour. */
+        theme: ({ default: string } | { dark: string }) & Partial<Record<ChartTheme, string>>;
+      }
   )
 >;
 
@@ -139,16 +147,28 @@ export function ChartStyle({ id, config }: ChartStyleProps) {
   const colorConfig = Object.entries(config).filter(([, item]) => item.theme || item.color);
   if (!colorConfig.length) return null;
 
-  // "default" first, then every other theme name used in the config.
+  // The base rule first (dark or default colours), then the light scheme, then every custom theme name.
   const themes = [
     "default",
-    ...new Set(colorConfig.flatMap(([, item]) => Object.keys(item.theme ?? {}).filter((name) => name !== "default"))),
+    "light",
+    ...new Set(
+      colorConfig.flatMap(([, item]) =>
+        Object.keys(item.theme ?? {}).filter((name) => name !== "default" && name !== "dark" && name !== "light"),
+      ),
+    ),
   ];
+  const colorFor = (item: ChartConfig[string], theme: string): string | undefined => {
+    const themed = item.theme as Partial<Record<string, string>> | undefined;
+    if (theme === "default") return themed?.dark ?? themed?.default ?? item.color;
+    // Light falls back to `default` when the base rule carries a separate dark colour.
+    if (theme === "light") return themed?.light ?? (themed?.dark !== undefined ? themed?.default : undefined);
+    return themed?.[theme];
+  };
   const css = themes
     .map((theme) => {
       const declarations = colorConfig
         .map(([key, item]) => {
-          const color = item.theme?.[theme] ?? (theme === "default" ? item.color : undefined);
+          const color = colorFor(item, theme);
           return color ? `  --color-${key}: ${color};` : null;
         })
         .filter(Boolean);

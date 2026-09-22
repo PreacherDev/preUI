@@ -8,7 +8,7 @@ describe("Slider", () => {
     expect(input).toHaveAttribute("aria-valuenow", "40");
     expect(container.querySelector(".bg-pui-muted")).toHaveClass("h-1", "rounded-full");
     expect(container.querySelector(".bg-pui-primary")).not.toBeNull();
-    expect(input.parentElement).toHaveClass("size-4", "rounded-full", "bg-pui-foreground");
+    expect(input.parentElement).toHaveClass("size-4", "rounded-full", "bg-pui-thumb");
   });
 
   it("uses the plain 1px focus ring on the thumb (no offset, like every other control)", () => {

@@ -74,8 +74,9 @@ Komponenten keine Design-Werte fest verdrahten, die es als Token gibt:
 | `ease-out` | `ease-pui` |
 | `ring-1` (Fokusring) | `ring-pui` |
 | `ring-offset-1` (Ring-Abstand bei gefüllten Controls) | `ring-offset-pui` |
-| Overlay `bg-pui-background/70` | `bg-pui-background/scrim` |
-| Schatten | `shadow-pui-window` / `shadow-pui-floating` / `shadow-pui-tooltip` (sind jetzt Variablen) |
+| Overlay `bg-pui-background/70` | `bg-pui-scrim/scrim` (Farbe `--pui-scrim`: dunkel = Hintergrund, hell = dunkles Grau) |
+| Switch-/Slider-Thumb `bg-pui-foreground shadow-[…]` | `bg-pui-thumb shadow-pui-thumb` |
+| Schatten | `shadow-pui-window` / `shadow-pui-floating` / `shadow-pui-tooltip` / `shadow-pui-thumb` (sind jetzt Variablen) |
 | Syntaxfarben | `var(--pui-syntax-<rolle>)` (im Preset definiert, pro Theme überschreibbar) |
 
 Andere Opazitäten (z. B. `/40`, `/50`, `/70` für Hover-Flächen oder Overlays) und Abstände bleiben
@@ -157,7 +158,7 @@ const ChevronDown = useIcon("chevronDown");
 ```
 
 Verfügbar: `spinner check close chevronDown chevronUp chevronLeft chevronRight chevronsUpDown chevronsLeft chevronsRight minus plus
-search more lock info success error warning calendar panelLeft arrowUp arrowDown arrowUpDown gripVertical copy bold italic underline strikethrough code codeBlock heading1 heading2 heading3 list listOrdered quote link undo redo eye`. Größen laut Handoff: 12 (`size-3`, Badge), 14 (`size-3.5`),
+search more lock info success error warning calendar panelLeft arrowUp arrowDown arrowUpDown gripVertical copy bold italic underline strikethrough code codeBlock heading1 heading2 heading3 list listOrdered quote link undo redo eye sun moon monitor`. Größen laut Handoff: 12 (`size-3`, Badge), 14 (`size-3.5`),
 16 (`size-4`, Standard), 18, 24.
 
 ## Tokens (Tailwind-Klassen aus dem Preset)
@@ -166,9 +167,9 @@ Nur diese Farben verwenden, **nie** Hex-Werte oder Tailwind-Standardfarben (`sla
 
 | Zweck | Klassen |
 |---|---|
-| Flächen | `bg-pui-shell` (Dialog), `bg-pui-background` (Felder, Inhalt), `bg-pui-card` (Panels), `bg-pui-popover` (Menüs, Toasts), `bg-pui-tooltip` |
+| Flächen | `bg-pui-shell` (Dialog), `bg-pui-background` (Felder, Inhalt), `bg-pui-card` (Panels), `bg-pui-popover` (Menüs, Toasts), `bg-pui-tooltip`, `bg-pui-scrim/scrim` (Overlay hinter Dialog/Sheet/Drawer) |
 | Text | `text-pui-foreground`, `text-pui-muted-foreground` (sekundär, Icons in Ruhe) |
-| Interaktion | `pui-primary`, `pui-secondary`, `pui-accent` (Hover-Fläche), `pui-muted` (Tracks), `pui-rail-active` |
+| Interaktion | `pui-primary`, `pui-secondary`, `pui-accent` (Hover-Fläche), `pui-muted` (Tracks), `pui-rail-active`, `pui-thumb` (Switch-/Slider-Knopf) |
 | Linien | `border-pui-border` (jede Trennlinie/Panelkante), `border-pui-input` (Feldrahmen), `ring-pui-ring` |
 | Semantik | `pui-positive`, `pui-negative`, `pui-destructive`, `pui-warning`, `pui-info` (+ `-foreground`) |
 
@@ -212,8 +213,8 @@ Base UI setzt State-Attribute (`data-open`, `data-checked`, `data-pressed`, `dat
 - **Feld** (Input, Select-Trigger, Combobox): `h-9 w-full rounded-pui-md border border-pui-input bg-pui-background px-3 text-sm text-pui-foreground placeholder:text-pui-muted-foreground transition-colors duration-150 ease-out focus-visible:border-pui-ring outline-none`.
 - **Label**: `text-xs font-medium text-pui-muted-foreground`; Feld-Stack `flex flex-col gap-1.5`; Hinweis `text-xs text-pui-muted-foreground`; Fehler `text-xs text-pui-negative`.
 - **Checkbox**: `size-4 rounded-pui-sm border border-pui-input`, checked `bg-pui-primary border-pui-primary`, Häkchen `size-3.5 text-pui-primary-foreground`.
-- **Switch**: `h-5 w-9 rounded-full bg-pui-input`, checked `bg-pui-primary`; Thumb `size-4 rounded-full bg-pui-foreground shadow-[0_2px_4px_rgb(0_0_0/0.4)]`, checked `translate-x-4`.
-- **Dialog**: Overlay `fixed inset-0 z-50 bg-pui-background/70`; Popup `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg max-h-[85vh] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-pui border border-pui-border bg-pui-shell p-5 shadow-pui-window`; Titel `text-base font-semibold`; Beschreibung `text-sm text-pui-muted-foreground`; Footer `flex justify-end gap-2 pt-1`; Schließen-X `absolute right-4 top-4 text-pui-muted-foreground hover:text-pui-foreground`.
+- **Switch**: `h-5 w-9 rounded-full bg-pui-input`, checked `bg-pui-primary`; Thumb `size-4 rounded-full bg-pui-thumb shadow-pui-thumb`, checked `translate-x-4`.
+- **Dialog**: Overlay `fixed inset-0 z-50 bg-pui-scrim/scrim`; Popup `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg max-h-[85vh] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-pui border border-pui-border bg-pui-shell p-5 shadow-pui-window`; Titel `text-base font-semibold`; Beschreibung `text-sm text-pui-muted-foreground`; Footer `flex justify-end gap-2 pt-1`; Schließen-X `absolute right-4 top-4 text-pui-muted-foreground hover:text-pui-foreground`.
 - **Tooltip**: `max-w-64 rounded-pui-md bg-pui-tooltip px-2.5 py-1.5 text-xs font-medium leading-snug text-pui-tooltip-foreground shadow-pui-tooltip`.
 - **Toast**: unten rechts, `w-80`, `flex items-start gap-2.5 rounded-pui border border-pui-border bg-pui-popover px-3.5 py-3 text-sm shadow-pui-floating`, Einblendung fade + 8px slide-up in 200 ms; Icon `success`/`text-pui-positive`, `error`/`text-pui-negative`.
 - **Tabs**: Liste `flex items-center gap-1 border-b border-pui-border`; Tab `-mb-px border-b-2 border-transparent px-3 pb-2.5 pt-1 text-sm font-medium text-pui-muted-foreground hover:text-pui-foreground`, aktiv `border-pui-foreground text-pui-foreground`.
@@ -224,6 +225,34 @@ Base UI setzt State-Attribute (`data-open`, `data-checked`, `data-pressed`, `dat
 
 Wo das Handoff nichts sagt (z. B. Slider, Accordion, Avatar), aus diesen Mustern ableiten: gleiche Flächen,
 Rahmen, Radien, Höhen, Hover- und Fokusregeln.
+
+## Theming: Schema & Themes (hell/dunkel)
+
+Zwei unabhängige Achsen auf `<html>`, gesetzt von `ThemeProvider` (`src/components/Theme/`) und – vor dem ersten
+Paint – von `ThemeScript` / `getThemeScript()`:
+
+- `data-scheme="dark" | "light"`: das Farbschema. Das Preset liefert **jedes** Token in beiden Schemata: dunkel auf
+  `:root, [data-scheme="dark"]` (Standard, gilt auch ohne Attribut), hell unter `[data-scheme="light"]`, jeweils mit
+  `color-scheme`. Maße, Motion, Radius und Schriften sind schemaunabhängig (`sharedTokenNames`) und stehen nur auf `:root`.
+- `data-theme="<name>"`: eigenes Marken-/Stil-Theme der Nutzer, überschreibt nur, was es ändert
+  (`[data-theme="brand"] { … }`, optional `[data-theme="brand"][data-scheme="light"] { … }`). Reine Hell-/Dunkel-Themes
+  setzen `color-scheme` und werden beim Provider deklariert (`themes={{ paper: "light" }}`) – dann setzt er das
+  passende `data-scheme` und sperrt den Umschalter (`canToggleScheme: false`).
+
+Regeln für Komponenten:
+
+- **Jede Komponente muss in beiden Schemata funktionieren.** Keine festen Hell/Dunkel-Annahmen: kein `text-white`,
+  `bg-black/…`, `rgb(255 255 255 / x)`-Highlights, `rgb(0 0 0 / x)`-Schatten oder weiße Alpha-Rahmen – nur Tokens.
+  Fehlt ein Token, wird es in `src/tailwind/preset.ts` in **beiden** Token-Sets ergänzt (`baseTokens` und
+  `lightSchemeTokens`, gleiche Schlüssel – ein Test prüft das), plus Tailwind-Key, `cn.ts` und diese Tabelle.
+- Kein `@media (prefers-color-scheme)` im CSS: „System" löst der Provider/das Skript auf, das CSS bleibt rein
+  attributgesteuert (vorhersagbar, SSR-gleich).
+- Farben, die von Tokens abgeleitet sind (`var(--pui-primary)` in einem anderen Token), stehen in beiden Blöcken, damit
+  verschachtelte `[data-scheme]`-Bereiche richtig auflösen.
+- Diagramme: `ChartConfig.theme` kennt `dark` (Basis), `light` (`[data-scheme="light"]`), `default` (Fallback) und
+  eigene Theme-Namen (`[data-theme]`). Syntaxfarben kommen aus `--pui-syntax-*` und haben eine eigene helle Palette.
+- Visuelle Kontrolle: Playground mit `?scheme=light`; `e2e/visual.spec.ts` prüft jede Demo in beiden Schemata
+  (`light-*.png`). Token-Umstellungen dürfen die dunklen Pixel nicht verändern.
 
 ## Browser-Support (Chromium 103, FiveM/CEF) und SSR
 

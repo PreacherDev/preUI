@@ -18,7 +18,7 @@ import { ScrollArea } from "../ScrollArea/ScrollArea";
 
 /** Shared overlay styles (also used by AlertDialog). */
 export const overlayClassName =
-  "fixed inset-0 z-50 bg-pui-background/scrim transition-opacity duration-pui-base ease-pui data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
+  "fixed inset-0 z-50 bg-pui-scrim/scrim transition-opacity duration-pui-base ease-pui data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
 
 /** Shared centred-modal styles (also used by AlertDialog). */
 export const modalPopupClassName = [

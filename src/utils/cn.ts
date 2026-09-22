@@ -13,7 +13,7 @@ const twMerge = extendTailwindMerge({
     },
     classGroups: {
       "font-size": [{ text: ["pui-2xs", "pui-eyebrow"] }],
-      shadow: [{ shadow: ["pui-window", "pui-floating", "pui-tooltip"] }],
+      shadow: [{ shadow: ["pui-window", "pui-floating", "pui-tooltip", "pui-thumb"] }],
       "ring-w": [{ ring: ["pui"] }],
       "ring-offset-w": [{ "ring-offset": ["pui"] }],
       duration: [{ duration: ["pui-fast", "pui-base", "pui-slow"] }],

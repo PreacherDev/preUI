@@ -34,7 +34,7 @@ export const Switch = forwardRef<HTMLElement, SwitchProps>(function Switch(
         data-slot="switch-thumb"
         className={mergeClassName(
           [
-            "pointer-events-none block size-4 translate-x-0 rounded-full bg-pui-foreground shadow-[0_2px_4px_rgb(0_0_0/0.4)]",
+            "pointer-events-none block size-4 translate-x-0 rounded-full bg-pui-thumb shadow-pui-thumb",
             "transition-[transform,background-color] duration-pui-fast ease-pui data-[checked]:translate-x-4",
             // On the primary track the thumb takes the primary foreground, so it stays visible when a theme uses a light accent colour.
             "data-[checked]:bg-pui-primary-foreground",

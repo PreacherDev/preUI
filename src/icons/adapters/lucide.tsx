@@ -41,6 +41,9 @@ import {
   Undo2,
   Redo2,
   Eye,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import type { IconSet } from "../types";
 
@@ -91,4 +94,7 @@ export const lucideIcons: IconSet = {
   undo: Undo2,
   redo: Redo2,
   eye: Eye,
+  sun: Sun,
+  moon: Moon,
+  monitor: Monitor,
 };

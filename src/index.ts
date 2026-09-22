@@ -67,6 +67,9 @@ export * from "./components/Skeleton";
 export * from "./components/Spinner";
 export * from "./components/Table";
 
+// Theming (scheme + named themes)
+export * from "./components/Theme";
+
 // Icons & utilities
 export * from "./icons";
 export { cn, mergeClassName } from "./utils/cn";
