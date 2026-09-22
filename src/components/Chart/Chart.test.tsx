@@ -167,6 +167,41 @@ describe("ChartContainer", () => {
     expect(css).toMatch(/\[data-theme="mono"\] \[data-chart="chart-t"\] \{\s*--color-umsatz: hsl\(0 0% 88%\);\s*\}/);
   });
 
+  it("maps dark to the base rule and light to [data-scheme=light]", () => {
+    const schemed = {
+      umsatz: { label: "Umsatz", theme: { dark: "hsl(217 91% 60%)", light: "hsl(221 83% 53%)", brand: "hsl(292 84% 66%)" } },
+      kosten: { label: "Kosten", color: "hsl(0 78% 62%)" },
+    } satisfies ChartConfig;
+    const { container } = render(
+      <ChartContainer config={schemed} id="s">
+        {null}
+      </ChartContainer>,
+    );
+    const css = styleText(container);
+    expect(css).toMatch(/^\[data-chart="chart-s"\] \{\s*--color-umsatz: hsl\(217 91% 60%\);\s*--color-kosten: hsl\(0 78% 62%\);\s*\}/);
+    expect(css).toMatch(/\[data-scheme="light"\] \[data-chart="chart-s"\] \{\s*--color-umsatz: hsl\(221 83% 53%\);\s*\}/);
+    // Named themes come after the light rule, so a theme wins over the scheme at equal specificity.
+    expect(css.indexOf('[data-theme="brand"]')).toBeGreaterThan(css.indexOf('[data-scheme="light"]'));
+    expect(css).not.toContain('[data-theme="dark"]');
+    expect(css).not.toContain('[data-theme="light"]');
+  });
+
+  it("uses default as the light fallback when a separate dark colour is given", () => {
+    const schemed = {
+      a: { theme: { default: "red", dark: "blue" } },
+      b: { theme: { default: "green" } },
+    } satisfies ChartConfig;
+    const { container } = render(
+      <ChartContainer config={schemed} id="f">
+        {null}
+      </ChartContainer>,
+    );
+    const css = styleText(container);
+    expect(css).toMatch(/^\[data-chart="chart-f"\] \{\s*--color-a: blue;\s*--color-b: green;\s*\}/);
+    // b has no scheme-specific colour, so it inherits the base rule and needs no light rule.
+    expect(css).toMatch(/\[data-scheme="light"\] \[data-chart="chart-f"\] \{\s*--color-a: red;\s*\}/);
+  });
+
   it("renders no style tag when no series has a color", () => {
     const { container } = render(<WithConfig chartConfig={{ besucher: { label: "Besucher" } }}>{null}</WithConfig>);
     expect(container.querySelector("style")).toBeNull();

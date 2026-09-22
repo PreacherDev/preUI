@@ -140,10 +140,13 @@ export default defineConfig({
 
 | Was | Wie |
 |---|---|
-| Tokens als eigene Datei (wie shadcn) | Im Nutzer-Projekt: `npx preui init` → `src/preui.css`, dazu `createPreuiPreset({ injectTokens: false })` |
-| Neues Token einführen | In `src/tailwind/preset.ts` in `baseTokens` (ggf. Theme-Overrides) + Tailwind-Key in `theme.extend`; neue Klassennamen in `src/utils/cn.ts` (tailwind-merge) eintragen |
-| Tokens ausprobieren | Playground `?page=theme` (Theme-Builder, CSS kopieren/herunterladen) |
-| `tokens.css` | wird bei `npm run build` aus dem Preset erzeugt (`scripts/generate-tokens.mjs`) |
+| Tokens als eigene Datei (wie shadcn) | Im Nutzer-Projekt: `npx preui init` → `src/preui.css` (dunkel + hell), dazu `createPreuiPreset({ injectTokens: false })` |
+| Nur ein Schema schreiben | `npx preui init --scheme dark` bzw. `--scheme light` (Standard: `both`; auch `--scheme=light`) |
+| Neues Token einführen | In `src/tailwind/preset.ts` in `baseTokens` **und** `lightSchemeTokens` (gleiche Schlüssel, ein Test prüft das; Maße/Motion/Schrift nur in `sharedTokenNames`) + Tailwind-Key in `theme.extend`; neue Klassennamen in `src/utils/cn.ts` (tailwind-merge) eintragen; Token-Tabelle in COMPONENT_GUIDE.md |
+| Tokens ausprobieren | Playground `?page=theme` (Theme-Builder: Basis Dunkel / Hell / Beide, CSS kopieren/herunterladen) |
+| Hell/Dunkel im Playground | Schema-Menü oben rechts oder `?scheme=light` / `?scheme=dark` / `?scheme=system` |
+| `tokens.css` | wird bei `npm run build` aus dem Preset erzeugt (`scripts/generate-tokens.mjs`), enthält beide Blöcke |
+| Visual-Baselines hell | `npx playwright test e2e/visual.spec.ts -g "light" --update-snapshots` (Dateien `light-*.png`) |
 
 Regeln für Komponenten (Token-Klassen statt fester Werte, `data-slot` an jedem Teil): siehe COMPONENT_GUIDE.md.
 

@@ -100,7 +100,7 @@ export const Slider = forwardRef(function Slider(
               aria-label={thumbLabels?.[index]}
               className={mergeClassName(
                 [
-                  "block size-4 select-none rounded-full bg-pui-foreground shadow-[0_2px_4px_rgb(0_0_0/0.4)] outline-none",
+                  "block size-4 select-none rounded-full bg-pui-thumb shadow-pui-thumb outline-none",
                   "transition-shadow duration-pui-fast ease-pui",
                   "has-[:focus-visible]:ring-pui has-[:focus-visible]:ring-pui-ring",
                   // Same without :has() (Chromium < 105), attribute set by useHasFallback on the root.

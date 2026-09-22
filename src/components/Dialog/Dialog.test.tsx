@@ -154,7 +154,7 @@ describe("Dialog", () => {
     const x = screen.getByRole("button", { name: "Close" });
     expect(x).toHaveAttribute("data-slot", "dialog-close");
     expect(x).toHaveClass("focus-visible:ring-pui", "duration-pui-fast");
-    expect(document.querySelector("[data-slot=dialog-overlay]")).toHaveClass("bg-pui-background/scrim", "duration-pui-base");
+    expect(document.querySelector("[data-slot=dialog-overlay]")).toHaveClass("bg-pui-scrim/scrim", "duration-pui-base");
     expect(document.querySelector("[data-slot=dialog-portal]")).toContainElement(dialog);
   });
 });

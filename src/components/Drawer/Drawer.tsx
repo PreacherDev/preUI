@@ -44,7 +44,7 @@ export const DrawerOverlay = forwardRef<ComponentRef<typeof BaseDrawer.Backdrop>
         data-slot="drawer-overlay"
         className={mergeClassName(
           [
-            "fixed inset-0 z-50 bg-pui-background/scrim opacity-[calc(1-var(--drawer-swipe-progress))]",
+            "fixed inset-0 z-50 bg-pui-scrim/scrim opacity-[calc(1-var(--drawer-swipe-progress))]",
             "transition-opacity duration-pui-base ease-pui data-[swiping]:duration-0",
             "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
             "data-[ending-style]:duration-[calc(var(--drawer-swipe-strength)*var(--pui-duration-base))]",

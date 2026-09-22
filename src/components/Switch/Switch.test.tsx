@@ -8,7 +8,7 @@ describe("Switch", () => {
     const control = screen.getByRole("switch", { name: "Benachrichtigungen" });
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(control).toHaveClass("h-5", "w-9", "rounded-full", "bg-pui-input", "data-[checked]:bg-pui-primary");
-    expect(control.firstElementChild).toHaveClass("size-4", "bg-pui-foreground", "data-[checked]:translate-x-4");
+    expect(control.firstElementChild).toHaveClass("size-4", "bg-pui-thumb", "data-[checked]:translate-x-4");
   });
 
   it("keeps the focus ring visible on the primary track (1px offset)", () => {
@@ -31,7 +31,7 @@ describe("Switch", () => {
     render(<Switch aria-label="A" defaultChecked />);
     const thumb = screen.getByRole("switch").firstElementChild;
     expect(thumb).toHaveAttribute("data-checked");
-    expect(thumb).toHaveClass("bg-pui-foreground", "data-[checked]:bg-pui-primary-foreground");
+    expect(thumb).toHaveClass("bg-pui-thumb", "data-[checked]:bg-pui-primary-foreground");
   });
 
   it("toggles with the keyboard", async () => {
