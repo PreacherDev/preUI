@@ -68,7 +68,7 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Group | Components (`@pre_scripts/preui`) |
 |---|---|
 | Actions | Button, ButtonGroup, Toggle, ToggleGroup, Toolbar |
-| Forms | Checkbox, CheckboxGroup, Field, Form, Input, InputGroup, InputOTP, Label, NumberField, RadioGroup, Slider, Switch, Textarea |
+| Forms | Checkbox, CheckboxGroup, ColorPicker, Field, Form, Input, InputGroup, InputOTP, Label, NumberField, RadioGroup, Slider, Switch, Textarea |
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
@@ -102,6 +102,7 @@ Besides the components, the main package exports:
 | `Toaster`, `toast` | Toasts (Sonner-style API) |
 | `useSidebar`, `getSidebarStateFromCookie`, `SIDEBAR_COOKIE_NAME`, `SIDEBAR_COOKIE_MAX_AGE`, `SIDEBAR_KEYBOARD_SHORTCUT`, `SIDEBAR_WIDTH`, `SIDEBAR_WIDTH_ICON`, `SIDEBAR_WIDTH_MOBILE` | Sidebar state and constants (see [Server rendering](#server-rendering-ssr)) |
 | `useAutocompleteFilter`, `useComboboxFilter` | Base UI's filter hooks for custom item filtering |
+| `useColorPicker`, `parseColor`, `normalizeHex`, `rgbToHex`, `hexToHsv`, `hsvToHex`, `hexToHsl`, `hslToHex`, `hsvToHsl`, `hslToHsv` | ColorPicker state for own parts, and pure colour helpers (see [ColorPicker](#colorpicker)) |
 
 Every part accepts `className` (merged with the defaults, later classes win). Where shadcn uses Radix' `asChild`,
 preUI uses Base UI's `render` prop:
@@ -159,6 +160,36 @@ For links, style an `<a>` with `buttonVariants()`:
 ```tsx
 <a href="/docs" className={buttonVariants({ variant: "ghost" })}>Docs</a>
 ```
+
+### ColorPicker
+
+Drawn entirely in the DOM (no `<input type="color">`, see [FiveM: no native popups](#fivem-no-native-popups)).
+Value is a hex string (`#rrggbb`, with `alpha` `#rrggbbaa`), controlled or uncontrolled:
+
+```tsx
+import { ColorPicker, ColorPickerArea, ColorPickerHue, ColorPickerInput, ColorPickerSwatches } from "@pre_scripts/preui";
+
+// All-in-one: swatch trigger + popover with area, hue, hex field (+ swatches / alpha when given)
+<ColorPicker value={color} onValueChange={setColor} swatches={["#ef4444", "#3b82f6"]} />
+<ColorPicker alpha defaultValue="#22d3eecc" onValueCommit={save} />
+
+// Own composition (popover: ColorPickerTrigger + ColorPickerContent; or `inline`)
+<ColorPicker inline value={color} onValueChange={setColor}>
+  <ColorPickerArea />
+  <ColorPickerHue />
+  <ColorPickerInput />
+  <ColorPickerSwatches swatches={[{ value: "#b91c1c", label: "Racing red" }]} />
+</ColorPicker>
+```
+
+Parts: `ColorPickerTrigger`, `ColorPickerContent` (a `PopoverContent`), `ColorPickerArea` (saturation × brightness,
+`role="slider"`, arrows ±1, Shift ±10, Home/End, PageUp/PageDown), `ColorPickerHue`, `ColorPickerAlpha`,
+`ColorPickerInput` (validated, applies on Enter/blur), `ColorPickerSwatches` / `ColorPickerSwatch`,
+`ColorPickerEyeDropper` (only rendered where `window.EyeDropper` exists — not in Chromium 103). `onValueChange` fires
+while dragging, `onValueCommit` at the end of a drag, per key press, on Enter/blur and on swatch clicks; both also
+receive the exact HSV state. The hue stays put when the colour becomes grey or black. Accessible names are English by
+default — pass `labels={{ area: "…", hue: "…", … }}` and `getAreaValueText` for other languages. `useColorPicker()`
+gives own parts (e.g. HSL fields) access to the state.
 
 ### Code, Markdown & rich text
 
@@ -244,6 +275,14 @@ export default defineConfig({
 - Your own CSS: avoid `:has()`, `svh`/`dvh`, container queries, `color-mix()`, CSS nesting (unless your build lowers
   it) and unprefixed `mask-image` — Chromium 103 ignores them.
 - No `window.matchMedia`/`ResizeObserver` polyfills are needed; both exist in Chromium 103.
+
+#### FiveM: no native popups
+
+CEF renders NUI off-screen and composites it over the game — browser-drawn popups are **not** transferred and simply
+never appear in game: the `<input type="color">` picker, the `<select>` dropdown list, the `<input type="date|time|…">`
+pickers, `<datalist>` suggestions and `alert()` / `confirm()` / `prompt()`. Use the DOM-rendered components instead:
+`ColorPicker`, `Select` / `Combobox` / `Autocomplete`, `DatePicker` (`/calendar`), `AlertDialog`. (`title` tooltips
+don't show either — use `Tooltip` for anything important.)
 
 ## Icons
 

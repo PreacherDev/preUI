@@ -6,6 +6,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
 } from "react";
+import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { cn, mergeClassName } from "../../utils/cn";
 
 export type TabsProps = ComponentPropsWithoutRef<typeof BaseTabs.Root>;
@@ -107,7 +108,8 @@ export interface TabsBarProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * Tab list plus a trailing action on the same baseline. Put a `TabsList` inside; the bar draws the
- * hairline instead of the list.
+ * hairline instead of the list. When space runs out the tabs scroll horizontally (no wrapping, the action
+ * stays inside the bar).
  */
 export const TabsBar = forwardRef<HTMLDivElement, TabsBarProps>(function TabsBar(
   { className, action, children, ...props },
@@ -118,12 +120,22 @@ export const TabsBar = forwardRef<HTMLDivElement, TabsBarProps>(function TabsBar
       ref={ref}
       data-slot="tabs-bar"
       className={cn(
-        "flex items-end justify-between gap-4 border-b border-pui-border [&>[role=tablist]]:border-b-0",
+        "flex items-end justify-between gap-4 border-b border-pui-border [&_[role=tablist]]:border-b-0",
         className,
       )}
       {...props}
     >
-      {children}
+      {/* min-w-0 + flex-1: the list area may shrink below its content width and scrolls instead of pushing the
+          action out. The 1px overlap (-mb-px + pb-px) keeps the active underline on the bar's hairline. */}
+      <ScrollArea
+        data-slot="tabs-bar-list"
+        orientation="horizontal"
+        reserveTrack={false}
+        className="-mb-px min-w-0 flex-1"
+        contentClassName="w-max pb-px"
+      >
+        {children}
+      </ScrollArea>
       {action != null && (
         <div data-slot="tabs-bar-action" className="mb-2 shrink-0">
           {action}

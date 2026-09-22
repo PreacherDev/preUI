@@ -261,6 +261,10 @@ Regeln für Komponenten:
   kein `svh`/`dvh` (→ `var(--pui-viewport-height,100vh)`), keine Container Queries, kein `color-mix()`, kein
   unpräfixiertes `mask-image` ohne `-webkit-mask-image`, keine Einzel-Properties `translate`/`scale`/`rotate`.
 - Keine JS-APIs jenseits Chromium 103 (`toSorted`, `Object.groupBy`, `Promise.withResolvers` …).
+- **Keine nativen Popups (FiveM):** CEF rendert NUI offscreen, vom Browser gezeichnete Popups erscheinen im Spiel nie.
+  Also kein `<input type="color">`, kein natives `<select>`, kein `<input type="date|time|month|week|datetime-local">`,
+  kein `<datalist>`, kein `alert`/`confirm`/`prompt` – alles im DOM zeichnen (`ColorPicker`, `Select`, `DatePicker`,
+  `AlertDialog`). Browser-APIs wie `EyeDropper` nur per Feature-Erkennung im Effekt (in Chromium 103 nicht vorhanden).
 - SSR: während des Renderns nie `window`, `document`, `matchMedia` oder Cookies lesen (Media Queries über
   `useMediaQuery` aus `src/utils/use-media-query.ts`), kein `Math.random()`/`Date.now()` im Render, Zahlen/Daten nur
   mit explizitem Locale formatieren (Default `"en-US"`, als `locale`-Prop überschreibbar).
