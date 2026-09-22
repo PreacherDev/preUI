@@ -19,11 +19,15 @@ export interface TooltipContentProps extends ComponentPropsWithoutRef<typeof Bas
   side?: BaseTooltip.Positioner.Props["side"];
   align?: BaseTooltip.Positioner.Props["align"];
   sideOffset?: BaseTooltip.Positioner.Props["sideOffset"];
+  /** Shift along the alignment axis (px). Default `0`. */
+  alignOffset?: BaseTooltip.Positioner.Props["alignOffset"];
+  /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
+  positionerProps?: Omit<BaseTooltip.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
 }
 
 /** Portal + Positioner + Popup in one, on the lighter tooltip surface. */
 export const TooltipContent = forwardRef<ComponentRef<typeof BaseTooltip.Popup>, TooltipContentProps>(
-  function TooltipContent({ className, side = "top", align = "center", sideOffset = 6, ...props }, ref) {
+  function TooltipContent({ className, side = "top", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, ...props }, ref) {
     return (
       <BaseTooltip.Portal data-slot="tooltip-portal">
         <BaseTooltip.Positioner
@@ -31,7 +35,9 @@ export const TooltipContent = forwardRef<ComponentRef<typeof BaseTooltip.Popup>,
           side={side}
           align={align}
           sideOffset={sideOffset}
-          className="z-50"
+          alignOffset={alignOffset}
+          {...positionerProps}
+          className={mergeClassName("z-50", positionerProps?.className)}
         >
           <BaseTooltip.Popup
             ref={ref}

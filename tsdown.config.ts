@@ -19,6 +19,8 @@ export default defineConfig({
   },
   format: ["esm", "cjs"],
   platform: "neutral",
+  // Syntax is lowered for Chromium 103 (CEF / FiveM NUI) and Node 18 (CJS consumers, SSR).
+  target: ["chrome103", "node18"],
   dts: true,
   sourcemap: true,
   clean: true,

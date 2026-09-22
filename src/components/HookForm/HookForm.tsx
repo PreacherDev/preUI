@@ -41,12 +41,12 @@ import { NumberField } from "../NumberField/NumberField";
  *       <FormField
  *         control={form.control}
  *         name="name"
- *         rules={{ required: "Bitte gib einen Namen ein." }}
+ *         rules={{ required: "Please enter a name." }}
  *         render={({ field }) => (
  *           <FormItem>
  *             <FormLabel>Name</FormLabel>
  *             <FormControl><Input {...field} /></FormControl>
- *             <FormDescription>Öffentlich sichtbar.</FormDescription>
+ *             <FormDescription>Publicly visible.</FormDescription>
  *             <FormMessage />
  *           </FormItem>
  *         )}
@@ -61,7 +61,7 @@ import { NumberField } from "../NumberField/NumberField";
  *   <Controller
  *     control={form.control}
  *     name="name"
- *     rules={{ required: "Bitte gib einen Namen ein." }}
+ *     rules={{ required: "Please enter a name." }}
  *     render={({ field, fieldState }) => (
  *       <Field name={field.name} invalid={fieldState.invalid} touched={fieldState.isTouched} dirty={fieldState.isDirty}>
  *         <FieldLabel>Name</FieldLabel>

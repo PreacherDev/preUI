@@ -1,21 +1,30 @@
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
-import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
+import { createContext, forwardRef, useContext, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Separator } from "../Separator/Separator";
 
 export type ItemGroupProps = ComponentPropsWithoutRef<"div">;
 
-/** Stacks items as a list. */
+/** `true` inside an `ItemGroup` (a `role="list"`), so plain `Item`s become its list items. */
+const ItemGroupContext = createContext(false);
+
+/**
+ * Stacks items as a list (`role="list"`). Plain `Item`s inside get `role="listitem"`; an `Item` rendered as a
+ * link or button (`render`) keeps its own role — wrap it in `<div role="listitem">` if the list semantics matter.
+ */
 export const ItemGroup = forwardRef<HTMLDivElement, ItemGroupProps>(function ItemGroup({ className, ...props }, ref) {
   return (
-    <div
-      ref={ref}
-      role="list"
-      data-slot="item-group"
-      className={cn("group/item-group flex flex-col", className)}
-      {...props}
-    />
+    <ItemGroupContext.Provider value={true}>
+      <div
+        ref={ref}
+        role="list"
+        data-slot="item-group"
+        className={cn("group/item-group flex flex-col", className)}
+        {...props}
+      />
+    </ItemGroupContext.Provider>
   );
 });
 
@@ -72,16 +81,24 @@ export interface ItemProps extends Omit<useRender.ComponentProps<"div">, "ref"> 
   size?: ItemSize;
 }
 
-/** A row with media, content and actions. Use `render` to make it a link: `render={<a href="…" />}`. */
+const itemHasRules: HasFallbackRule[] = [{ attr: "data-has-description", has: "[data-slot=item-description]" }];
+
+/**
+ * A row with media, content and actions. Use `render` to make it a link: `render={<a href="…" />}`.
+ * Inside an `ItemGroup` a plain (non-`render`) item gets `role="listitem"`.
+ */
 export const Item = forwardRef<HTMLDivElement, ItemProps>(function Item(
   { className, variant = "default", size = "default", render, ...props },
   ref,
 ) {
+  const inGroup = useContext(ItemGroupContext);
+  const itemRef = useHasFallbackRef(ref, itemHasRules);
   return useRender({
     defaultTagName: "div",
     render,
-    ref,
+    ref: itemRef,
     props: {
+      role: inGroup && !render ? "listitem" : undefined,
       "data-slot": "item",
       "data-variant": variant,
       "data-size": size,
@@ -95,6 +112,8 @@ export const itemMediaVariants = cva(
   [
     "flex shrink-0 items-center justify-center gap-2 [&_svg]:pointer-events-none",
     "group-has-[[data-slot=item-description]]/item:translate-y-0.5 group-has-[[data-slot=item-description]]/item:self-start",
+    // Same without :has() (Chromium < 105): attribute set on the Item by useHasFallback.
+    "group-data-[has-description]/item:translate-y-0.5 group-data-[has-description]/item:self-start",
   ],
   {
     variants: {

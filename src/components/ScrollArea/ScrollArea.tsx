@@ -30,8 +30,9 @@ export interface ScrollAreaProps extends ComponentPropsWithoutRef<typeof BaseScr
 // Mask stops come from per-root variables, reset on every root so nested areas don't inherit them.
 const edgeFadeRoot =
   "[--pui-fade-start:0px] [--pui-fade-end:0px] data-[overflow-x-start]:[--pui-fade-start:2.5rem] data-[overflow-x-end]:[--pui-fade-end:2.5rem]";
+// -webkit-mask-image for Chromium < 120 (e.g. CEF / FiveM on Chromium 103), which lacks the unprefixed property.
 const edgeFadeViewport =
-  "[mask-image:linear-gradient(to_right,transparent,#000_var(--pui-fade-start),#000_calc(100%_-_var(--pui-fade-end)),transparent)]";
+  "[-webkit-mask-image:linear-gradient(to_right,transparent,#000_var(--pui-fade-start),#000_calc(100%_-_var(--pui-fade-end)),transparent)] [mask-image:linear-gradient(to_right,transparent,#000_var(--pui-fade-start),#000_calc(100%_-_var(--pui-fade-end)),transparent)]";
 
 /**
  * Root + Viewport + Content + Scrollbar(s) in one. The 10px track is always reserved (content padding),
@@ -79,7 +80,11 @@ export const ScrollArea = forwardRef<ComponentRef<typeof BaseScrollArea.Root>, S
             className={cn(
               reserveTrack && vertical && "pr-2.5",
               reserveTrack && horizontal && "pb-2.5",
-              horizontal && "min-w-full",
+              // Base UI gives the content an inline `min-width: fit-content`. With a horizontal bar the content
+              // may grow wider than the viewport (at least full width); vertical-only it must follow the
+              // viewport width, so wide children (code, tables) wrap or scroll in their own areas instead of
+              // being clipped. `!` beats the inline style.
+              horizontal ? "min-w-full" : "!min-w-0",
               contentClassName,
             )}
           >

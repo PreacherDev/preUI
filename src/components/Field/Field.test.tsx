@@ -238,3 +238,10 @@ describe("Field data attributes", () => {
     expect(container.querySelector("[data-slot=field-legend]")).toHaveAttribute("data-variant", "legend");
   });
 });
+
+describe("FieldLabel next to a disabled control", () => {
+  it("dims like Label (peer-disabled / peer-data-disabled)", () => {
+    render(<FieldLabel>Option</FieldLabel>);
+    expect(screen.getByText("Option")).toHaveClass("peer-data-[disabled]:opacity-50", "peer-disabled:opacity-50");
+  });
+});

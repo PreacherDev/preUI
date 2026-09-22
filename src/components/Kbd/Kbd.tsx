@@ -23,7 +23,7 @@ export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd({ className, .
 
 export type KbdGroupProps = HTMLAttributes<HTMLElement>;
 
-/** Groups the keys of one shortcut, e.g. `<KbdGroup><Kbd>Strg</Kbd><Kbd>K</Kbd></KbdGroup>`. */
+/** Groups the keys of one shortcut, e.g. `<KbdGroup><Kbd>Ctrl</Kbd><Kbd>K</Kbd></KbdGroup>`. */
 export const KbdGroup = forwardRef<HTMLElement, KbdGroupProps>(function KbdGroup({ className, ...props }, ref) {
   return (
     <kbd ref={ref} data-slot="kbd-group" className={cn("inline-flex items-center gap-1", className)} {...props} />

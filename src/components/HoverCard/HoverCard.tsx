@@ -18,11 +18,15 @@ export interface HoverCardContentProps extends ComponentPropsWithoutRef<typeof B
   side?: BasePreviewCard.Positioner.Props["side"];
   align?: BasePreviewCard.Positioner.Props["align"];
   sideOffset?: BasePreviewCard.Positioner.Props["sideOffset"];
+  /** Shift along the alignment axis (px). Default `0`. */
+  alignOffset?: BasePreviewCard.Positioner.Props["alignOffset"];
+  /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
+  positionerProps?: Omit<BasePreviewCard.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
 }
 
 /** Portal + Positioner + Popup in one, styled as a floating surface like Popover. */
 export const HoverCardContent = forwardRef<ComponentRef<typeof BasePreviewCard.Popup>, HoverCardContentProps>(
-  function HoverCardContent({ className, side = "bottom", align = "center", sideOffset = 6, ...props }, ref) {
+  function HoverCardContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, ...props }, ref) {
     return (
       <BasePreviewCard.Portal data-slot="hover-card-portal">
         <BasePreviewCard.Positioner
@@ -30,7 +34,9 @@ export const HoverCardContent = forwardRef<ComponentRef<typeof BasePreviewCard.P
           side={side}
           align={align}
           sideOffset={sideOffset}
-          className="z-50 outline-none"
+          alignOffset={alignOffset}
+          {...positionerProps}
+          className={mergeClassName("z-50 outline-none", positionerProps?.className)}
         >
           <BasePreviewCard.Popup
             ref={ref}

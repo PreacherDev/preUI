@@ -53,3 +53,10 @@ describe("Meter", () => {
     expect(indicator).toHaveClass("duration-pui-slow", "ease-pui");
   });
 });
+
+describe("Meter locale", () => {
+  it("formats with en-US by default", () => {
+    render(<Meter value={1234.5} max={2000} format={{ style: "decimal", maximumFractionDigits: 1 }} aria-label="Disk"><MeterValue /></Meter>);
+    expect(screen.getByRole("meter", { name: "Disk" })).toHaveAttribute("aria-valuetext", "1,234.5");
+  });
+});

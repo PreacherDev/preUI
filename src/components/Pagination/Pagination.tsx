@@ -1,5 +1,5 @@
 import { useRender } from "@base-ui/react/use-render";
-import { forwardRef, type ComponentPropsWithoutRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type MouseEvent } from "react";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
 import { buttonVariants, type ButtonSize } from "../Button/Button";
@@ -62,12 +62,14 @@ const compactSize: Partial<Record<ButtonSize, string>> = {
 
 /**
  * A page link, styled like a round ghost button (active: outline + accent fill).
- * Use `render` for router links; set `aria-disabled` to disable it.
+ * Use `render` for router links; set `aria-disabled` to disable it: the link is then dimmed, removed from the
+ * tab order (`tabIndex={-1}`) and clicks / Enter don't activate it (the click is prevented, `onClick` isn't called).
  */
 export const PaginationLink = forwardRef<HTMLAnchorElement, PaginationLinkProps>(function PaginationLink(
-  { className, isActive = false, size = "icon-sm", render, ...props },
+  { className, isActive = false, size = "icon-sm", render, onClick, tabIndex, ...props },
   ref,
 ) {
+  const disabled = props["aria-disabled"] === true || props["aria-disabled"] === "true";
   return useRender({
     defaultTagName: "a",
     render,
@@ -87,6 +89,14 @@ export const PaginationLink = forwardRef<HTMLAnchorElement, PaginationLinkProps>
         className,
       ),
       ...props,
+      tabIndex: disabled ? -1 : tabIndex,
+      onClick: (event: MouseEvent<HTMLAnchorElement>) => {
+        if (disabled) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      },
     },
   });
 });
@@ -140,7 +150,7 @@ export const PaginationNext = forwardRef<HTMLAnchorElement, PaginationNextProps>
 });
 
 export interface PaginationEllipsisProps extends ComponentPropsWithoutRef<"span"> {
-  /** Screen-reader text. */
+  /** Screen-reader text (read by assistive technology, the icon itself is hidden). Default `"More pages"`. */
   label?: string;
 }
 
@@ -152,12 +162,12 @@ export const PaginationEllipsis = forwardRef<HTMLSpanElement, PaginationEllipsis
   return (
     <span
       ref={ref}
-      aria-hidden="true"
       data-slot="pagination-ellipsis"
       className={cn("flex size-7 items-center justify-center", className)}
       {...props}
     >
-      <More className="size-4" />
+      {/* Only the icon is hidden from assistive technology; the label is read. */}
+      <More className="size-4" aria-hidden="true" />
       <span className="sr-only">{label}</span>
     </span>
   );

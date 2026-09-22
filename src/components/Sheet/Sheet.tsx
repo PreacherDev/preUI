@@ -8,9 +8,9 @@ import { ModalSections, modalCloseClassName, overlayClassName } from "../Dialog/
 export const Sheet = BaseDialog.Root;
 
 export type SheetProps = BaseDialog.Root.Props;
-export type SheetTriggerProps = BaseDialog.Trigger.Props;
-export type SheetCloseProps = BaseDialog.Close.Props;
-export type SheetPortalProps = BaseDialog.Portal.Props;
+export interface SheetTriggerProps extends BaseDialog.Trigger.Props {}
+export interface SheetCloseProps extends ComponentPropsWithoutRef<typeof BaseDialog.Close> {}
+export interface SheetPortalProps extends ComponentPropsWithoutRef<typeof BaseDialog.Portal> {}
 
 /** Opens the sheet. Renders a `<button>` (`data-slot="sheet-trigger"`). */
 export const SheetTrigger = forwardRef<HTMLButtonElement, SheetTriggerProps>(function SheetTrigger(props, ref) {

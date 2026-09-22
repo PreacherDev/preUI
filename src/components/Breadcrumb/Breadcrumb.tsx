@@ -109,7 +109,7 @@ export const BreadcrumbSeparator = forwardRef<HTMLLIElement, BreadcrumbSeparator
 });
 
 export interface BreadcrumbEllipsisProps extends ComponentPropsWithoutRef<"span"> {
-  /** Screen-reader text. */
+  /** Screen-reader text (read by assistive technology, the icon itself is hidden). Default `"More"`. */
   label?: string;
 }
 
@@ -122,13 +122,12 @@ export const BreadcrumbEllipsis = forwardRef<HTMLSpanElement, BreadcrumbEllipsis
   return (
     <span
       ref={ref}
-      role="presentation"
-      aria-hidden="true"
       data-slot="breadcrumb-ellipsis"
       className={cn("flex size-5 items-center justify-center", className)}
       {...props}
     >
-      <More className="size-4" />
+      {/* Only the icon is hidden from assistive technology; the label is read. */}
+      <More className="size-4" aria-hidden="true" />
       <span className="sr-only">{label}</span>
     </span>
   );

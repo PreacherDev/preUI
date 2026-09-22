@@ -231,3 +231,43 @@ describe("MarkdownEditor slots", () => {
     }
   });
 });
+
+describe("MarkdownEditor compact (narrow frame)", () => {
+  function withFrameWidth(width: number) {
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.slot === "markdown-editor") return { width, height: 300, top: 0, left: 0, right: width, bottom: 300, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+      return original.call(this);
+    });
+    return () => spy.mockRestore();
+  }
+
+  it("tabs: the toolbar moves to its own horizontally scrolling row", () => {
+    const restore = withFrameWidth(360);
+    const { container } = render(<MarkdownEditor defaultValue="# X" />);
+    const frame = container.querySelector('[data-slot="markdown-editor"]')!;
+    expect(frame).toHaveAttribute("data-compact");
+    const row = frame.querySelector('[data-slot="markdown-editor-toolbar-row"]')!;
+    expect(row).toBeInTheDocument();
+    expect(row.querySelector('[data-slot="markdown-editor-toolbar-scroll"] [role="toolbar"]')).toHaveClass("flex-nowrap");
+    expect(frame.querySelector('[data-slot="markdown-editor-header"] [role="toolbar"]')).toBeNull();
+    restore();
+  });
+
+  it("split: editor and preview stack", () => {
+    const restore = withFrameWidth(360);
+    const { container } = render(<MarkdownEditor layout="split" defaultValue="# X" />);
+    const body = container.querySelector('[data-slot="markdown-editor-body"]')!;
+    expect(body).toHaveClass("grid-cols-1");
+    expect(body.querySelector('[data-slot="markdown-editor-preview"]')).not.toHaveClass("border-l");
+    restore();
+  });
+
+  it("stays side by side on wide frames", () => {
+    const restore = withFrameWidth(900);
+    const { container } = render(<MarkdownEditor layout="split" defaultValue="# X" />);
+    expect(container.querySelector('[data-slot="markdown-editor"]')).not.toHaveAttribute("data-compact");
+    expect(container.querySelector('[data-slot="markdown-editor-body"]')).toHaveClass("grid-cols-2");
+    restore();
+  });
+});

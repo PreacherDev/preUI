@@ -84,3 +84,14 @@ describe("Breadcrumb", () => {
     expect(screen.getByText("/")).toBeInTheDocument();
   });
 });
+
+describe("BreadcrumbEllipsis a11y", () => {
+  it("hides only the icon; the label is exposed", () => {
+    render(<BreadcrumbEllipsis data-testid="ellipsis" label="More pages" />);
+    const ellipsis = screen.getByTestId("ellipsis");
+    expect(ellipsis).not.toHaveAttribute("aria-hidden");
+    expect(ellipsis).not.toHaveAttribute("role");
+    expect(screen.getByText("More pages").closest("[aria-hidden]")).toBeNull();
+    expect(ellipsis.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+});

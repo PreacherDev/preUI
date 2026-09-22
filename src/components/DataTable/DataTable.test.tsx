@@ -273,3 +273,21 @@ describe("DataTable slots", () => {
     expect(container.querySelector('[data-slot="data-table-empty"]')).toBeInTheDocument();
   });
 });
+
+describe("DataTable fixed layout minimum width", () => {
+  it("gives the table the sum of widths / minimum widths as min-width", () => {
+    const sized = helper.columns([
+      helper.accessor("description", { header: "Beschreibung" }),
+      helper.accessor("amount", { header: "Betrag", meta: { width: "6rem" } }),
+      helper.accessor("id", { header: "Nr.", meta: { minWidth: "4rem" } }),
+    ]);
+    render(<DataTable columns={sized} data={bookings} />);
+    // jsdom folds the calc(); in the browser it stays "calc(8rem + 6rem + 4rem)".
+    expect(screen.getByRole("table").style.minWidth).toMatch(/^calc\((18rem|8rem \+ 6rem \+ 4rem)\)$/);
+  });
+
+  it("leaves the auto layout alone", () => {
+    render(<DataTable columns={columns} data={bookings} layout="auto" />);
+    expect(screen.getByRole("table").style.minWidth).toBe("");
+  });
+});

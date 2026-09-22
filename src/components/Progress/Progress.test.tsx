@@ -62,3 +62,35 @@ describe("Progress", () => {
     expect(track).not.toHaveClass("h-1");
   });
 });
+
+describe("Progress indeterminate", () => {
+  it("value={null} gets the sliding, reduced-motion-aware indicator", () => {
+    render(<Progress value={null} aria-label="Loading" />);
+    const bar = screen.getByRole("progressbar", { name: "Loading" });
+    const indicator = bar.querySelector<HTMLElement>('[data-slot="progress-indicator"]')!;
+    expect(indicator).toHaveAttribute("data-indeterminate");
+    expect(indicator).toHaveClass(
+      "data-[indeterminate]:w-2/5",
+      "motion-safe:data-[indeterminate]:animate-pui-progress-indeterminate",
+      "motion-reduce:data-[indeterminate]:w-full",
+    );
+    expect(indicator.style.width).toBe("");
+  });
+
+  it("formats with en-US by default and accepts another locale", () => {
+    const format = { style: "decimal", maximumFractionDigits: 1 } as const;
+    const { unmount } = render(
+      <Progress value={1234.5} max={2000} format={format} aria-label="A">
+        <ProgressValue />
+      </Progress>,
+    );
+    expect(screen.getByRole("progressbar", { name: "A" })).toHaveAttribute("aria-valuetext", "1,234.5");
+    unmount();
+    render(
+      <Progress value={1234.5} max={2000} format={format} locale="de-DE" aria-label="B">
+        <ProgressValue />
+      </Progress>,
+    );
+    expect(screen.getByRole("progressbar", { name: "B" })).toHaveAttribute("aria-valuetext", "1.234,5");
+  });
+});

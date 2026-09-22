@@ -36,7 +36,7 @@ const themeSelector = (theme: string) => (theme === "default" ? "" : `[data-them
 /**
  * Per-series configuration, keyed by `dataKey` (or `nameKey` value).
  * Every key with a color becomes a CSS variable `--color-<key>` inside the container,
- * so series can use `fill="var(--color-einnahmen)"`.
+ * so series can use `fill="var(--color-revenue)"`.
  */
 export type ChartConfig = Record<
   string,
@@ -200,7 +200,7 @@ export interface ChartTooltipContentProps {
 }
 
 function formatValue(value: unknown): ReactNode {
-  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "number") return value.toLocaleString("en-US");
   if (Array.isArray(value)) return value.map((part) => formatValue(part)).join(" – ");
   if (typeof value === "string") return value;
   return null;

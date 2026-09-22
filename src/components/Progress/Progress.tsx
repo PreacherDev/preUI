@@ -8,7 +8,13 @@ import { cn, mergeClassName } from "../../utils/cn";
  * `negative` failed/over limit, `muted` inactive.
  */
 export const progressIndicatorVariants = cva(
-  "h-full rounded-full transition-all duration-pui-slow ease-pui",
+  [
+    "h-full rounded-full transition-all duration-pui-slow ease-pui",
+    // Indeterminate (value={null}): a 40% bar sliding across the track; with reduced motion a dimmed full bar.
+    "data-[indeterminate]:absolute data-[indeterminate]:inset-y-0 data-[indeterminate]:left-0 data-[indeterminate]:w-2/5 data-[indeterminate]:transition-none",
+    "motion-safe:data-[indeterminate]:animate-pui-progress-indeterminate",
+    "motion-reduce:data-[indeterminate]:w-full motion-reduce:data-[indeterminate]:opacity-50",
+  ],
   {
     variants: {
       tone: {
@@ -29,6 +35,11 @@ export type ProgressTone = NonNullable<VariantProps<typeof progressIndicatorVari
 
 export interface ProgressProps extends ComponentPropsWithoutRef<typeof BaseProgress.Root> {
   tone?: ProgressTone;
+  /**
+   * Locale for formatting the value (`ProgressValue`, `aria-valuetext`) with `Intl.NumberFormat`.
+   * Default `"en-US"` — not the runtime locale, so server and client render the same text. Pass e.g. `"de-DE"`.
+   */
+  locale?: Intl.LocalesArgument;
   /** Classes for the track (e.g. `h-2`). */
   trackClassName?: string;
   /** Classes for the bar. */
@@ -36,16 +47,18 @@ export interface ProgressProps extends ComponentPropsWithoutRef<typeof BaseProgr
 }
 
 /**
- * 4px pill bar (Root + Track + Indicator). `value={null}` is indeterminate. Optional `ProgressLabel` /
+ * 4px pill bar (Root + Track + Indicator). `value={null}` is indeterminate (animated sliding bar, static with
+ * `prefers-reduced-motion`). Optional `ProgressLabel` /
  * `ProgressValue` children sit on one row above the bar.
  */
 export const Progress = forwardRef<ComponentRef<typeof BaseProgress.Root>, ProgressProps>(function Progress(
-  { className, tone, trackClassName, indicatorClassName, children, ...props },
+  { className, tone, trackClassName, indicatorClassName, locale = "en-US", children, ...props },
   ref,
 ) {
   return (
     <BaseProgress.Root
       ref={ref}
+      locale={locale}
       data-slot="progress"
       data-variant={tone ?? "primary"}
       className={mergeClassName("flex w-full flex-wrap items-center gap-x-3 gap-y-1.5", className)}

@@ -7,8 +7,8 @@ import { ModalSections, modalPopupClassName, overlayClassName } from "../Dialog/
 export const AlertDialog = BaseAlertDialog.Root;
 
 export type AlertDialogProps = BaseAlertDialog.Root.Props;
-export type AlertDialogTriggerProps = BaseAlertDialog.Trigger.Props;
-export type AlertDialogPortalProps = BaseAlertDialog.Portal.Props;
+export interface AlertDialogTriggerProps extends BaseAlertDialog.Trigger.Props {}
+export interface AlertDialogPortalProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Portal> {}
 
 /** Opens the alert dialog. Renders a `<button>` (`data-slot="alert-dialog-trigger"`). */
 export const AlertDialogTrigger = forwardRef<HTMLButtonElement, AlertDialogTriggerProps>(

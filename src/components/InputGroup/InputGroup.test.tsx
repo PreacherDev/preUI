@@ -1,5 +1,5 @@
 import { Field } from "@base-ui/react/field";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   InputGroup,
@@ -134,5 +134,46 @@ describe("InputGroup data attributes", () => {
     expect(button).toHaveAttribute("data-slot", "input-group-button");
     expect(button).toHaveAttribute("data-size", "icon-xs");
     expect(button).toHaveAttribute("data-variant", "ghost");
+  });
+});
+
+describe("InputGroup :has() fallback (Chromium < 105)", () => {
+  it("mirrors the has-[…] rules as data attributes when :has() is unsupported", async () => {
+    const { rerender } = render(
+      <InputGroup data-testid="group">
+        <InputGroupTextarea aria-label="Text" />
+        <InputGroupAddon align="block-end">
+          <InputGroupButton>Send</InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>,
+    );
+    const group = screen.getByTestId("group");
+    expect(group).toHaveAttribute("data-has-textarea");
+    expect(group).toHaveAttribute("data-has-block-end");
+    expect(group).not.toHaveAttribute("data-has-inline-start");
+    expect(group).toHaveClass("data-[has-textarea]:h-auto");
+    expect(group.querySelector("[data-slot=input-group-addon]")).toHaveAttribute("data-has-button");
+    rerender(
+      <InputGroup data-testid="group">
+        <InputGroupTextarea aria-label="Text" disabled />
+      </InputGroup>,
+    );
+    await waitFor(() => expect(group).toHaveAttribute("data-has-disabled"));
+    expect(group).not.toHaveAttribute("data-has-block-end");
+  });
+
+  it("does nothing where :has() is supported", () => {
+    const original = globalThis.CSS;
+    Object.defineProperty(globalThis, "CSS", { configurable: true, value: { supports: () => true } });
+    try {
+      render(
+        <InputGroup data-testid="group">
+          <InputGroupTextarea aria-label="Text" />
+        </InputGroup>,
+      );
+      expect(screen.getByTestId("group")).not.toHaveAttribute("data-has-textarea");
+    } finally {
+      Object.defineProperty(globalThis, "CSS", { configurable: true, value: original });
+    }
   });
 });

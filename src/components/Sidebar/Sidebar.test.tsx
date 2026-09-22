@@ -28,6 +28,7 @@ import {
 } from "./Sidebar";
 import type { SidebarProps, SidebarProviderProps } from "./Sidebar";
 
+import { SIDEBAR_COOKIE_MAX_AGE, getSidebarStateFromCookie } from "./Sidebar";
 function mockMatchMedia(matches: boolean) {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -358,12 +359,12 @@ describe("Sidebar", () => {
     );
     const wrapper = screen.getByTestId("wrapper");
     expect(wrapper).toHaveClass("min-h-0", "h-full");
-    expect(wrapper).not.toHaveClass("min-h-svh");
+    expect(wrapper).not.toHaveClass("min-h-[var(--pui-viewport-height,100vh)]");
 
     const container = screen.getByTestId("container");
     expect(container).toHaveClass("absolute", "h-full");
     expect(container).not.toHaveClass("fixed");
-    expect(container).not.toHaveClass("h-svh");
+    expect(container).not.toHaveClass("h-[var(--pui-viewport-height,100vh)]");
 
     const content = screen.getByTestId("content");
     expect(content).toHaveClass("gap-4", "flex-1", "min-h-0");
@@ -387,5 +388,44 @@ describe("Sidebar", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => render(<SidebarTrigger />)).toThrow("useSidebar must be used within a SidebarProvider.");
     spy.mockRestore();
+  });
+});
+
+describe("Sidebar cookie + options", () => {
+  it("getSidebarStateFromCookie reads the persisted state from a Cookie header", () => {
+    expect(getSidebarStateFromCookie("theme=dark; sidebar_state=false; x=1")).toBe(false);
+    expect(getSidebarStateFromCookie("sidebar_state=true")).toBe(true);
+    expect(getSidebarStateFromCookie("sidebar_state=maybe")).toBeUndefined();
+    expect(getSidebarStateFromCookie("other=1")).toBeUndefined();
+    expect(getSidebarStateFromCookie(undefined)).toBeUndefined();
+    expect(getSidebarStateFromCookie(null)).toBeUndefined();
+    expect(getSidebarStateFromCookie("nav=false", "nav")).toBe(false);
+    expect(SIDEBAR_COOKIE_MAX_AGE).toBe(60 * 60 * 24 * 7);
+  });
+
+  it("round-trips the cookie written by the provider", async () => {
+    const user = userEvent.setup();
+    render(<Example />);
+    await user.click(getTrigger());
+    expect(getSidebarStateFromCookie(document.cookie)).toBe(false);
+  });
+
+  it("SidebarMenuSkeleton takes an explicit width", () => {
+    render(
+      <SidebarProvider>
+        <SidebarMenuSkeleton data-testid="a" width="70%" />
+        <SidebarMenuSkeleton data-testid="b" width={120} />
+      </SidebarProvider>,
+    );
+    const text = (id: string) => screen.getByTestId(id).querySelector<HTMLElement>('[data-sidebar="menu-skeleton-text"]')!;
+    expect(text("a").style.getPropertyValue("--skeleton-width")).toBe("70%");
+    expect(text("b").style.getPropertyValue("--skeleton-width")).toBe("120px");
+  });
+
+  it("accepts a tooltipDelay", async () => {
+    const user = userEvent.setup();
+    render(<Example providerProps={{ defaultOpen: false, tooltipDelay: 0 }} sidebarProps={{ collapsible: "icon" }} />);
+    await user.hover(screen.getByRole("button", { name: "Lager" }));
+    expect(await screen.findByText("Lager", { selector: '[data-slot="tooltip-content"]' })).toBeInTheDocument();
   });
 });

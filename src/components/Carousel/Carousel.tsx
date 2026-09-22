@@ -154,7 +154,9 @@ export const CarouselItem = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEle
         data-slot="carousel-item"
         className={cn(
           "min-w-0 shrink-0 grow-0 basis-full",
-          orientation === "horizontal" ? "pl-4" : "pt-4",
+          // min-h-0: in a vertical track a slide must keep its basis height (like min-w-0 horizontally) —
+          // taller content would otherwise grow the slide and push the next one past the viewport's edge.
+          orientation === "horizontal" ? "pl-4" : "min-h-0 pt-4",
           className,
         )}
         {...props}

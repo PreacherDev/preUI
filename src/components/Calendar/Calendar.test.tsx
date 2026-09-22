@@ -32,7 +32,16 @@ describe("Calendar", () => {
     const { unmount } = render(<Calendar defaultMonth={FEB_2021} weekStartsOn={1} />);
     expect(screen.getAllByRole("row")).toHaveLength(6); // six weeks
     // Filler weeks made only of next-month days keep their space but are hidden.
-    expect(screen.getAllByRole("row")[5]).toHaveClass("[&:not(:has(>[role=gridcell]:not([data-outside])))]:invisible");
+    // (a data attribute set from the week's days, not a CSS :has() rule — Chromium 103 has no :has()).
+    const rows = screen.getAllByRole("row");
+    expect(rows[5]).toHaveClass("data-[filler]:invisible");
+    expect(rows[5]).toHaveAttribute("data-filler");
+    expect(rows[4]).toHaveAttribute("data-filler");
+    expect(rows[3]).not.toHaveAttribute("data-filler");
+    // The first / last day of the month are marked for the range rounding next to outside days.
+    expect(document.querySelector('[data-day="2021-02-01"]')!.closest("[data-slot=calendar-day]")).toHaveAttribute("data-month-start");
+    expect(document.querySelector('[data-day="2021-02-28"]')!.closest("[data-slot=calendar-day]")).toHaveAttribute("data-month-end");
+    expect(document.querySelector('[data-day="2021-02-15"]')!.closest("[data-slot=calendar-day]")).not.toHaveAttribute("data-month-end");
     unmount();
     render(<Calendar defaultMonth={FEB_2021} weekStartsOn={1} fixedWeeks={false} />);
     expect(screen.getAllByRole("row")).toHaveLength(4);

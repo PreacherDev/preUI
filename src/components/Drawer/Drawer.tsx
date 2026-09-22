@@ -15,9 +15,9 @@ export function Drawer({ swipeDirection = "down", ...props }: DrawerProps) {
   return <BaseDrawer.Root swipeDirection={swipeDirection} {...props} />;
 }
 
-export type DrawerTriggerProps = BaseDrawer.Trigger.Props;
-export type DrawerCloseProps = BaseDrawer.Close.Props;
-export type DrawerPortalProps = BaseDrawer.Portal.Props;
+export interface DrawerTriggerProps extends BaseDrawer.Trigger.Props {}
+export interface DrawerCloseProps extends ComponentPropsWithoutRef<typeof BaseDrawer.Close> {}
+export interface DrawerPortalProps extends ComponentPropsWithoutRef<typeof BaseDrawer.Portal> {}
 
 /** Opens the drawer. Renders a `<button>` (`data-slot="drawer-trigger"`). */
 export const DrawerTrigger = forwardRef<HTMLButtonElement, DrawerTriggerProps>(function DrawerTrigger(props, ref) {

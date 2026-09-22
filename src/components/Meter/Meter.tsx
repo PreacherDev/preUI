@@ -23,6 +23,11 @@ export type MeterTone = NonNullable<VariantProps<typeof meterIndicatorVariants>[
 
 export interface MeterProps extends ComponentPropsWithoutRef<typeof BaseMeter.Root> {
   tone?: MeterTone;
+  /**
+   * Locale for formatting the value (`MeterValue`, `aria-valuetext`) with `Intl.NumberFormat`.
+   * Default `"en-US"` — not the runtime locale, so server and client render the same text. Pass e.g. `"de-DE"`.
+   */
+  locale?: Intl.LocalesArgument;
   /** Classes for the track (e.g. `h-2`). */
   trackClassName?: string;
   /** Classes for the bar. */
@@ -34,12 +39,13 @@ export interface MeterProps extends ComponentPropsWithoutRef<typeof BaseMeter.Ro
  * Optional `MeterLabel` / `MeterValue` children sit on one row above the bar.
  */
 export const Meter = forwardRef<ComponentRef<typeof BaseMeter.Root>, MeterProps>(function Meter(
-  { className, tone, trackClassName, indicatorClassName, children, ...props },
+  { className, tone, trackClassName, indicatorClassName, locale = "en-US", children, ...props },
   ref,
 ) {
   return (
     <BaseMeter.Root
       ref={ref}
+      locale={locale}
       data-slot="meter"
       data-variant={tone ?? "primary"}
       className={mergeClassName("flex w-full flex-wrap items-center gap-x-3 gap-y-1.5", className)}

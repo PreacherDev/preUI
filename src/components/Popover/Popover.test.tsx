@@ -80,3 +80,14 @@ describe("Popover", () => {
     expect(screen.getByRole("button", { name: "Fertig" })).toHaveAttribute("data-slot", "popover-close");
   });
 });
+
+describe("PopoverContent positioner props", () => {
+  it("passes alignOffset and positionerProps to the positioner", async () => {
+    const user = userEvent.setup();
+    render(<Example align="start" alignOffset={8} positionerProps={{ className: "custom-positioner", collisionPadding: 12 }} />);
+    await user.click(screen.getByRole("button", { name: "Details" }));
+    const popup = await screen.findByRole("dialog");
+    expect(popup.parentElement).toHaveClass("z-50", "custom-positioner");
+    expect(popup.parentElement).toHaveAttribute("data-slot", "popover-positioner");
+  });
+});

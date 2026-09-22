@@ -17,6 +17,7 @@ export const fieldSizeClass = {
   lg: "h-pui-control-lg",
 } as const;
 
+/** Size of the field-like controls (`SelectTrigger`, `ComboboxInput`, `ComboboxChips`, `AutocompleteInput`). */
 export type FieldSize = keyof typeof fieldSizeClass;
 
 export const listPositionerClass = "z-50 outline-none";

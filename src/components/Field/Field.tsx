@@ -12,6 +12,7 @@ import {
   type HTMLAttributes,
 } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Separator } from "../Separator/Separator";
 
 /**
@@ -56,7 +57,8 @@ const fieldVariants = cva("flex", {
       /** Label above the control. */
       vertical: "flex-col gap-1.5",
       /** Control and label side by side (checkbox, switch); `FieldContent` stacks label + description. */
-      horizontal: "flex-row items-center gap-3 has-[>[data-slot=field-content]]:items-start",
+      horizontal:
+        "flex-row items-center gap-3 has-[>[data-slot=field-content]]:items-start data-[has-content]:items-start",
     },
   },
   defaultVariants: { orientation: "vertical" },
@@ -67,14 +69,17 @@ export interface FieldProps extends ComponentPropsWithoutRef<typeof BaseField.Ro
 }
 
 /** Groups label, control, description and error; handles labelling and validation. */
+const fieldHasRules: HasFallbackRule[] = [{ attr: "data-has-content", has: ":scope > [data-slot=field-content]" }];
+
 export const Field = forwardRef<ComponentRef<typeof BaseField.Root>, FieldProps>(function Field(
   { className, orientation = "vertical", ...props },
   ref,
 ) {
+  const fieldRef = useHasFallbackRef(ref, fieldHasRules);
   return (
     <InFieldContext.Provider value={true}>
       <BaseField.Root
-        ref={ref}
+        ref={fieldRef}
         data-slot="field"
         data-orientation={orientation}
         className={mergeClassName(fieldVariants({ orientation }), className)}
@@ -86,12 +91,17 @@ export const Field = forwardRef<ComponentRef<typeof BaseField.Root>, FieldProps>
 
 export type FieldLabelProps = ComponentPropsWithoutRef<typeof BaseField.Label>;
 
+/** Field label; dims when the field is disabled or when it follows a disabled control (e.g. in a `FieldItem`). */
 export const FieldLabel = forwardRef<ComponentRef<typeof BaseField.Label>, FieldLabelProps>(function FieldLabel(
   { className, ...props },
   ref,
 ) {
   const classes = mergeClassName(
-    "text-xs font-medium text-pui-muted-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+    [
+      "text-xs font-medium text-pui-muted-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+      // Like `Label`: dims next to a disabled peer control, e.g. a disabled Checkbox / Radio in a `FieldItem`.
+      "peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-data-[disabled]:cursor-not-allowed peer-data-[disabled]:opacity-50",
+    ],
     className,
   );
   if (!useContext(InFieldContext)) {
@@ -226,7 +236,7 @@ export const FieldLegend = forwardRef<ComponentRef<typeof BaseFieldset.Legend>, 
 
 export type FieldSeparatorProps = ComponentPropsWithoutRef<"div">;
 
-/** Hairline between field groups, optionally with centred text ("oder"). */
+/** Hairline between field groups, optionally with centred text ("or"). */
 export const FieldSeparator = forwardRef<HTMLDivElement, FieldSeparatorProps>(function FieldSeparator(
   { className, children, ...props },
   ref,

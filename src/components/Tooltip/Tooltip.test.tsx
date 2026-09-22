@@ -74,3 +74,13 @@ describe("Tooltip", () => {
     expect(popup.parentElement).toHaveAttribute("data-slot", "tooltip-positioner");
   });
 });
+
+describe("TooltipContent positioner props", () => {
+  it("passes positionerProps to the positioner", async () => {
+    const user = userEvent.setup();
+    render(<Example alignOffset={4} positionerProps={{ className: "custom-positioner" }} />);
+    await user.hover(screen.getByRole("button", { name: "Speichern" }));
+    const popup = await screen.findByText("Keine Berechtigung");
+    expect(popup.parentElement).toHaveClass("z-50", "custom-positioner");
+  });
+});

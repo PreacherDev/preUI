@@ -86,7 +86,7 @@ Nur nötig, falls der Playground neu aufgesetzt wird. Im Playground-Ordner:
 
 ```bash
 npm install ../preUI-0.0.1 lucide-react @fontsource-variable/inter @fontsource/jetbrains-mono
-npm install recharts react-is react-day-picker embla-carousel-react cmdk react-resizable-panels react-hook-form @tanstack/react-table
+npm install recharts react-is react-day-picker embla-carousel-react cmdk react-resizable-panels react-hook-form @tanstack/react-table @tanstack/table-core
 npm install shiki @codemirror/state @codemirror/view @codemirror/language @codemirror/commands @codemirror/language-data @codemirror/search @codemirror/autocomplete @lezer/highlight react-markdown remark-gfm @tiptap/core @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/markdown @tiptap/extensions
 npm install -D tailwindcss@^3 postcss autoprefixer
 npx tailwindcss init -p

@@ -37,6 +37,8 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(function C
         // With a description the action spans title + description and sits at the top right, level with
         // the title (like shadcn); otherwise the title stays vertically centred next to it.
         "[&:has(>[data-slot=card-description])>[data-slot=card-action]]:row-[1/span_2] [&:has(>[data-slot=card-description])>[data-slot=card-action]]:self-start",
+        // Same for browsers without :has() (Chromium < 105): an action after the description (shadcn's order).
+        "[&>[data-slot=card-description]~[data-slot=card-action]]:row-[1/span_2] [&>[data-slot=card-description]~[data-slot=card-action]]:self-start",
         className,
       )}
       {...props}

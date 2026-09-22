@@ -90,3 +90,13 @@ describe("Autocomplete", () => {
     expect(input.parentElement).toHaveClass("is-disabled");
   });
 });
+
+describe("AutocompleteInput icon", () => {
+  it("shows the search icon by default, true too; false hides it", () => {
+    for (const [icon, expected] of [[undefined, true], [true, true], [false, false]] as const) {
+      const { container, unmount } = render(<Autocomplete items={["a"]}><AutocompleteInput aria-label="A" icon={icon} /></Autocomplete>);
+      expect(Boolean(container.querySelector('[data-slot="autocomplete-icon"] svg'))).toBe(expected);
+      unmount();
+    }
+  });
+});

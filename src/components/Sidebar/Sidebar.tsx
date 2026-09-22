@@ -7,6 +7,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useState,
   type ComponentPropsWithoutRef,
@@ -16,6 +17,7 @@ import {
 } from "react";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Button, type ButtonProps } from "../Button/Button";
 import { Input, type InputProps } from "../Input/Input";
 import { ScrollArea, type ScrollAreaProps } from "../ScrollArea/ScrollArea";
@@ -31,7 +33,9 @@ import {
 } from "../Tooltip/Tooltip";
 import { useIsMobile } from "./useIsMobile";
 
+/** Cookie in which `SidebarProvider` persists the desktop open state (`"true"` / `"false"`). */
 export const SIDEBAR_COOKIE_NAME = "sidebar_state";
+/** Lifetime of the `sidebar_state` cookie in seconds (7 days). */
 export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 /** Expanded rail width (handoff: 208px). */
 export const SIDEBAR_WIDTH = "13rem";
@@ -40,6 +44,34 @@ export const SIDEBAR_WIDTH_MOBILE = "18rem";
 /** Collapsed icon rail width (handoff: 56px). */
 export const SIDEBAR_WIDTH_ICON = "3.5rem";
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+
+/**
+ * Reads the persisted desktop state from a `Cookie` header (or `document.cookie`). Returns `undefined` when the
+ * cookie is missing or invalid. Call it where the request is available — server loader / layout — and pass the
+ * result to `SidebarProvider`'s `defaultOpen`, so the server already renders the remembered state:
+ *
+ * ```tsx
+ * const defaultOpen = getSidebarStateFromCookie(request.headers.get("cookie")) ?? true;
+ * <SidebarProvider defaultOpen={defaultOpen}>…</SidebarProvider>
+ * ```
+ *
+ * The provider never reads the cookie itself during render (that would differ between server and client).
+ */
+export function getSidebarStateFromCookie(
+  cookieHeader: string | null | undefined,
+  cookieName: string = SIDEBAR_COOKIE_NAME,
+): boolean | undefined {
+  if (!cookieHeader) return undefined;
+  for (const part of cookieHeader.split(";")) {
+    const index = part.indexOf("=");
+    if (index === -1 || part.slice(0, index).trim() !== cookieName) continue;
+    const value = part.slice(index + 1).trim();
+    if (value === "true") return true;
+    if (value === "false") return false;
+    return undefined;
+  }
+  return undefined;
+}
 
 /* -------------------------------------------------------------------------------------------------
  * Context
@@ -71,18 +103,32 @@ export function useSidebar(): SidebarContextValue {
  * -----------------------------------------------------------------------------------------------*/
 
 export interface SidebarProviderProps extends ComponentPropsWithoutRef<"div"> {
-  /** Initial open state (uncontrolled). */
+  /**
+   * Initial open state (uncontrolled). To restore the persisted state, read the cookie on the server with
+   * `getSidebarStateFromCookie(cookieHeader)` and pass it here.
+   */
   defaultOpen?: boolean;
   /** Open state (controlled). Only affects the desktop sidebar; the mobile sheet has its own state. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** Key that toggles the sidebar together with Ctrl/Cmd. `false` disables the shortcut. */
   keyboardShortcut?: string | false;
+  /**
+   * Open delay (ms) of the `TooltipProvider` the provider wraps around the sidebar (menu button tooltips in the
+   * icon rail). Default `0`.
+   */
+  tooltipDelay?: number;
 }
+
+// `has-[[data-variant=inset]]` for browsers without :has() (Chromium < 105).
+const sidebarWrapperHasRules: HasFallbackRule[] = [
+  { attr: "data-has-inset", has: ":scope > [data-slot=sidebar][data-variant=inset]" },
+];
 
 /**
  * Holds the sidebar state, sets `--sidebar-width` / `--sidebar-width-icon`, persists the desktop state in the
- * `sidebar_state` cookie and toggles on Ctrl/Cmd+B. Wraps `Sidebar` and `SidebarInset`.
+ * `sidebar_state` cookie (read it back with `getSidebarStateFromCookie` → `defaultOpen`) and toggles on
+ * Ctrl/Cmd+B. Wraps `Sidebar` and `SidebarInset`.
  */
 export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(function SidebarProvider(
   {
@@ -90,6 +136,7 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
     open: openProp,
     onOpenChange,
     keyboardShortcut = SIDEBAR_KEYBOARD_SHORTCUT,
+    tooltipDelay = 0,
     className,
     style,
     children,
@@ -98,6 +145,7 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
   ref,
 ) {
   const isMobile = useIsMobile();
+  const wrapperRef = useHasFallbackRef(ref, sidebarWrapperHasRules);
   const [openMobile, setOpenMobile] = useState(false);
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const open = openProp ?? internalOpen;
@@ -140,9 +188,9 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delay={0}>
+      <TooltipProvider delay={tooltipDelay}>
         <div
-          ref={ref}
+          ref={wrapperRef}
           data-slot="sidebar-wrapper"
           style={
             {
@@ -152,7 +200,10 @@ export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(
             } as CSSProperties
           }
           className={cn(
-            "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-pui-shell",
+            // --pui-viewport-height is 100svh where supported (set by the preset), else 100vh — Chromium < 108
+            // (CEF / FiveM) has no svh units. One class, so `min-h-0` etc. in className still replaces it.
+            "group/sidebar-wrapper flex min-h-[var(--pui-viewport-height,100vh)] w-full",
+            "has-[[data-variant=inset]]:bg-pui-shell data-[has-inset]:bg-pui-shell",
             className,
           )}
           {...props}
@@ -280,7 +331,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(function Sidebar
         ref={ref}
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] duration-pui-base ease-pui md:flex",
+          "fixed inset-y-0 z-10 hidden h-[var(--pui-viewport-height,100vh)] w-[var(--sidebar-width)] transition-[left,right,width] duration-pui-base ease-pui md:flex",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -607,13 +658,20 @@ export const SidebarGroupContent = forwardRef<HTMLDivElement, SidebarGroupConten
 
 export type SidebarMenuProps = ComponentPropsWithoutRef<"ul">;
 
+// `group-has-[…]/menu-item` rules of the menu button, emulated for browsers without :has() (Chromium < 105).
+const sidebarMenuHasRules: HasFallbackRule[] = [
+  { attr: "data-has-action", has: "[data-sidebar=menu-action]", target: ":scope > [data-sidebar=menu-item]" },
+  { attr: "data-has-badge", has: "[data-sidebar=menu-badge]", target: ":scope > [data-sidebar=menu-item]" },
+];
+
 export const SidebarMenu = forwardRef<HTMLUListElement, SidebarMenuProps>(function SidebarMenu(
   { className, ...props },
   ref,
 ) {
+  const menuRef = useHasFallbackRef(ref, sidebarMenuHasRules);
   return (
     <ul
-      ref={ref}
+      ref={menuRef}
       data-slot="sidebar-menu"
       data-sidebar="menu"
       className={cn("flex w-full min-w-0 flex-col gap-1", className)}
@@ -649,6 +707,7 @@ export const sidebarMenuButtonVariants = cva(
     "data-[active=true]:bg-pui-rail-active data-[active=true]:text-pui-foreground",
     "data-[popup-open]:bg-pui-accent/50 data-[popup-open]:text-pui-foreground",
     "group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 group-has-[[data-sidebar=menu-badge]]/menu-item:pr-8",
+    "group-data-[has-action]/menu-item:pr-8 group-data-[has-badge]/menu-item:pr-8",
     "[&>span:last-child]:truncate [&>svg]:shrink-0",
   ],
   {
@@ -785,13 +844,29 @@ export const SidebarMenuBadge = forwardRef<HTMLDivElement, SidebarMenuBadgeProps
 export interface SidebarMenuSkeletonProps extends ComponentPropsWithoutRef<"div"> {
   /** Adds an icon placeholder before the text line. */
   showIcon?: boolean;
+  /**
+   * Width of the text line (CSS length, numbers are px). Default: a pseudo-random 50–90 % derived from `useId`,
+   * so it differs between skeletons but is identical on server and client (no hydration mismatch).
+   */
+  width?: string | number;
+}
+
+/** Deterministic 50–89 (%) from a string (FNV-1a hash). */
+function skeletonWidthFromId(id: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return 50 + ((hash >>> 0) % 40);
 }
 
 /** Loading placeholder with the height of a (default) menu button. */
 export const SidebarMenuSkeleton = forwardRef<HTMLDivElement, SidebarMenuSkeletonProps>(
-  function SidebarMenuSkeleton({ className, showIcon = false, ...props }, ref) {
-    // Random width between 50 and 90%, fixed for the lifetime of the component.
-    const [width] = useState(() => `${Math.floor(Math.random() * 40) + 50}%`);
+  function SidebarMenuSkeleton({ className, showIcon = false, width: widthProp, ...props }, ref) {
+    const id = useId();
+    const width =
+      widthProp === undefined ? `${skeletonWidthFromId(id)}%` : typeof widthProp === "number" ? `${widthProp}px` : widthProp;
     return (
       <div
         ref={ref}

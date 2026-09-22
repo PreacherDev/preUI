@@ -7,6 +7,7 @@ import {
 } from "react";
 import { cn } from "../../utils/cn";
 import { useScrollTabStop } from "../../utils/scroll-tab-stop";
+import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 
 export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
@@ -19,11 +20,15 @@ export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
  * bordered wrapper (constrain its height with `containerClassName="max-h-…"`); the header sticks to its top.
  * The scrollbars float over the cell padding, so nothing shifts when they appear.
  */
+// `[&:has([role=checkbox])]` on the cells, emulated for browsers without :has() (Chromium < 105).
+const tableHasRules: HasFallbackRule[] = [{ attr: "data-has-checkbox", has: "[role=checkbox]", target: "th, td" }];
+
 export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
   { className, containerClassName, ...props },
   ref,
 ) {
   const tabStop = useScrollTabStop();
+  const tableRef = useHasFallbackRef(ref, tableHasRules);
   return (
     <div
       data-slot="table-container"
@@ -39,7 +44,7 @@ export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
         viewportProps={tabStop.viewportProps}
       >
         <table
-          ref={ref}
+          ref={tableRef}
           data-slot="table"
           className={cn("w-full caption-bottom border-collapse text-sm", className)}
           {...props}
@@ -124,7 +129,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(functi
       className={cn(
         "h-10 whitespace-nowrap px-4 text-left align-middle",
         "text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground",
-        "[&:has([role=checkbox])]:pr-0",
+        "[&:has([role=checkbox])]:pr-0 data-[has-checkbox]:pr-0",
         className,
       )}
       {...props}
@@ -142,7 +147,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(functi
     <td
       ref={ref}
       data-slot="table-cell"
-      className={cn("px-4 py-2.5 align-middle tabular-nums [&:has([role=checkbox])]:pr-0", className)}
+      className={cn("px-4 py-2.5 align-middle tabular-nums [&:has([role=checkbox])]:pr-0 data-[has-checkbox]:pr-0", className)}
       {...props}
     />
   );

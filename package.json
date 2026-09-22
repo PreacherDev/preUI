@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/preui",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "React UI components built on Base UI and Tailwind CSS v3",
   "keywords": [
     "react",
@@ -182,7 +182,7 @@
     "bin"
   ],
   "scripts": {
-    "build": "tsdown && node scripts/generate-tokens.mjs",
+    "build": "tsdown && node scripts/patch-tailwind-cjs.mjs && node scripts/generate-tokens.mjs",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

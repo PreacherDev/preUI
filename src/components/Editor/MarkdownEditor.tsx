@@ -15,6 +15,7 @@ import {
 } from "react";
 import { useIcon, type IconName } from "../../icons";
 import { cn } from "../../utils/cn";
+import { useElementWidth } from "../../utils/use-element-width";
 import { CodeEditor, type CodeEditorHandle, type CodeEditorProps } from "../Code/CodeEditor";
 import { Markdown, type MarkdownProps } from "../Markdown/Markdown";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
@@ -347,6 +348,12 @@ function MarkdownToolbar({
 
 export type MarkdownEditorLayout = "tabs" | "split" | "editor";
 
+/**
+ * Below this frame width (px) the editor switches to its compact arrangement: the toolbar gets a row of its own
+ * (scrolling horizontally when it doesn't fit) and `split` stacks editor and preview.
+ */
+export const MARKDOWN_EDITOR_COMPACT_WIDTH = 480;
+
 export interface MarkdownEditorProps
   extends Omit<ComponentPropsWithoutRef<"div">, "children" | "defaultValue" | "onChange" | "placeholder" | "id"> {
   /** Markdown source (controlled). */
@@ -355,7 +362,10 @@ export interface MarkdownEditorProps
   defaultValue?: string;
   /** Called with the full source after every edit. */
   onValueChange?: (value: string) => void;
-  /** `tabs` (Write / Preview, default), `split` (side by side) or `editor` (no preview). */
+  /**
+   * `tabs` (Write / Preview, default), `split` (side by side; stacked when the frame is narrower than
+   * `MARKDOWN_EDITOR_COMPACT_WIDTH`) or `editor` (no preview).
+   */
   layout?: MarkdownEditorLayout;
   /** Tab that is active first in the `tabs` layout. Default `"write"`. */
   defaultTab?: "write" | "preview";
@@ -439,6 +449,11 @@ export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(
   const labels = useMemo(() => ({ ...defaultMarkdownEditorLabels, ...labelsProp }), [labelsProp]);
   const toolbarItems = toolbar === false ? [] : toolbar === true ? markdownEditorToolbarGroups.flat() : toolbar;
   const showToolbar = toolbarItems.length > 0;
+
+  // Compact arrangement for narrow frames (measured after mounting; 0 = hidden, not measured yet).
+  const frameRef = useRef<HTMLDivElement>(null);
+  const frameWidth = useElementWidth(frameRef);
+  const compact = frameWidth !== undefined && frameWidth > 0 && frameWidth < MARKDOWN_EDITOR_COMPACT_WIDTH;
 
   const [innerValue, setInnerValue] = useState(defaultValue ?? "");
   const controlled = value !== undefined;
@@ -532,7 +547,10 @@ export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(
       data-slot="markdown-editor-preview"
       // contain: wide tables / code lines (their own horizontal scroll areas) must not widen the preview
       // or the frame through their min-content width.
-      className={cn("min-w-0 [contain:inline-size]", extraClassName)}
+      className={cn(
+        "min-w-0 [contain:inline-size] supports-[not_(contain:inline-size)]:w-0 supports-[not_(contain:inline-size)]:min-w-full",
+        extraClassName,
+      )}
       style={{ minHeight: cssSize(minHeight), maxHeight: cssSize(maxHeight), ...style }}
       // Wide tables / code blocks scroll in their own areas; the preview content follows the viewport width.
       contentClassName="!min-w-0"
@@ -550,7 +568,20 @@ export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(
   );
 
   const toolbarNode = showToolbar ? (
-    <MarkdownToolbar items={toolbarItems} labels={labels} disabled={readOnly} getView={getView} />
+    compact ? (
+      // Narrow frame: one line that scrolls sideways instead of wrapping around the tabs.
+      <ScrollArea orientation="horizontal" reserveTrack={false} data-slot="markdown-editor-toolbar-scroll" className="min-w-0 flex-1">
+        <MarkdownToolbar
+          items={toolbarItems}
+          labels={labels}
+          disabled={readOnly}
+          getView={getView}
+          className="w-max flex-nowrap px-1 py-1"
+        />
+      </ScrollArea>
+    ) : (
+      <MarkdownToolbar items={toolbarItems} labels={labels} disabled={readOnly} getView={getView} />
+    )
   ) : null;
 
   const eyebrow = "text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground";
@@ -579,8 +610,13 @@ export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(
               {labels.preview}
             </TabsTrigger>
           </TabsList>
-          {tab === "write" && toolbarNode && <div className="py-1">{toolbarNode}</div>}
+          {!compact && tab === "write" && toolbarNode && <div className="py-1">{toolbarNode}</div>}
         </div>
+        {compact && tab === "write" && toolbarNode && (
+          <div data-slot="markdown-editor-toolbar-row" className="flex min-w-0 border-b border-pui-border">
+            {toolbarNode}
+          </div>
+        )}
         <TabsContent value="write" keepMounted ref={writePanelRef} className="grid focus-visible:ring-0 [&[hidden]]:hidden">
           {editor}
         </TabsContent>
@@ -588,6 +624,28 @@ export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(
           {preview(previewHeight ? { minHeight: previewHeight } : undefined)}
         </TabsContent>
       </Tabs>
+    );
+  } else if (layout === "split" && compact) {
+    // Narrow frame: toolbar, editor, then the preview below it.
+    body = (
+      <>
+        <div data-slot="markdown-editor-header" className={cn(headerClassName, "min-w-0")}>
+          {toolbarNode ?? (
+            <span data-slot="markdown-editor-label" className={cn(eyebrow, "px-3")}>
+              {labels.write}
+            </span>
+          )}
+        </div>
+        <div data-slot="markdown-editor-body" className="grid min-h-0 flex-1 grid-cols-1">
+          {editor}
+          <div className="flex min-h-10 items-center border-y border-pui-border px-3">
+            <span data-slot="markdown-editor-label" className={eyebrow}>
+              {labels.preview}
+            </span>
+          </div>
+          {preview()}
+        </div>
+      </>
     );
   } else if (layout === "split") {
     body = (
@@ -627,8 +685,10 @@ export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(
 
   return (
     <div
+      ref={frameRef}
       data-slot="markdown-editor"
       data-layout={layout}
+      data-compact={compact || undefined}
       data-readonly={readOnly || undefined}
       className={cn(
         "flex w-full min-w-0 flex-col rounded-pui-md border border-pui-input bg-pui-background text-pui-foreground",
