@@ -98,6 +98,34 @@ describe("Tabs", () => {
       </Tabs>,
     );
     expect(screen.getByRole("button", { name: "Lager kaufen" })).toBeInTheDocument();
-    expect(screen.getByRole("tablist").parentElement).toHaveClass("justify-between", "border-b");
+    const bar = document.querySelector('[data-slot="tabs-bar"]')!;
+    expect(bar).toHaveClass("justify-between", "border-b");
+    expect(screen.getByRole("tablist").closest('[data-slot="tabs-bar"]')).toBe(bar);
+  });
+
+  it("TabsBar: the list area shrinks and scrolls horizontally instead of pushing the action out", () => {
+    render(
+      <Tabs defaultValue="a">
+        <TabsBar action={<button type="button">Aktion</button>}>
+          <TabsList>
+            <TabsTrigger value="a">Lagerbestand</TabsTrigger>
+            <TabsTrigger value="b">Produktion</TabsTrigger>
+          </TabsList>
+        </TabsBar>
+      </Tabs>,
+    );
+    const area = document.querySelector('[data-slot="tabs-bar-list"]')!;
+    // Shrinkable flex item that takes the free space; the action keeps its size.
+    expect(area).toHaveClass("min-w-0", "flex-1", "-mb-px");
+    expect(area).toHaveAttribute("data-slot", "tabs-bar-list");
+    expect(area.querySelector('[data-slot="scroll-area-viewport"]')).toContainElement(screen.getByRole("tablist"));
+    // Horizontal only (Base UI renders the bar once content overflows), floating track, natural content width.
+    expect(area.querySelector('[data-slot="scroll-area-scrollbar"][data-orientation="vertical"]')).toBeNull();
+    const content = area.querySelector('[data-slot="scroll-area-content"]')!;
+    expect(content).toHaveClass("w-max", "pb-px");
+    expect(content).not.toHaveClass("pb-2.5");
+    expect(screen.getByRole("button", { name: "Aktion" }).parentElement).toHaveClass("shrink-0");
+    // The bar draws the hairline, not the (nested) list.
+    expect(document.querySelector('[data-slot="tabs-bar"]')).toHaveClass("[&_[role=tablist]]:border-b-0");
   });
 });

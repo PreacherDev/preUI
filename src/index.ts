@@ -11,6 +11,7 @@ export * from "./components/Toolbar";
 // Forms
 export * from "./components/Checkbox";
 export * from "./components/CheckboxGroup";
+export * from "./components/ColorPicker";
 export * from "./components/Field";
 export * from "./components/Form";
 export * from "./components/Input";
