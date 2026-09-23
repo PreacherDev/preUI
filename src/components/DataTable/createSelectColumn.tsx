@@ -48,6 +48,7 @@ export function createSelectColumn<TData extends RowData>({
     enableSorting: false,
     enableHiding: false,
     enableColumnFilter: false,
-    meta: { width: "2.75rem" },
+    // A click next to the checkbox should not activate (open) the row.
+    meta: { width: "2.75rem", rowActivation: false },
   };
 }

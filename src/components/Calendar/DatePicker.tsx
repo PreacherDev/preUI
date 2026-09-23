@@ -1,4 +1,13 @@
-import { forwardRef, useCallback, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { useFieldRootContext } from "@base-ui/react/internals/field-root-context";
+import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useState,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from "react";
 import type { DateRange, DayPickerLocale, PropsBase } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger, type PopoverContentProps } from "../Popover/Popover";
 import { useIcon } from "../../icons";
@@ -22,6 +31,11 @@ interface PickerBaseProps extends TriggerProps {
    */
   formatDate?: (date: Date) => string;
   disabled?: boolean;
+  /**
+   * Marks the picker invalid (`aria-invalid`, `data-invalid`, negative border). Inside a `Field` it also follows the
+   * field's validity (`<Field invalid>`), so this is mainly for use without a Field.
+   */
+  invalid?: boolean;
   /** Leading icon in the trigger. Defaults to the `calendar` icon from the IconProvider; pass `null` to hide it. */
   icon?: ReactNode;
   /** Extra props for the Calendar (e.g. `disabled` days, `captionLayout`, `startMonth`). */
@@ -83,19 +97,92 @@ function defaultFormat(locale?: DayPickerLocale) {
 const fieldTriggerClassName = [
   "flex h-pui-control w-full items-center gap-2 rounded-pui-md border border-pui-input bg-pui-background px-3 text-left text-sm text-pui-foreground",
   "outline-none transition-colors duration-pui-fast ease-pui focus-visible:border-pui-ring data-[popup-open]:border-pui-ring",
+  "data-[invalid]:border-pui-negative",
   "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
   "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
 ];
 
+interface PickerFieldParams {
+  id?: string;
+  disabled?: boolean;
+  invalid?: boolean;
+  filled: boolean;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
+  onFocus?: TriggerProps["onFocus"];
+  onBlur?: TriggerProps["onBlur"];
+}
+
+type TriggerFocusEvent = Parameters<NonNullable<TriggerProps["onFocus"]>>[0];
+
+/**
+ * Connects a picker trigger to a surrounding Base UI `Field` the way `Select.Trigger` does: `id` for the label's
+ * `htmlFor`, `aria-labelledby` (label + current value), `aria-describedby` (description / error), disabled,
+ * invalid and the field's focused / touched / filled state. Outside a Field the contexts are no-op defaults.
+ */
+function usePickerField({
+  id: idProp,
+  disabled: disabledProp,
+  invalid: invalidProp,
+  filled,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
+  onFocus,
+  onBlur,
+}: PickerFieldParams) {
+  const field = useFieldRootContext();
+  const { labelId, getDescriptionProps } = useLabelableContext();
+  const id = useLabelableId({ id: idProp });
+  const disabled = Boolean(field.disabled || disabledProp);
+  const invalid = Boolean(invalidProp || field.state.valid === false);
+  const valueId = id ? `${id}-value` : undefined;
+  const { setFilled, setFocused, setTouched } = field;
+
+  useEffect(() => {
+    setFilled(filled);
+  }, [filled, setFilled]);
+
+  const describedBy = getDescriptionProps({ "aria-describedby": ariaDescribedBy })["aria-describedby"] as string | undefined;
+
+  return {
+    valueId,
+    triggerProps: {
+      id,
+      disabled,
+      "aria-label": ariaLabel,
+      // Accessible name = field label + current value ("Birthday Mar 12, 2025"), like a labelled native control.
+      "aria-labelledby": ariaLabelledBy ?? (labelId && !ariaLabel ? `${labelId} ${valueId}` : undefined),
+      "aria-describedby": describedBy,
+      "aria-invalid": invalid || undefined,
+      "data-invalid": invalid ? "" : undefined,
+      "data-touched": field.state.touched ? "" : undefined,
+      "data-filled": filled ? "" : undefined,
+      onFocus(event: TriggerFocusEvent) {
+        setFocused(true);
+        onFocus?.(event);
+      },
+      onBlur(event: TriggerFocusEvent) {
+        setTouched(true);
+        setFocused(false);
+        onBlur?.(event);
+      },
+    },
+  };
+}
+
 interface TriggerContentProps {
   /** `data-slot` prefix of the parts (`date-picker` / `date-range-picker`). */
   slot: string;
+  /** `id` of the value span (part of the trigger's accessible name inside a Field). */
+  valueId?: string;
   icon?: ReactNode;
   text?: string;
   placeholder?: ReactNode;
 }
 
-function TriggerContent({ slot, icon, text, placeholder }: TriggerContentProps) {
+function TriggerContent({ slot, valueId, icon, text, placeholder }: TriggerContentProps) {
   const CalendarIcon = useIcon("calendar");
   const leading = icon === undefined ? <CalendarIcon /> : icon;
 
@@ -106,7 +193,7 @@ function TriggerContent({ slot, icon, text, placeholder }: TriggerContentProps) 
           {leading}
         </span>
       )}
-      <span data-slot={`${slot}-value`} className={cn("flex-1 truncate", !text && "text-pui-muted-foreground")}>
+      <span id={valueId} data-slot={`${slot}-value`} className={cn("flex-1 truncate", !text && "text-pui-muted-foreground")}>
         {text || placeholder}
       </span>
     </>
@@ -123,6 +210,13 @@ export const DatePicker = /* @__PURE__ */ forwardRef<HTMLButtonElement, DatePick
     locale,
     formatDate,
     disabled,
+    invalid,
+    id,
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
+    "aria-describedby": ariaDescribedBy,
+    onFocus,
+    onBlur,
     icon,
     calendarProps,
     contentProps,
@@ -139,17 +233,29 @@ export const DatePicker = /* @__PURE__ */ forwardRef<HTMLButtonElement, DatePick
   const [isOpen, setOpen] = useControllable(open, defaultOpen ?? false, (next) => onOpenChange?.(Boolean(next)));
   const format = formatDate ?? defaultFormat(locale);
 
+  const { valueId, triggerProps } = usePickerField({
+    id,
+    disabled,
+    invalid,
+    filled: Boolean(date),
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
+    "aria-describedby": ariaDescribedBy,
+    onFocus,
+    onBlur,
+  });
+
   return (
     <Popover open={Boolean(isOpen)} onOpenChange={(next) => setOpen(next)}>
       <PopoverTrigger
         ref={ref}
-        disabled={disabled}
+        {...triggerProps}
         data-slot="date-picker"
         data-placeholder={date ? undefined : ""}
         className={mergeClassName(fieldTriggerClassName, className)}
         {...props}
       >
-        <TriggerContent slot="date-picker" icon={icon} text={date ? format(date) : undefined} placeholder={placeholder} />
+        <TriggerContent slot="date-picker" valueId={valueId} icon={icon} text={date ? format(date) : undefined} placeholder={placeholder} />
       </PopoverTrigger>
       <PopoverContent align="start" {...contentProps} className={mergeClassName("w-auto p-0", contentProps?.className)}>
         <Calendar
@@ -179,6 +285,13 @@ export const DateRangePicker = /* @__PURE__ */ forwardRef<HTMLButtonElement, Dat
     locale,
     formatDate,
     disabled,
+    invalid,
+    id,
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
+    "aria-describedby": ariaDescribedBy,
+    onFocus,
+    onBlur,
     icon,
     calendarProps,
     contentProps,
@@ -204,17 +317,29 @@ export const DateRangePicker = /* @__PURE__ */ forwardRef<HTMLButtonElement, Dat
     text = sameDay ? format(range.from) : `${format(range.from)}${separator}${format(range.to!)}`;
   }
 
+  const { valueId, triggerProps } = usePickerField({
+    id,
+    disabled,
+    invalid,
+    filled: Boolean(range?.from),
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
+    "aria-describedby": ariaDescribedBy,
+    onFocus,
+    onBlur,
+  });
+
   return (
     <Popover open={Boolean(isOpen)} onOpenChange={(next) => setOpen(next)}>
       <PopoverTrigger
         ref={ref}
-        disabled={disabled}
+        {...triggerProps}
         data-slot="date-range-picker"
         data-placeholder={text ? undefined : ""}
         className={mergeClassName(fieldTriggerClassName, className)}
         {...props}
       >
-        <TriggerContent slot="date-range-picker" icon={icon} text={text} placeholder={placeholder} />
+        <TriggerContent slot="date-range-picker" valueId={valueId} icon={icon} text={text} placeholder={placeholder} />
       </PopoverTrigger>
       <PopoverContent align="start" {...contentProps} className={mergeClassName("w-auto p-0", contentProps?.className)}>
         <Calendar

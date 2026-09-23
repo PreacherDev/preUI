@@ -813,14 +813,39 @@ export const SidebarMenuAction = /* @__PURE__ */ forwardRef<HTMLElement, Sidebar
   });
 });
 
-export type SidebarMenuBadgeProps = ComponentPropsWithoutRef<"div">;
+/**
+ * Colours of `SidebarMenuBadge`, named like `Badge`'s variants. Solid fills with their `-foreground` token (the
+ * counter is tiny, a tint would be too faint); `destructive` uses the `negative` colour like `Badge`.
+ */
+export const sidebarMenuBadgeVariants = /* @__PURE__ */ cva("", {
+  variants: {
+    variant: {
+      /** Primary — "something waits here". */
+      default: "bg-pui-primary text-pui-primary-foreground",
+      /** Neutral count. */
+      secondary: "bg-pui-muted text-pui-muted-foreground",
+      positive: "bg-pui-positive text-pui-positive-foreground",
+      warning: "bg-pui-warning text-pui-warning-foreground",
+      destructive: "bg-pui-negative text-pui-negative-foreground",
+      info: "bg-pui-info text-pui-info-foreground",
+    },
+  },
+  defaultVariants: { variant: "default" },
+});
+
+export type SidebarMenuBadgeVariant = NonNullable<VariantProps<typeof sidebarMenuBadgeVariants>["variant"]>;
+
+export interface SidebarMenuBadgeProps extends ComponentPropsWithoutRef<"div"> {
+  /** Colour, named like `Badge`'s variants. Default `"default"` (primary). */
+  variant?: SidebarMenuBadgeVariant;
+}
 
 /**
  * Round counter on the right of a menu item — "something waits here", not "new". In the collapsed icon rail it
- * sits on the icon's top-right corner.
+ * sits on the icon's top-right corner. `variant` colours it (e.g. `destructive` for urgent items).
  */
 export const SidebarMenuBadge = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarMenuBadgeProps>(function SidebarMenuBadge(
-  { className, ...props },
+  { className, variant, ...props },
   ref,
 ) {
   return (
@@ -828,9 +853,11 @@ export const SidebarMenuBadge = /* @__PURE__ */ forwardRef<HTMLDivElement, Sideb
       ref={ref}
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
+      data-variant={variant ?? "default"}
       className={cn(
-        "pointer-events-none absolute right-2.5 top-[calc((var(--pui-control-h-lg)_-_1rem)/2)] flex h-4 min-w-4 select-none items-center justify-center rounded-full bg-pui-primary px-1",
-        "text-pui-2xs font-semibold tabular-nums text-pui-primary-foreground",
+        "pointer-events-none absolute right-2.5 top-[calc((var(--pui-control-h-lg)_-_1rem)/2)] flex h-4 min-w-4 select-none items-center justify-center rounded-full px-1",
+        "text-pui-2xs font-semibold tabular-nums",
+        sidebarMenuBadgeVariants({ variant }),
         "peer-data-[size=sm]/menu-button:top-[calc((var(--pui-control-h-sm)_-_1rem)/2)] peer-data-[size=default]/menu-button:top-[calc((var(--pui-control-h-lg)_-_1rem)/2)] peer-data-[size=lg]/menu-button:top-4",
         // Icon rail (handoff): the counter stays visible, pinned to the icon's top-right corner.
         "group-data-[collapsible=icon]:!left-6 group-data-[collapsible=icon]:!right-auto group-data-[collapsible=icon]:!top-1",

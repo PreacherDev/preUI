@@ -29,6 +29,7 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   getSidebarStateFromCookie,
+  sidebarMenuBadgeVariants,
   sidebarMenuButtonVariants,
   useSidebar,
 } from "./Sidebar";
@@ -45,6 +46,7 @@ export type {
   SidebarInsetProps,
   SidebarMenuActionProps,
   SidebarMenuBadgeProps,
+  SidebarMenuBadgeVariant,
   SidebarMenuButtonProps,
   SidebarMenuItemProps,
   SidebarMenuSkeletonProps,

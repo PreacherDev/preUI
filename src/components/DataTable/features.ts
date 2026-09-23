@@ -42,6 +42,11 @@ export interface DataTableColumnMeta {
   cellClassName?: string;
   /** Name shown in the column visibility menu. Defaults to a string `header`, else the column id. */
   label?: string;
+  /**
+   * `false`: clicks in this column's cells never activate the row (`onRowActivate` / `onRowClick`), e.g. for an
+   * actions or checkbox column where a miss next to the control should not open the row. Default `true`.
+   */
+  rowActivation?: boolean;
 }
 
 /**

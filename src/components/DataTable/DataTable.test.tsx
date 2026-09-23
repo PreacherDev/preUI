@@ -1,5 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Button } from "../Button/Button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../DropdownMenu/DropdownMenu";
 import { DataTable } from "./DataTable";
 import { DataTableColumnHeader } from "./DataTableColumnHeader";
 import { createDataTableColumnHelper } from "./features";
@@ -289,5 +291,122 @@ describe("DataTable fixed layout minimum width", () => {
   it("leaves the auto layout alone", () => {
     render(<DataTable columns={columns} data={bookings} layout="auto" />);
     expect(screen.getByRole("table").style.minWidth).toBe("");
+  });
+});
+
+describe("DataTable row activation", () => {
+  const actionColumns = helper.columns([
+    ...columns,
+    helper.display({
+      id: "actions",
+      header: "Aktionen",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button size="sm" variant="ghost" />}>Menü {row.original.id}</DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Bearbeiten</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      meta: { rowActivation: false },
+    }),
+  ]);
+
+  it("activates a row on click and on Enter / Space, rows are focusable", async () => {
+    const user = userEvent.setup();
+    const onRowActivate = vi.fn();
+    render(<DataTable columns={columns} data={bookings} onRowActivate={onRowActivate} />);
+    const [first, second] = bodyRows();
+    expect(first).toHaveAttribute("tabindex", "0");
+    expect(first).toHaveAttribute("data-activatable");
+    expect(first).toHaveClass("cursor-pointer");
+
+    await user.click(within(first!).getByText("Tanken 1"));
+    expect(onRowActivate).toHaveBeenCalledTimes(1);
+    expect(onRowActivate.mock.calls[0]![0].original.id).toBe("b1");
+
+    second!.focus();
+    await user.keyboard("{Enter}");
+    expect(onRowActivate).toHaveBeenCalledTimes(2);
+    expect(onRowActivate.mock.lastCall![0].original.id).toBe("b2");
+    await user.keyboard(" ");
+    expect(onRowActivate).toHaveBeenCalledTimes(3);
+    await user.keyboard("a");
+    expect(onRowActivate).toHaveBeenCalledTimes(3);
+  });
+
+  it("is not activatable (no tab stop, no pointer) without handlers", () => {
+    render(<DataTable columns={columns} data={bookings} />);
+    const [first] = bodyRows();
+    expect(first).not.toHaveAttribute("tabindex");
+    expect(first).not.toHaveAttribute("data-activatable");
+    expect(first).not.toHaveClass("cursor-pointer");
+  });
+
+  it("ignores clicks on interactive elements, portaled menus and rowActivation: false columns", async () => {
+    const user = userEvent.setup();
+    const onRowActivate = vi.fn();
+    render(<DataTable columns={actionColumns} data={bookings} onRowActivate={onRowActivate} enableRowSelection />);
+    const [first] = bodyRows();
+
+    await user.click(within(first!).getByRole("checkbox", { name: "Select row" }));
+    expect(first).toHaveAttribute("data-state", "selected");
+    // The cell around the checkbox (select column) does not activate either.
+    await user.click(within(first!).getAllByRole("cell")[0]!);
+    await user.click(within(first!).getByRole("button", { name: "Menü b1" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Bearbeiten" }));
+    expect(onRowActivate).not.toHaveBeenCalled();
+
+    // A key press on a focused button inside the row does not activate the row.
+    within(first!).getByRole("button", { name: "Menü b1" }).focus();
+    await user.keyboard("{Enter}");
+    await user.keyboard("{Escape}");
+    expect(onRowActivate).not.toHaveBeenCalled();
+
+    await user.click(within(first!).getByText("Tanken 1"));
+    expect(onRowActivate).toHaveBeenCalledTimes(1);
+  });
+
+  it("onRowClick gets row and event but no tab stop", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    render(<DataTable columns={columns} data={bookings} onRowClick={onRowClick} />);
+    const [first] = bodyRows();
+    expect(first).toHaveClass("cursor-pointer");
+    expect(first).not.toHaveAttribute("tabindex");
+    await user.click(within(first!).getByText("$100"));
+    expect(onRowClick).toHaveBeenCalledTimes(1);
+    expect(onRowClick.mock.calls[0]![0].original.id).toBe("b1");
+    expect(onRowClick.mock.calls[0]![1].type).toBe("click");
+  });
+
+  it("getRowProps adds attributes and classes and can cancel the activation", async () => {
+    const user = userEvent.setup();
+    const onRowActivate = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={bookings}
+        onRowActivate={onRowActivate}
+        getRowProps={(row) => ({
+          className: row.original.amount > 200 ? "text-pui-warning" : undefined,
+          "data-booking": row.original.id,
+          "aria-label": `Buchung ${row.original.id}`,
+          onClick: (event) => {
+            if (row.original.id === "b2") event.preventDefault();
+          },
+        })}
+      />,
+    );
+    const [first, second, third] = bodyRows();
+    expect(first).toHaveAttribute("data-booking", "b1");
+    expect(first).toHaveAttribute("aria-label", "Buchung b1");
+    expect(first).toHaveClass("cursor-pointer");
+    expect(first).not.toHaveClass("text-pui-warning");
+    expect(third).toHaveClass("text-pui-warning", "cursor-pointer");
+    await user.click(within(second!).getByText("Lieferung 2"));
+    expect(onRowActivate).not.toHaveBeenCalled();
+    await user.click(within(third!).getByText("Tanken 3"));
+    expect(onRowActivate).toHaveBeenCalledTimes(1);
   });
 });
