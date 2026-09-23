@@ -455,6 +455,11 @@ describe("RadialMenu", () => {
       expect(center.querySelector('[data-slot="radial-menu-center-description"]')!.textContent).toBe(
         "Takes the person into custody",
       );
+      // The centre text stays inside the centre circle: a square inscribed in it, clipped, description ≤ 2 lines.
+      const box = center as HTMLElement;
+      expect(box.style.width).toBe(box.style.height);
+      expect(box).toHaveClass("overflow-hidden");
+      expect(center.querySelector('[data-slot="radial-menu-center-description"]')).toHaveClass("line-clamp-2");
     });
   });
 

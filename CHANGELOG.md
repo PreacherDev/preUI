@@ -3,7 +3,13 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
-## 0.5.0 — unreleased
+## 0.5.1 — 2026-09-23
+
+- **RadialMenu**: the centre text no longer runs past the centre circle. The centre content is the square inscribed
+  in the circle and clips; the default label keeps one line when a description is shown, the description two lines
+  (with "…"). Content from `renderCenter` is clipped to the same square — clamp your own texts (`line-clamp-*`).
+
+## 0.5.0 — 2026-09-23
 
 ### Visible changes
 
