@@ -526,10 +526,16 @@ export const RadialMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, RadialMenuP
   const percent = (value: number) => `${(value / size) * 100}%`;
   const currentTone = currentItem ? toneOf(currentItem) : "default";
 
-  const centerText = (text: ReactNode, toned = false) => (
+  // Texts never shrink (a shrunk line-clamped block would be cut mid-line); with a description the label keeps one line.
+  const centerText = (text: ReactNode, toned = false, lines: 1 | 2 = 2) => (
     <span
       data-slot="radial-menu-center-label"
-      className={cn("line-clamp-2 break-words", toned && toneClasses[currentTone].text, classNames?.centerLabel)}
+      className={cn(
+        "shrink-0 break-words",
+        lines === 1 ? "line-clamp-1" : "line-clamp-2",
+        toned && toneClasses[currentTone].text,
+        classNames?.centerLabel,
+      )}
     >
       {text}
     </span>
@@ -540,12 +546,12 @@ export const RadialMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, RadialMenuP
   } else if (currentItem) {
     centerContent = (
       <>
-        {centerText(currentItem.label, currentTone !== "default")}
+        {centerText(currentItem.label, currentTone !== "default", currentItem.description ? 1 : 2)}
         {currentItem.description && (
           <span
             data-slot="radial-menu-center-description"
             className={cn(
-              "line-clamp-3 break-words text-xs font-normal text-pui-muted-foreground",
+              "line-clamp-2 shrink-0 break-words text-xs font-normal text-pui-muted-foreground",
               classNames?.centerDescription,
             )}
           >
@@ -734,12 +740,13 @@ export const RadialMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, RadialMenuP
         aria-hidden="true"
         data-slot="radial-menu-center-content"
         className={cn(
-          "pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 text-center",
+          // The square inscribed in the centre circle (side = r·√2): content never reaches past the circle's edge.
+          "pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 overflow-hidden text-center",
           "text-sm font-medium leading-tight",
           currentItem || centerActive ? "text-pui-foreground" : "text-pui-muted-foreground",
           classNames?.centerContent,
         )}
-        style={{ width: percent(centerRadius * 1.5) }}
+        style={{ width: percent(centerRadius * Math.SQRT2), height: percent(centerRadius * Math.SQRT2) }}
       >
         {centerContent}
       </div>
