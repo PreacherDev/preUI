@@ -86,6 +86,8 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ### Changed
 
+- `@base-ui/react` is pinned to `~1.8.0` (patch updates only): the DatePicker's Field integration uses Base UI's
+  `internals/` modules, which may change in a minor release.
 - The token values moved from `src/tailwind/preset.ts` to `src/tailwind/tokens.ts` (still exported from `/tailwind`,
   no API change).
 - Readme: runtime theming, own storage, game UI, versioning rule and why preUI stays on Tailwind v3 (Chromium 103).
