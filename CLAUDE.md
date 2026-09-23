@@ -52,6 +52,8 @@ examples/fivem-theme/      example FiveM resource (Lua + Vite web) — not part 
   `<ThemeProvider colorScheme={false}>` (examples, starter template, docs). A `color-scheme` differing from the parent
   page makes Chromium paint the NUI iframe opaque — the whole screen goes dark.
 - No hard-coded visible texts; English defaults as props (`labels`, `…Label`).
+- `@base-ui/react` is pinned to `~1.8.0` because DatePicker imports `@base-ui/react/internals/…` (Field/Labelable
+  context). Before raising the range, check those imports still exist (the Calendar tests cover them).
 - No gradients on surfaces (the user prefers flat tiles). preUI has no inventory component on purpose — the server's
   ox_inventory (`C:\qbx_09\data\resources\ox_inventory`) is the inventory; `BentoGrid` covers tile layouts,
   `Kanban` boards with drag & drop (pointer events, never HTML5 DnD — unreliable in CEF).
