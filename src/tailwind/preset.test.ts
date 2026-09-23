@@ -105,6 +105,14 @@ describe("colour schemes", () => {
     expect(none[schemeSelectors.light]).toBeUndefined();
   });
 
+  it("leaves out colorScheme with colorScheme: false (FiveM NUI iframes stay transparent)", () => {
+    const bases = baseStyles({ colorScheme: false });
+    expect(bases[schemeSelectors.dark]).toMatchObject({ "--pui-background": tokens["--pui-background"] });
+    expect(bases[schemeSelectors.dark]).not.toHaveProperty("colorScheme");
+    expect(bases[schemeSelectors.light]).not.toHaveProperty("colorScheme");
+    expect(baseStyles({ scheme: "dark", colorScheme: false })[":root"]).not.toHaveProperty("colorScheme");
+  });
+
   it("scrollbar thumbs use a token colour (works in both schemes)", () => {
     const bases = baseStyles();
     expect(JSON.stringify(bases["*:hover::-webkit-scrollbar-thumb"])).toContain("var(--pui-muted-foreground)");

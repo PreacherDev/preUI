@@ -2,9 +2,11 @@ import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import {
   Children,
   cloneElement,
+  createContext,
   forwardRef,
   Fragment,
   isValidElement,
+  useContext,
   type ComponentPropsWithoutRef,
   type ComponentRef,
   type ElementType,
@@ -13,11 +15,12 @@ import {
 } from "react";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
+import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
 import { useScrollTabStop } from "../../utils/scroll-tab-stop";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 
-/** Shared overlay styles (also used by AlertDialog). */
-export const overlayClassName =
+/** Shared overlay styles (also used by AlertDialog and Sheet). */
+export const modalOverlayClassName =
   "fixed inset-0 z-50 bg-pui-scrim/scrim transition-opacity duration-pui-base ease-pui data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
 
 /** Shared centred-modal styles (also used by AlertDialog). */
@@ -27,6 +30,49 @@ export const modalPopupClassName = [
   "transition-[opacity,transform] duration-pui-base ease-pui",
   "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
 ];
+
+/** Centred modal inside a portal container: positioned against the container, height relative to it. */
+export const modalPopupContainedClassName = "absolute max-h-[85%]";
+
+/* ------------------------------------------------------------------------------------------------
+ * Contained modals (portal into a frame instead of the viewport)
+ * ----------------------------------------------------------------------------------------------*/
+
+/**
+ * Set by the modal portals (Dialog, AlertDialog, Sheet, Drawer): `true` when overlay and popup position inside the
+ * portal container (`absolute`) instead of the viewport (`fixed`).
+ * @internal
+ */
+export const ModalContainedContext = /* @__PURE__ */ createContext(false);
+
+/** Whether the surrounding modal portal is contained in its container. @internal */
+export function useModalContained() {
+  return useContext(ModalContainedContext);
+}
+
+/** Props shared by the modal portals. */
+export interface ModalPortalOptions {
+  /**
+   * Positions overlay and popup inside `container` (`absolute`, `inset-0` of the container) instead of the viewport
+   * (`fixed`): the scrim only covers the container and sheets/drawers dock to its edges. Defaults to `true` when a
+   * `container` is given. The container needs a positioning context (`relative`) and usually `overflow-hidden`.
+   * Set `false` to portal into another element (e.g. a themed root) but keep viewport positioning.
+   */
+  contained?: boolean;
+}
+
+/** Props shared by the all-in-one modal contents (`DialogContent`, `SheetContent` …). */
+export interface ModalContentOptions<OverlayClassName> extends ModalPortalOptions {
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseDialog.Portal.Props["container"];
+  /** Renders the dimmed scrim. `false` = no scrim (the dialog stays modal). Default `true`. */
+  overlay?: boolean;
+  /** Class name merged into the scrim, e.g. a lighter in-game scrim: `"bg-pui-scrim/40"`. */
+  overlayClassName?: OverlayClassName;
+}
+
+/** `data-contained` for overlays and popups. @internal */
+export const containedAttr = (contained: boolean) => (contained ? "" : undefined);
 
 /** Shared close (X) button styles (also used by Sheet and Drawer). */
 export const modalCloseClassName = [
@@ -100,39 +146,52 @@ export const Dialog = BaseDialog.Root;
 export type DialogProps = BaseDialog.Root.Props;
 export interface DialogTriggerProps extends BaseDialog.Trigger.Props {}
 export interface DialogCloseProps extends ComponentPropsWithoutRef<typeof BaseDialog.Close> {}
-export interface DialogPortalProps extends ComponentPropsWithoutRef<typeof BaseDialog.Portal> {}
+export interface DialogPortalProps extends ComponentPropsWithoutRef<typeof BaseDialog.Portal>, ModalPortalOptions {}
 
 /** Opens the dialog. Renders a `<button>` (`data-slot="dialog-trigger"`). */
-export const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(function DialogTrigger(props, ref) {
+export const DialogTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, DialogTriggerProps>(function DialogTrigger(props, ref) {
   return <BaseDialog.Trigger ref={ref} data-slot="dialog-trigger" {...props} />;
 }) as unknown as typeof BaseDialog.Trigger;
 
 /** Closes the dialog. Renders a `<button>` (`data-slot="dialog-close"`). */
-export const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(function DialogClose(props, ref) {
+export const DialogClose = /* @__PURE__ */ forwardRef<HTMLButtonElement, DialogCloseProps>(function DialogClose(props, ref) {
   return <BaseDialog.Close ref={ref} data-slot="dialog-close" {...props} />;
 });
 
-export const DialogPortal = forwardRef<HTMLDivElement, DialogPortalProps>(function DialogPortal(props, ref) {
-  return <BaseDialog.Portal ref={ref} data-slot="dialog-portal" {...props} />;
+/**
+ * Renders overlay and popup into `container` (default `document.body`). With a `container`, overlay and popup
+ * position inside it (see `contained`).
+ */
+export const DialogPortal = /* @__PURE__ */ forwardRef<HTMLDivElement, DialogPortalProps>(function DialogPortal(
+  { contained, ...props },
+  ref,
+) {
+  return (
+    <ModalContainedContext.Provider value={contained ?? props.container != null}>
+      <BaseDialog.Portal ref={ref} data-slot="dialog-portal" {...props} />
+    </ModalContainedContext.Provider>
+  );
 });
 
 export interface DialogOverlayProps extends ComponentPropsWithoutRef<typeof BaseDialog.Backdrop> {}
 
 /** The dimmed scrim behind the dialog. No blur: the content behind stays visible. */
-export const DialogOverlay = forwardRef<ComponentRef<typeof BaseDialog.Backdrop>, DialogOverlayProps>(
+export const DialogOverlay = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Backdrop>, DialogOverlayProps>(
   function DialogOverlay({ className, ...props }, ref) {
+    const contained = useModalContained();
     return (
       <BaseDialog.Backdrop
         ref={ref}
         data-slot="dialog-overlay"
-        className={mergeClassName(overlayClassName, className)}
+        data-contained={containedAttr(contained)}
+        className={mergeClassName([modalOverlayClassName, contained && "absolute"], className)}
         {...props}
       />
     );
   },
 );
 
-export interface DialogContentProps extends ComponentPropsWithoutRef<typeof BaseDialog.Popup> {
+export interface DialogPopupProps extends ComponentPropsWithoutRef<typeof BaseDialog.Popup> {
   /** Renders the close (X) button in the top-right corner. */
   showCloseButton?: boolean;
   /** Accessible label of the close button. */
@@ -140,31 +199,52 @@ export interface DialogContentProps extends ComponentPropsWithoutRef<typeof Base
 }
 
 /**
+ * The styled dialog surface without portal and overlay — for composing your own
+ * `<DialogPortal><DialogOverlay /><DialogPopup>…</DialogPopup></DialogPortal>`.
+ * `DialogHeader` / `DialogFooter` stay in place, the rest scrolls. Initial focus goes to the first tabbable element
+ * (as in Base UI) but never scrolls the page or a parent frame; `initialFocus` / `finalFocus` pass through.
+ */
+export const DialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Popup>, DialogPopupProps>(
+  function DialogPopup({ className, children, showCloseButton = true, closeLabel = "Close", initialFocus, ...props }, ref) {
+    const CloseIcon = useIcon("close");
+    const contained = useModalContained();
+    const focus = useInitialFocusWithoutScroll(initialFocus, ref);
+    return (
+      <BaseDialog.Popup
+        ref={focus.ref}
+        initialFocus={focus.initialFocus}
+        data-slot="dialog-popup"
+        data-contained={containedAttr(contained)}
+        className={mergeClassName([modalPopupClassName, contained && modalPopupContainedClassName], className)}
+        {...props}
+      >
+        <ModalSections header={[DialogHeader]} footer={[DialogFooter]}>
+          {children}
+        </ModalSections>
+        {showCloseButton && (
+          <BaseDialog.Close aria-label={closeLabel} data-slot="dialog-close" className={cn(modalCloseClassName)}>
+            <CloseIcon className="size-4" aria-hidden="true" />
+          </BaseDialog.Close>
+        )}
+      </BaseDialog.Popup>
+    );
+  },
+);
+
+export interface DialogContentProps extends DialogPopupProps, ModalContentOptions<DialogOverlayProps["className"]> {}
+
+/**
  * Portal + Overlay + Popup in one, styled as a centred modal on the shell surface.
  * `DialogHeader` and `DialogFooter` stay in place; all other children scroll in a preUI `ScrollArea`
- * once the dialog reaches its maximum height (85vh).
+ * once the dialog reaches its maximum height (85vh, or 85% of the container when contained).
+ * `container` renders it into another element (e.g. a phone or tablet frame) and centres it there.
  */
-export const DialogContent = forwardRef<ComponentRef<typeof BaseDialog.Popup>, DialogContentProps>(
-  function DialogContent({ className, children, showCloseButton = true, closeLabel = "Close", ...props }, ref) {
-    const CloseIcon = useIcon("close");
+export const DialogContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Popup>, DialogContentProps>(
+  function DialogContent({ container, contained, overlay = true, overlayClassName, ...props }, ref) {
     return (
-      <DialogPortal>
-        <DialogOverlay />
-        <BaseDialog.Popup
-          ref={ref}
-          data-slot="dialog-content"
-          className={mergeClassName(modalPopupClassName, className)}
-          {...props}
-        >
-          <ModalSections header={[DialogHeader]} footer={[DialogFooter]}>
-            {children}
-          </ModalSections>
-          {showCloseButton && (
-            <BaseDialog.Close aria-label={closeLabel} data-slot="dialog-close" className={cn(modalCloseClassName)}>
-              <CloseIcon className="size-4" aria-hidden="true" />
-            </BaseDialog.Close>
-          )}
-        </BaseDialog.Popup>
+      <DialogPortal container={container} contained={contained}>
+        {overlay && <DialogOverlay className={overlayClassName} />}
+        <DialogPopup ref={ref} data-slot="dialog-content" {...props} />
       </DialogPortal>
     );
   },
@@ -173,7 +253,7 @@ export const DialogContent = forwardRef<ComponentRef<typeof BaseDialog.Popup>, D
 export interface DialogHeaderProps extends ComponentPropsWithoutRef<"div"> {}
 
 /** Stacks title and description; leaves room for the close button. */
-export const DialogHeader = forwardRef<HTMLDivElement, DialogHeaderProps>(function DialogHeader(
+export const DialogHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, DialogHeaderProps>(function DialogHeader(
   { className, ...props },
   ref,
 ) {
@@ -183,7 +263,7 @@ export const DialogHeader = forwardRef<HTMLDivElement, DialogHeaderProps>(functi
 export interface DialogFooterProps extends ComponentPropsWithoutRef<"div"> {}
 
 /** Right-aligned action row, e.g. a ghost cancel and a solid confirm. */
-export const DialogFooter = forwardRef<HTMLDivElement, DialogFooterProps>(function DialogFooter(
+export const DialogFooter = /* @__PURE__ */ forwardRef<HTMLDivElement, DialogFooterProps>(function DialogFooter(
   { className, ...props },
   ref,
 ) {
@@ -194,7 +274,7 @@ export const DialogFooter = forwardRef<HTMLDivElement, DialogFooterProps>(functi
 
 export interface DialogTitleProps extends ComponentPropsWithoutRef<typeof BaseDialog.Title> {}
 
-export const DialogTitle = forwardRef<ComponentRef<typeof BaseDialog.Title>, DialogTitleProps>(function DialogTitle(
+export const DialogTitle = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Title>, DialogTitleProps>(function DialogTitle(
   { className, ...props },
   ref,
 ) {
@@ -210,7 +290,7 @@ export const DialogTitle = forwardRef<ComponentRef<typeof BaseDialog.Title>, Dia
 
 export interface DialogDescriptionProps extends ComponentPropsWithoutRef<typeof BaseDialog.Description> {}
 
-export const DialogDescription = forwardRef<ComponentRef<typeof BaseDialog.Description>, DialogDescriptionProps>(
+export const DialogDescription = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Description>, DialogDescriptionProps>(
   function DialogDescription({ className, ...props }, ref) {
     return (
       <BaseDialog.Description

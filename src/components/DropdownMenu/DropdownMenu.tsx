@@ -37,7 +37,7 @@ export const DropdownMenuSub = BaseMenu.SubmenuRoot;
 export type DropdownMenuTriggerProps = ComponentPropsWithoutRef<typeof BaseMenu.Trigger>;
 
 /** Opens the menu. Unstyled — render your own button, e.g. `render={<Button variant="outline" />}`. */
-export const DropdownMenuTrigger = forwardRef<HTMLButtonElement, DropdownMenuTriggerProps>(function DropdownMenuTrigger(
+export const DropdownMenuTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, DropdownMenuTriggerProps>(function DropdownMenuTrigger(
   props,
   ref,
 ) {
@@ -46,7 +46,7 @@ export const DropdownMenuTrigger = forwardRef<HTMLButtonElement, DropdownMenuTri
 
 export type DropdownMenuGroupProps = ComponentPropsWithoutRef<typeof BaseMenu.Group>;
 
-export const DropdownMenuGroup = forwardRef<ComponentRef<typeof BaseMenu.Group>, DropdownMenuGroupProps>(
+export const DropdownMenuGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.Group>, DropdownMenuGroupProps>(
   function DropdownMenuGroup(props, ref) {
     const slot = useMenuSlot();
     return <BaseMenu.Group ref={ref} data-slot={slot("group")} {...props} />;
@@ -55,7 +55,7 @@ export const DropdownMenuGroup = forwardRef<ComponentRef<typeof BaseMenu.Group>,
 
 export type DropdownMenuRadioGroupProps = ComponentPropsWithoutRef<typeof BaseMenu.RadioGroup>;
 
-export const DropdownMenuRadioGroup = forwardRef<ComponentRef<typeof BaseMenu.RadioGroup>, DropdownMenuRadioGroupProps>(
+export const DropdownMenuRadioGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.RadioGroup>, DropdownMenuRadioGroupProps>(
   function DropdownMenuRadioGroup(props, ref) {
     const slot = useMenuSlot();
     return <BaseMenu.RadioGroup ref={ref} data-slot={slot("radio-group")} {...props} />;
@@ -71,13 +71,15 @@ export interface DropdownMenuContentProps extends ComponentPropsWithoutRef<typeo
   alignOffset?: PositionerProps["alignOffset"];
   /** Props for the positioner element (e.g. `collisionPadding`, `className`). */
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseMenu.Portal.Props["container"];
 }
 
 /**
  * Portal + Positioner + Popup in one, styled as a floating menu surface. The items scroll inside a ScrollArea
  * when the menu is taller than the space available on screen.
  */
-export const DropdownMenuContent = forwardRef<ComponentRef<typeof BaseMenu.Popup>, DropdownMenuContentProps>(
+export const DropdownMenuContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.Popup>, DropdownMenuContentProps>(
   function DropdownMenuContent(props, ref) {
     return <MenuContent ref={ref} slotPrefix="dropdown-menu" {...props} />;
   },
@@ -87,7 +89,7 @@ export const DropdownMenuContent = forwardRef<ComponentRef<typeof BaseMenu.Popup
  * Internal: the menu popup shared by DropdownMenu, Menubar and submenus. `slotPrefix` names the parts
  * (`<prefix>-content`, `<prefix>-item` …); `slotPart` is the popup's own part name ("content" / "sub-content").
  */
-export const MenuContent = forwardRef<
+export const MenuContent = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseMenu.Popup>,
   DropdownMenuContentProps & { slotPrefix: MenuSlotPrefix; slotPart?: string }
 >(function MenuContent(
@@ -98,6 +100,7 @@ export const MenuContent = forwardRef<
     sideOffset = 6,
     alignOffset = 0,
     positionerProps,
+    container,
     slotPrefix,
     slotPart = "content",
     children,
@@ -107,7 +110,7 @@ export const MenuContent = forwardRef<
 ) {
   return (
     <MenuSlotContext.Provider value={slotPrefix}>
-      <BaseMenu.Portal>
+      <BaseMenu.Portal container={container}>
         <BaseMenu.Positioner
           side={side}
           align={align}
@@ -134,7 +137,7 @@ export const MenuContent = forwardRef<
 export type DropdownMenuSubContentProps = DropdownMenuContentProps;
 
 /** Popup of a submenu. Opens to the inline end and lines its first item up with the trigger. */
-export const DropdownMenuSubContent = forwardRef<ComponentRef<typeof BaseMenu.Popup>, DropdownMenuSubContentProps>(
+export const DropdownMenuSubContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.Popup>, DropdownMenuSubContentProps>(
   function DropdownMenuSubContent({ side = "inline-end", align = "start", sideOffset = -4, alignOffset = -5, ...props }, ref) {
     // Submenus keep the prefix of the menu they open from (context-menu-sub-content, menubar-sub-content …).
     const prefix = useContext(MenuSlotContext);
@@ -164,7 +167,7 @@ export interface DropdownMenuItemProps extends ComponentPropsWithoutRef<typeof B
   variant?: "default" | "destructive";
 }
 
-export const DropdownMenuItem = forwardRef<ComponentRef<typeof BaseMenu.Item>, DropdownMenuItemProps>(function DropdownMenuItem(
+export const DropdownMenuItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.Item>, DropdownMenuItemProps>(function DropdownMenuItem(
   { className, inset = false, variant = "default", icon, description, children, ...props },
   ref,
 ) {
@@ -236,7 +239,7 @@ export interface DropdownMenuLinkItemProps extends ComponentPropsWithoutRef<type
 }
 
 /** A menu item that navigates (renders an `<a>`). */
-export const DropdownMenuLinkItem = forwardRef<ComponentRef<typeof BaseMenu.LinkItem>, DropdownMenuLinkItemProps>(
+export const DropdownMenuLinkItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.LinkItem>, DropdownMenuLinkItemProps>(
   function DropdownMenuLinkItem({ className, inset = false, ...props }, ref) {
     const slot = useMenuSlot();
     return (
@@ -253,7 +256,7 @@ export const DropdownMenuLinkItem = forwardRef<ComponentRef<typeof BaseMenu.Link
 
 export type DropdownMenuCheckboxItemProps = ComponentPropsWithoutRef<typeof BaseMenu.CheckboxItem>;
 
-export const DropdownMenuCheckboxItem = forwardRef<ComponentRef<typeof BaseMenu.CheckboxItem>, DropdownMenuCheckboxItemProps>(
+export const DropdownMenuCheckboxItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.CheckboxItem>, DropdownMenuCheckboxItemProps>(
   function DropdownMenuCheckboxItem({ className, children, ...props }, ref) {
     const Check = useIcon("check");
     const slot = useMenuSlot();
@@ -275,7 +278,7 @@ export const DropdownMenuCheckboxItem = forwardRef<ComponentRef<typeof BaseMenu.
 
 export type DropdownMenuRadioItemProps = ComponentPropsWithoutRef<typeof BaseMenu.RadioItem>;
 
-export const DropdownMenuRadioItem = forwardRef<ComponentRef<typeof BaseMenu.RadioItem>, DropdownMenuRadioItemProps>(
+export const DropdownMenuRadioItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.RadioItem>, DropdownMenuRadioItemProps>(
   function DropdownMenuRadioItem({ className, children, ...props }, ref) {
     const slot = useMenuSlot();
     return (
@@ -299,7 +302,7 @@ export interface DropdownMenuSubTriggerProps extends ComponentPropsWithoutRef<ty
   icon?: ReactNode;
 }
 
-export const DropdownMenuSubTrigger = forwardRef<ComponentRef<typeof BaseMenu.SubmenuTrigger>, DropdownMenuSubTriggerProps>(
+export const DropdownMenuSubTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.SubmenuTrigger>, DropdownMenuSubTriggerProps>(
   function DropdownMenuSubTrigger({ className, inset = false, icon, children, ...props }, ref) {
     const ChevronRight = useIcon("chevronRight");
     const slot = useMenuSlot();
@@ -324,7 +327,7 @@ export type DropdownMenuGroupLabelProps = ComponentPropsWithoutRef<typeof BaseMe
  * Label of a `DropdownMenuGroup` / `DropdownMenuRadioGroup` (announced as the group's name).
  * Must be inside a group; use `DropdownMenuLabel` anywhere else.
  */
-export const DropdownMenuGroupLabel = forwardRef<ComponentRef<typeof BaseMenu.GroupLabel>, DropdownMenuGroupLabelProps>(
+export const DropdownMenuGroupLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.GroupLabel>, DropdownMenuGroupLabelProps>(
   function DropdownMenuGroupLabel({ className, ...props }, ref) {
     const slot = useMenuSlot();
     return <BaseMenu.GroupLabel ref={ref} data-slot={slot("group-label")} className={mergeClassName(menuLabelClass, className)} {...props} />;
@@ -337,7 +340,7 @@ export interface DropdownMenuLabelProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /** Free-standing eyebrow label (e.g. a header at the top of the menu). Usable anywhere, also outside groups. */
-export const DropdownMenuLabel = forwardRef<HTMLDivElement, DropdownMenuLabelProps>(function DropdownMenuLabel(
+export const DropdownMenuLabel = /* @__PURE__ */ forwardRef<HTMLDivElement, DropdownMenuLabelProps>(function DropdownMenuLabel(
   { className, inset = false, ...props },
   ref,
 ) {
@@ -355,7 +358,7 @@ export const DropdownMenuLabel = forwardRef<HTMLDivElement, DropdownMenuLabelPro
 
 export type DropdownMenuSeparatorProps = ComponentPropsWithoutRef<typeof BaseMenu.Separator>;
 
-export const DropdownMenuSeparator = forwardRef<ComponentRef<typeof BaseMenu.Separator>, DropdownMenuSeparatorProps>(
+export const DropdownMenuSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.Separator>, DropdownMenuSeparatorProps>(
   function DropdownMenuSeparator({ className, ...props }, ref) {
     const slot = useMenuSlot();
     return <BaseMenu.Separator ref={ref} data-slot={slot("separator")} className={mergeClassName(menuSeparatorClass, className)} {...props} />;
@@ -365,7 +368,7 @@ export const DropdownMenuSeparator = forwardRef<ComponentRef<typeof BaseMenu.Sep
 export type DropdownMenuShortcutProps = HTMLAttributes<HTMLSpanElement>;
 
 /** Keyboard shortcut hint, right-aligned inside an item. */
-export const DropdownMenuShortcut = forwardRef<HTMLSpanElement, DropdownMenuShortcutProps>(function DropdownMenuShortcut(
+export const DropdownMenuShortcut = /* @__PURE__ */ forwardRef<HTMLSpanElement, DropdownMenuShortcutProps>(function DropdownMenuShortcut(
   { className, ...props },
   ref,
 ) {

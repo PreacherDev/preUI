@@ -10,7 +10,7 @@ export type RadioGroupProps<Value = any> = BaseRadioGroup.Props<Value>;
  * Single selection from a list of `RadioGroupItem`s. Label it with `aria-labelledby` or `FieldSet`.
  * Generic like Base UI's: `<RadioGroup<"a" | "b"> onValueChange={(value) => …}>` types `value`.
  */
-export const RadioGroup = forwardRef(function RadioGroup({ className, ...props }: RadioGroupProps, ref: Ref<HTMLDivElement>) {
+export const RadioGroup = /* @__PURE__ */ forwardRef(function RadioGroup({ className, ...props }: RadioGroupProps, ref: Ref<HTMLDivElement>) {
   return (
     <BaseRadioGroup
       ref={ref}
@@ -27,7 +27,7 @@ export interface RadioGroupItemProps extends BaseRadio.Root.Props {
 }
 
 /** 16px round radio; checked fills with primary and shows a centred dot. Wrap it in a `<label>` with its text. */
-export const RadioGroupItem = forwardRef<HTMLElement, RadioGroupItemProps>(function RadioGroupItem(
+export const RadioGroupItem = /* @__PURE__ */ forwardRef<HTMLElement, RadioGroupItemProps>(function RadioGroupItem(
   { className, indicatorClassName, ...props },
   ref,
 ) {

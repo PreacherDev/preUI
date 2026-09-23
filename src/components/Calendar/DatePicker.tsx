@@ -114,7 +114,7 @@ function TriggerContent({ slot, icon, text, placeholder }: TriggerContentProps) 
 }
 
 /** A field-like trigger that opens a Calendar in a popover (single date). */
-export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(function DatePicker(
+export const DatePicker = /* @__PURE__ */ forwardRef<HTMLButtonElement, DatePickerProps>(function DatePicker(
   {
     value,
     defaultValue,
@@ -170,7 +170,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(functio
 });
 
 /** A field-like trigger that opens a Calendar in range mode (two months on wide screens). */
-export const DateRangePicker = forwardRef<HTMLButtonElement, DateRangePickerProps>(function DateRangePicker(
+export const DateRangePicker = /* @__PURE__ */ forwardRef<HTMLButtonElement, DateRangePickerProps>(function DateRangePicker(
   {
     value,
     defaultValue,

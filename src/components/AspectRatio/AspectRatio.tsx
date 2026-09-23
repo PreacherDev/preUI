@@ -7,7 +7,7 @@ export interface AspectRatioProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /** Keeps its content at a fixed width-to-height ratio. Children usually fill it (`size-full object-cover`). */
-export const AspectRatio = forwardRef<HTMLDivElement, AspectRatioProps>(function AspectRatio(
+export const AspectRatio = /* @__PURE__ */ forwardRef<HTMLDivElement, AspectRatioProps>(function AspectRatio(
   { ratio = 1, className, style, ...props },
   ref,
 ) {

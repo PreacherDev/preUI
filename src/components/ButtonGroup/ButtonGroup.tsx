@@ -5,7 +5,7 @@ import { cn, mergeClassName } from "../../utils/cn";
 import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Separator } from "../Separator/Separator";
 
-export const buttonGroupVariants = cva(
+export const buttonGroupVariants = /* @__PURE__ */ cva(
   [
     "flex w-fit items-stretch",
     "[&>*:focus-visible]:relative [&>*:focus-visible]:z-10",
@@ -52,7 +52,7 @@ const buttonGroupHasRules: HasFallbackRule[] = [
 ];
 
 /** Joins adjacent buttons, inputs and selects into one control by merging their borders and radii. */
-export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
+export const ButtonGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
   { className, orientation = "horizontal", ...props },
   ref,
 ) {
@@ -73,7 +73,7 @@ export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function
 export interface ButtonGroupTextProps extends Omit<useRender.ComponentProps<"div">, "ref"> {}
 
 /** Static label segment, e.g. a unit or prefix. Use `render={<label />}` to label an input. */
-export const ButtonGroupText = forwardRef<HTMLDivElement, ButtonGroupTextProps>(function ButtonGroupText(
+export const ButtonGroupText = /* @__PURE__ */ forwardRef<HTMLDivElement, ButtonGroupTextProps>(function ButtonGroupText(
   { className, render, ...props },
   ref,
 ) {
@@ -96,7 +96,7 @@ export const ButtonGroupText = forwardRef<HTMLDivElement, ButtonGroupTextProps>(
 export type ButtonGroupSeparatorProps = ComponentPropsWithoutRef<typeof Separator>;
 
 /** Divider between grouped buttons that have no border of their own (e.g. ghost or solid). */
-export const ButtonGroupSeparator = forwardRef<ComponentRef<typeof Separator>, ButtonGroupSeparatorProps>(
+export const ButtonGroupSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof Separator>, ButtonGroupSeparatorProps>(
   function ButtonGroupSeparator({ className, orientation = "vertical", ...props }, ref) {
     return (
       <Separator

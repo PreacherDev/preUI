@@ -8,7 +8,7 @@ export type CheckboxGroupProps = ComponentPropsWithoutRef<typeof BaseCheckboxGro
  * Shared state for a list of `Checkbox`es (by `value`). Supports a parent checkbox via `allValues` +
  * `<Checkbox parent />`. Label it with `aria-labelledby` or render it inside `FieldSet`.
  */
-export const CheckboxGroup = forwardRef<ComponentRef<typeof BaseCheckboxGroup>, CheckboxGroupProps>(
+export const CheckboxGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCheckboxGroup>, CheckboxGroupProps>(
   function CheckboxGroup({ className, ...props }, ref) {
     return (
       <BaseCheckboxGroup

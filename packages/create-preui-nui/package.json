@@ -1,0 +1,30 @@
+{
+  "name": "@pre_scripts/create-preui-nui",
+  "version": "0.1.0",
+  "description": "Scaffolds a FiveM NUI resource with preUI: npm create @pre_scripts/preui-nui",
+  "keywords": ["fivem", "nui", "cfx", "preui", "react", "vite", "create", "starter", "template"],
+  "author": "PRE_SCRIPTS",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PreacherDev/preUI-0.0.1.git",
+    "directory": "packages/create-preui-nui"
+  },
+  "type": "module",
+  "bin": {
+    "create-preui-nui": "bin/create.mjs"
+  },
+  "files": [
+    "bin",
+    "template"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/create-preui-nui"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

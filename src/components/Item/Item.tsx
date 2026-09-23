@@ -8,13 +8,13 @@ import { Separator } from "../Separator/Separator";
 export type ItemGroupProps = ComponentPropsWithoutRef<"div">;
 
 /** `true` inside an `ItemGroup` (a `role="list"`), so plain `Item`s become its list items. */
-const ItemGroupContext = createContext(false);
+const ItemGroupContext = /* @__PURE__ */ createContext(false);
 
 /**
  * Stacks items as a list (`role="list"`). Plain `Item`s inside get `role="listitem"`; an `Item` rendered as a
  * link or button (`render`) keeps its own role — wrap it in `<div role="listitem">` if the list semantics matter.
  */
-export const ItemGroup = forwardRef<HTMLDivElement, ItemGroupProps>(function ItemGroup({ className, ...props }, ref) {
+export const ItemGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemGroupProps>(function ItemGroup({ className, ...props }, ref) {
   return (
     <ItemGroupContext.Provider value={true}>
       <div
@@ -30,7 +30,7 @@ export const ItemGroup = forwardRef<HTMLDivElement, ItemGroupProps>(function Ite
 
 export type ItemSeparatorProps = ComponentPropsWithoutRef<typeof Separator>;
 
-export const ItemSeparator = forwardRef<ComponentRef<typeof Separator>, ItemSeparatorProps>(function ItemSeparator(
+export const ItemSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof Separator>, ItemSeparatorProps>(function ItemSeparator(
   { className, ...props },
   ref,
 ) {
@@ -45,13 +45,15 @@ export const ItemSeparator = forwardRef<ComponentRef<typeof Separator>, ItemSepa
   );
 });
 
-export const itemVariants = cva(
+export const itemVariants = /* @__PURE__ */ cva(
   [
     // Border colour lives in the variants so `itemVariants()` also works without tailwind-merge.
     "group/item flex flex-wrap items-center rounded-pui border text-sm text-pui-foreground",
     "outline-none transition-colors duration-pui-fast ease-pui",
     "focus-visible:ring-pui focus-visible:ring-pui-ring",
     "[a&]:hover:bg-pui-accent [button&]:hover:bg-pui-accent [button&]:text-left",
+    // Keyboard-driven lists (useListNavigation) mark the active row with data-highlighted.
+    "data-[highlighted]:bg-pui-accent data-[highlighted]:text-pui-accent-foreground",
   ],
   {
     variants: {
@@ -87,7 +89,7 @@ const itemHasRules: HasFallbackRule[] = [{ attr: "data-has-description", has: "[
  * A row with media, content and actions. Use `render` to make it a link: `render={<a href="…" />}`.
  * Inside an `ItemGroup` a plain (non-`render`) item gets `role="listitem"`.
  */
-export const Item = forwardRef<HTMLDivElement, ItemProps>(function Item(
+export const Item = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemProps>(function Item(
   { className, variant = "default", size = "default", render, ...props },
   ref,
 ) {
@@ -108,7 +110,7 @@ export const Item = forwardRef<HTMLDivElement, ItemProps>(function Item(
   });
 });
 
-export const itemMediaVariants = cva(
+export const itemMediaVariants = /* @__PURE__ */ cva(
   [
     "flex shrink-0 items-center justify-center gap-2 [&_svg]:pointer-events-none",
     "group-has-[[data-slot=item-description]]/item:translate-y-0.5 group-has-[[data-slot=item-description]]/item:self-start",
@@ -135,7 +137,7 @@ export interface ItemMediaProps extends ComponentPropsWithoutRef<"div"> {
   variant?: ItemMediaVariant;
 }
 
-export const ItemMedia = forwardRef<HTMLDivElement, ItemMediaProps>(function ItemMedia(
+export const ItemMedia = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemMediaProps>(function ItemMedia(
   { className, variant = "default", ...props },
   ref,
 ) {
@@ -152,7 +154,7 @@ export const ItemMedia = forwardRef<HTMLDivElement, ItemMediaProps>(function Ite
 
 export type ItemContentProps = ComponentPropsWithoutRef<"div">;
 
-export const ItemContent = forwardRef<HTMLDivElement, ItemContentProps>(function ItemContent(
+export const ItemContent = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemContentProps>(function ItemContent(
   { className, ...props },
   ref,
 ) {
@@ -168,7 +170,7 @@ export const ItemContent = forwardRef<HTMLDivElement, ItemContentProps>(function
 
 export type ItemTitleProps = ComponentPropsWithoutRef<"div">;
 
-export const ItemTitle = forwardRef<HTMLDivElement, ItemTitleProps>(function ItemTitle({ className, ...props }, ref) {
+export const ItemTitle = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemTitleProps>(function ItemTitle({ className, ...props }, ref) {
   return (
     <div
       ref={ref}
@@ -181,7 +183,7 @@ export const ItemTitle = forwardRef<HTMLDivElement, ItemTitleProps>(function Ite
 
 export type ItemDescriptionProps = ComponentPropsWithoutRef<"p">;
 
-export const ItemDescription = forwardRef<HTMLParagraphElement, ItemDescriptionProps>(function ItemDescription(
+export const ItemDescription = /* @__PURE__ */ forwardRef<HTMLParagraphElement, ItemDescriptionProps>(function ItemDescription(
   { className, ...props },
   ref,
 ) {
@@ -201,7 +203,7 @@ export const ItemDescription = forwardRef<HTMLParagraphElement, ItemDescriptionP
 
 export type ItemActionsProps = ComponentPropsWithoutRef<"div">;
 
-export const ItemActions = forwardRef<HTMLDivElement, ItemActionsProps>(function ItemActions(
+export const ItemActions = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemActionsProps>(function ItemActions(
   { className, ...props },
   ref,
 ) {
@@ -211,7 +213,7 @@ export const ItemActions = forwardRef<HTMLDivElement, ItemActionsProps>(function
 export type ItemHeaderProps = ComponentPropsWithoutRef<"div">;
 
 /** Full-width row above the item content. */
-export const ItemHeader = forwardRef<HTMLDivElement, ItemHeaderProps>(function ItemHeader(
+export const ItemHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemHeaderProps>(function ItemHeader(
   { className, ...props },
   ref,
 ) {
@@ -228,7 +230,7 @@ export const ItemHeader = forwardRef<HTMLDivElement, ItemHeaderProps>(function I
 export type ItemFooterProps = ComponentPropsWithoutRef<"div">;
 
 /** Full-width row below the item content. */
-export const ItemFooter = forwardRef<HTMLDivElement, ItemFooterProps>(function ItemFooter(
+export const ItemFooter = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemFooterProps>(function ItemFooter(
   { className, ...props },
   ref,
 ) {

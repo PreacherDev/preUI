@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NUI pages sit on top of the game: keep the page itself transparent. */
+html,
+body {
+  background: transparent;
+}

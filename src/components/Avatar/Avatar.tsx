@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
 
-export const avatarVariants = cva(
+export const avatarVariants = /* @__PURE__ */ cva(
   "relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-pui-muted align-middle",
   {
     variants: {
@@ -29,7 +29,7 @@ export interface AvatarProps extends ComponentPropsWithoutRef<typeof BaseAvatar.
 }
 
 /** Round profile picture with an initials fallback. Children: `AvatarImage` and `AvatarFallback`. */
-export const Avatar = forwardRef<ComponentRef<typeof BaseAvatar.Root>, AvatarProps>(function Avatar(
+export const Avatar = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAvatar.Root>, AvatarProps>(function Avatar(
   { className, size, ...props },
   ref,
 ) {
@@ -47,7 +47,7 @@ export const Avatar = forwardRef<ComponentRef<typeof BaseAvatar.Root>, AvatarPro
 export type AvatarImageProps = ComponentPropsWithoutRef<typeof BaseAvatar.Image>;
 
 /** The picture; only rendered once it has loaded. Always pass an `alt`. */
-export const AvatarImage = forwardRef<ComponentRef<typeof BaseAvatar.Image>, AvatarImageProps>(
+export const AvatarImage = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAvatar.Image>, AvatarImageProps>(
   function AvatarImage({ className, ...props }, ref) {
     return (
       <BaseAvatar.Image
@@ -63,7 +63,7 @@ export const AvatarImage = forwardRef<ComponentRef<typeof BaseAvatar.Image>, Ava
 export type AvatarFallbackProps = ComponentPropsWithoutRef<typeof BaseAvatar.Fallback>;
 
 /** Initials or an icon, shown while the image is missing, loading or broken. */
-export const AvatarFallback = forwardRef<ComponentRef<typeof BaseAvatar.Fallback>, AvatarFallbackProps>(
+export const AvatarFallback = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAvatar.Fallback>, AvatarFallbackProps>(
   function AvatarFallback({ className, ...props }, ref) {
     return (
       <BaseAvatar.Fallback
@@ -85,7 +85,7 @@ export type AvatarGroupProps = ComponentPropsWithoutRef<"div">;
  * Overlapping row of avatars. Each avatar gets a 1px border plus a 2px ring in the card colour as a cut-out;
  * on another surface, set the ring colour here (e.g. `[&>[data-slot=avatar]]:ring-pui-background`).
  */
-export const AvatarGroup = forwardRef<HTMLDivElement, AvatarGroupProps>(function AvatarGroup(
+export const AvatarGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, AvatarGroupProps>(function AvatarGroup(
   { className, ...props },
   ref,
 ) {
@@ -109,7 +109,7 @@ export interface AvatarGroupCountProps extends ComponentPropsWithoutRef<"span"> 
 }
 
 /** The trailing "+5" bubble of an `AvatarGroup`, sized like the avatars. */
-export const AvatarGroupCount = forwardRef<HTMLSpanElement, AvatarGroupCountProps>(function AvatarGroupCount(
+export const AvatarGroupCount = /* @__PURE__ */ forwardRef<HTMLSpanElement, AvatarGroupCountProps>(function AvatarGroupCount(
   { className, size, ...props },
   ref,
 ) {

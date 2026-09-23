@@ -7,7 +7,7 @@ import { buttonVariants, type ButtonSize } from "../Button/Button";
 export type PaginationProps = ComponentPropsWithoutRef<"nav">;
 
 /** Navigation landmark for page controls. Override the label with `aria-label`. */
-export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagination(
+export const Pagination = /* @__PURE__ */ forwardRef<HTMLElement, PaginationProps>(function Pagination(
   { className, "aria-label": ariaLabel = "Pagination", ...props },
   ref,
 ) {
@@ -25,7 +25,7 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagi
 export type PaginationContentProps = ComponentPropsWithoutRef<"ul">;
 
 /** The pill-shaped control container. */
-export const PaginationContent = forwardRef<HTMLUListElement, PaginationContentProps>(function PaginationContent(
+export const PaginationContent = /* @__PURE__ */ forwardRef<HTMLUListElement, PaginationContentProps>(function PaginationContent(
   { className, ...props },
   ref,
 ) {
@@ -44,7 +44,7 @@ export const PaginationContent = forwardRef<HTMLUListElement, PaginationContentP
 
 export type PaginationItemProps = ComponentPropsWithoutRef<"li">;
 
-export const PaginationItem = forwardRef<HTMLLIElement, PaginationItemProps>(function PaginationItem(props, ref) {
+export const PaginationItem = /* @__PURE__ */ forwardRef<HTMLLIElement, PaginationItemProps>(function PaginationItem(props, ref) {
   return <li ref={ref} data-slot="pagination-item" {...props} />;
 });
 
@@ -65,7 +65,7 @@ const compactSize: Partial<Record<ButtonSize, string>> = {
  * Use `render` for router links; set `aria-disabled` to disable it: the link is then dimmed, removed from the
  * tab order (`tabIndex={-1}`) and clicks / Enter don't activate it (the click is prevented, `onClick` isn't called).
  */
-export const PaginationLink = forwardRef<HTMLAnchorElement, PaginationLinkProps>(function PaginationLink(
+export const PaginationLink = /* @__PURE__ */ forwardRef<HTMLAnchorElement, PaginationLinkProps>(function PaginationLink(
   { className, isActive = false, size = "icon-sm", render, onClick, tabIndex, ...props },
   ref,
 ) {
@@ -106,7 +106,7 @@ export interface PaginationPreviousProps extends PaginationLinkProps {
   label?: string;
 }
 
-export const PaginationPrevious = forwardRef<HTMLAnchorElement, PaginationPreviousProps>(function PaginationPrevious(
+export const PaginationPrevious = /* @__PURE__ */ forwardRef<HTMLAnchorElement, PaginationPreviousProps>(function PaginationPrevious(
   { className, label = "Previous", "aria-label": ariaLabel = "Go to previous page", size = "sm", ...props },
   ref,
 ) {
@@ -130,7 +130,7 @@ export interface PaginationNextProps extends PaginationLinkProps {
   label?: string;
 }
 
-export const PaginationNext = forwardRef<HTMLAnchorElement, PaginationNextProps>(function PaginationNext(
+export const PaginationNext = /* @__PURE__ */ forwardRef<HTMLAnchorElement, PaginationNextProps>(function PaginationNext(
   { className, label = "Next", "aria-label": ariaLabel = "Go to next page", size = "sm", ...props },
   ref,
 ) {
@@ -154,7 +154,7 @@ export interface PaginationEllipsisProps extends ComponentPropsWithoutRef<"span"
   label?: string;
 }
 
-export const PaginationEllipsis = forwardRef<HTMLSpanElement, PaginationEllipsisProps>(function PaginationEllipsis(
+export const PaginationEllipsis = /* @__PURE__ */ forwardRef<HTMLSpanElement, PaginationEllipsisProps>(function PaginationEllipsis(
   { className, label = "More pages", ...props },
   ref,
 ) {

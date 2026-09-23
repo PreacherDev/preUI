@@ -7,11 +7,14 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
 import { useIcon } from "../../icons";
+import { applyTokens } from "../../theming/apply-tokens";
+import type { TokenOverrides } from "../../theming/token-css";
 import { Button, type ButtonProps } from "../Button/Button";
 import {
   DropdownMenu,
@@ -30,10 +33,12 @@ import {
   normalizeThemeOptions,
   parseStoredTheme,
   resolveThemeState,
+  sanitizeStoredTheme,
   type ResolvedScheme,
   type SchemePreference,
   type StoredTheme,
   type ThemeOptions,
+  type ThemeStorage,
   type ThemeSupport,
 } from "./theme-script";
 
@@ -118,6 +123,11 @@ export interface ThemeProviderProps extends ThemeOptions {
   disableTransitionOnChange?: boolean;
   /** Called after the applied scheme or theme changed (not on the initial application). */
   onChange?: (details: ThemeChangeDetails) => void;
+  /**
+   * Runtime token overrides (`{ shared, dark, light }`), applied with `applyTokens` and updated whenever the
+   * content changes — e.g. from a theme editor or a server-side theme. Removed when the provider unmounts.
+   */
+  tokens?: TokenOverrides;
 }
 
 export interface ThemeContextValue {
@@ -142,11 +152,12 @@ export interface ThemeContextValue {
   enableSystem: boolean;
 }
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+const ThemeContext = /* @__PURE__ */ createContext<ThemeContextValue | null>(null);
 
 /**
  * Manages the colour scheme (`data-scheme="light" | "dark"`) and your named theme (`data-theme`) on `<html>`:
- * persists both in localStorage, syncs across tabs and follows `prefers-color-scheme` for `"system"`.
+ * persists both in localStorage (or your own `storage`), syncs across tabs and follows `prefers-color-scheme` for
+ * `"system"`. `tokens` sets runtime token overrides (see `applyTokens`).
  * SSR-safe; add `<ThemeScript />` (same options) to `<head>` so the stored choice applies before the first paint.
  */
 export function ThemeProvider({
@@ -158,20 +169,54 @@ export function ThemeProvider({
   enableSystem,
   forcedScheme,
   forcedTheme,
+  colorScheme,
+  storage,
   disableTransitionOnChange = true,
   onChange,
+  tokens,
 }: ThemeProviderProps) {
+  const local = storage === undefined || storage === null;
   const options = useMemo(
-    () => normalizeThemeOptions({ defaultScheme, defaultTheme, themes, storageKey, enableSystem, forcedScheme, forcedTheme }),
+    () =>
+      normalizeThemeOptions({
+        defaultScheme,
+        defaultTheme,
+        themes,
+        storageKey,
+        enableSystem,
+        forcedScheme,
+        forcedTheme,
+        colorScheme,
+        storage: local ? undefined : false,
+      }),
     // `themes` is compared by content, so an inline object literal doesn't recreate the options every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [defaultScheme, defaultTheme, JSON.stringify(themes ?? {}), storageKey, enableSystem, forcedScheme, forcedTheme],
+    [
+      defaultScheme,
+      defaultTheme,
+      JSON.stringify(themes ?? {}),
+      storageKey,
+      enableSystem,
+      forcedScheme,
+      forcedTheme,
+      colorScheme,
+      local,
+    ],
   );
   const key = options.storageKey;
 
-  const getStored = useCallback(() => readStorage(key), [key]);
-  const raw = useSyncExternalStore(subscribeStorage, getStored, getNull);
-  const stored = useMemo<StoredTheme>(() => parseStoredTheme(raw), [raw]);
+  // localStorage (default). With a custom storage or `storage={false}` these never touch localStorage.
+  const getStored = useCallback(() => (local ? readStorage(key) : null), [key, local]);
+  const raw = useSyncExternalStore(local ? subscribeStorage : noopSubscribe, getStored, getNull);
+  // Custom storage / `false`: the choice lives in React state, loaded from and written to `storage`.
+  const [memory, setMemory] = useState<StoredTheme>({});
+  const external: ThemeStorage | null = storage ? storage : null;
+  useIsomorphicLayoutEffect(() => {
+    if (!external) return;
+    setMemory(sanitizeStoredTheme(external.get()));
+    return external.subscribe?.((value) => setMemory((current) => ({ ...current, ...sanitizeStoredTheme(value) })));
+  }, [external]);
+  const stored = useMemo<StoredTheme>(() => (local ? parseStoredTheme(raw) : memory), [local, raw, memory]);
   const systemScheme = useSyncExternalStore(subscribeSystem, getSystemSnapshot, getUnknown);
   // false during the server render and the hydration pass: the DOM (set by ThemeScript) is left alone until the
   // client values are known, so hydrating never flashes the default scheme.
@@ -180,12 +225,24 @@ export function ThemeProvider({
   const state = resolveThemeState(options, stored, systemScheme);
   const { scheme, theme, resolvedScheme, canToggleScheme } = state;
 
+  const memoryRef = useRef(memory);
+  memoryRef.current = memory;
   const write = useCallback(
     (patch: StoredTheme) => {
-      const next = { ...parseStoredTheme(readStorage(key)), ...patch };
-      writeStorage(key, JSON.stringify(next));
+      if (local) {
+        const next = { ...parseStoredTheme(readStorage(key)), ...patch };
+        writeStorage(key, JSON.stringify(next));
+        return;
+      }
+      const next = { ...memoryRef.current, ...patch };
+      memoryRef.current = next;
+      setMemory(next);
+      external?.set({
+        scheme: next.scheme ?? options.defaultScheme,
+        theme: next.theme !== undefined ? next.theme : options.defaultTheme,
+      });
     },
-    [key],
+    [key, local, external, options.defaultScheme, options.defaultTheme],
   );
   const setScheme = useCallback(
     (next: SchemePreference) => {
@@ -206,11 +263,30 @@ export function ThemeProvider({
     if (previous && previous.resolvedScheme === resolvedScheme && previous.theme === theme) return;
     const root = document.documentElement;
     const restore = previous && disableTransitionOnChange ? suspendTransitions() : null;
-    applyThemeState(root, { resolvedScheme, theme });
+    applyThemeState(root, { resolvedScheme, theme }, options.colorScheme);
     restore?.();
     applied.current = { resolvedScheme, theme };
     if (previous) onChangeRef.current?.({ scheme, resolvedScheme, theme });
-  }, [hydrated, resolvedScheme, theme, scheme, disableTransitionOnChange]);
+  }, [hydrated, resolvedScheme, theme, scheme, disableTransitionOnChange, options.colorScheme]);
+
+  // Runtime token overrides: rewritten when their content changes, removed on unmount.
+  const tokensKey = tokens ? JSON.stringify(tokens) : null;
+  const removeTokens = useRef<(() => void) | null>(null);
+  useIsomorphicLayoutEffect(() => {
+    if (tokensKey === null) {
+      removeTokens.current?.();
+      removeTokens.current = null;
+      return;
+    }
+    removeTokens.current = applyTokens(JSON.parse(tokensKey) as TokenOverrides);
+  }, [tokensKey]);
+  useEffect(
+    () => () => {
+      removeTokens.current?.();
+      removeTokens.current = null;
+    },
+    [],
+  );
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -291,7 +367,7 @@ export interface ThemeToggleProps extends Omit<ButtonProps, "onClick" | "childre
  * Icon button that switches between light and dark (shows the current scheme's icon).
  * Disabled while the scheme is locked (forced scheme or a light-/dark-only theme).
  */
-export const ThemeToggle = forwardRef<HTMLElement, ThemeToggleProps>(function ThemeToggle(
+export const ThemeToggle = /* @__PURE__ */ forwardRef<HTMLElement, ThemeToggleProps>(function ThemeToggle(
   { label = "Toggle color scheme", variant = "ghost", size = "icon", disabled, onClick, ...props },
   ref,
 ) {
@@ -365,7 +441,7 @@ type SchemeOption = SchemePreference;
  * Menu to pick the scheme (light / dark / system) and, if the provider declares `themes`, a theme.
  * Scheme options are disabled while the scheme is locked.
  */
-export const ThemeSelect = forwardRef<HTMLButtonElement, ThemeSelectProps>(function ThemeSelect(
+export const ThemeSelect = /* @__PURE__ */ forwardRef<HTMLButtonElement, ThemeSelectProps>(function ThemeSelect(
   { labels: labelOverrides, themeLabels, showThemes = true, contentProps, children, variant = "ghost", size, ...props },
   ref,
 ) {

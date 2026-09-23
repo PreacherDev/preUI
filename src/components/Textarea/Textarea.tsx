@@ -12,7 +12,7 @@ export interface TextareaProps extends Omit<ComponentPropsWithoutRef<typeof Base
  * Multi-line text field (min-height 80px, no resize). Works standalone or inside `Field`
  * (label, description, validation).
  */
-export const Textarea = forwardRef<ComponentRef<typeof BaseField.Control>, TextareaProps>(function Textarea(
+export const Textarea = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Control>, TextareaProps>(function Textarea(
   { className, ...props },
   ref,
 ) {

@@ -36,7 +36,7 @@ export type {
 export type MenubarProps = ComponentPropsWithoutRef<typeof BaseMenubar>;
 
 /** Container for a row of menus. */
-export const Menubar = forwardRef<ComponentRef<typeof BaseMenubar>, MenubarProps>(function Menubar(
+export const Menubar = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenubar>, MenubarProps>(function Menubar(
   { className, ...props },
   ref,
 ) {
@@ -63,7 +63,7 @@ export const MenubarPortal = BaseMenu.Portal;
 export type MenubarTriggerProps = ComponentPropsWithoutRef<typeof BaseMenu.Trigger>;
 
 /** Menubar entry, styled like a small ghost button. */
-export const MenubarTrigger = forwardRef<HTMLButtonElement, MenubarTriggerProps>(
+export const MenubarTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, MenubarTriggerProps>(
   function MenubarTrigger({ className, ...props }, ref) {
     return (
       <BaseMenu.Trigger
@@ -90,7 +90,7 @@ export const MenubarTrigger = forwardRef<HTMLButtonElement, MenubarTriggerProps>
 export type MenubarContentProps = DropdownMenuContentProps;
 
 /** Menu popup below a menubar entry; same surface as `DropdownMenuContent`, offset to clear the bar's padding. */
-export const MenubarContent = forwardRef<ComponentRef<typeof BaseMenu.Popup>, MenubarContentProps>(
+export const MenubarContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMenu.Popup>, MenubarContentProps>(
   function MenubarContent({ sideOffset = 8, alignOffset = -4, ...props }, ref) {
     return <MenuContent ref={ref} slotPrefix="menubar" sideOffset={sideOffset} alignOffset={alignOffset} {...props} />;
   },

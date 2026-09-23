@@ -6,7 +6,7 @@ import { mergeClassName } from "../../utils/cn";
 export type CollapsibleProps = ComponentPropsWithoutRef<typeof BaseCollapsible.Root>;
 
 /** Groups a trigger and its panel. Use `open`/`onOpenChange` or `defaultOpen`. */
-export const Collapsible = forwardRef<ComponentRef<typeof BaseCollapsible.Root>, CollapsibleProps>(function Collapsible(
+export const Collapsible = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCollapsible.Root>, CollapsibleProps>(function Collapsible(
   props,
   ref,
 ) {
@@ -19,7 +19,7 @@ export interface CollapsibleTriggerProps extends ComponentPropsWithoutRef<typeof
 }
 
 /** Text button with a chevron that turns 180° while the panel is open. */
-export const CollapsibleTrigger = forwardRef<ComponentRef<typeof BaseCollapsible.Trigger>, CollapsibleTriggerProps>(
+export const CollapsibleTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCollapsible.Trigger>, CollapsibleTriggerProps>(
   function CollapsibleTrigger({ className, children, hideChevron = false, ...props }, ref) {
     const ChevronDown = useIcon("chevronDown");
     return (
@@ -52,7 +52,7 @@ export const CollapsibleTrigger = forwardRef<ComponentRef<typeof BaseCollapsible
 export type CollapsibleContentProps = ComponentPropsWithoutRef<typeof BaseCollapsible.Panel>;
 
 /** Collapsible content; animates its height via `--collapsible-panel-height` (`--pui-duration-base`). */
-export const CollapsibleContent = forwardRef<ComponentRef<typeof BaseCollapsible.Panel>, CollapsibleContentProps>(
+export const CollapsibleContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCollapsible.Panel>, CollapsibleContentProps>(
   function CollapsibleContent({ className, ...props }, ref) {
     return (
       <BaseCollapsible.Panel

@@ -163,4 +163,47 @@ describe("Toast", () => {
     expect(screen.getByRole("button", { name: "Ansehen" })).toHaveAttribute("data-slot", "toast-action");
     expect(item.querySelector("[data-slot=toast-close]")).toHaveAttribute("aria-label", "Close");
   });
+
+  it("defaults to bottom-right and moves the viewport when position changes at runtime", async () => {
+    const { rerender } = render(<Toaster />);
+    act(() => {
+      toast("Gespeichert.");
+    });
+    const item = await screen.findByRole("dialog");
+    const viewport = item.parentElement!;
+    expect(viewport).toHaveAttribute("data-position", "bottom-right");
+    expect(viewport).toHaveClass("bottom-6", "right-6", "flex-col-reverse");
+    expect(item).toHaveClass("data-[starting-style]:[transform:translateY(0.5rem)]");
+
+    rerender(<Toaster position="top-left" />);
+    expect(viewport).toHaveAttribute("data-position", "top-left");
+    expect(viewport).toHaveClass("top-6", "left-6", "flex-col", "fixed", "w-80");
+    expect(viewport).not.toHaveClass("bottom-6", "right-6", "flex-col-reverse");
+    // Top: slides down from above, swipes up/left.
+    expect(item).toHaveClass(
+      "data-[starting-style]:[transform:translateY(-0.5rem)]",
+      "data-[ending-style]:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)_-_100%))]",
+      "data-[ending-style]:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)_-_100%))]",
+    );
+    expect(item).not.toHaveClass("data-[starting-style]:[transform:translateY(0.5rem)]");
+
+    rerender(<Toaster position="bottom-center" />);
+    expect(viewport).toHaveAttribute("data-position", "bottom-center");
+    expect(viewport).toHaveClass("bottom-6", "left-1/2", "-translate-x-1/2", "flex-col-reverse");
+    expect(viewport).not.toHaveClass("top-6", "left-6");
+    expect(item).toHaveClass("data-[starting-style]:[transform:translateY(0.5rem)]");
+
+    rerender(<Toaster position="top-center" />);
+    expect(viewport).toHaveClass("top-6", "left-1/2", "-translate-x-1/2", "flex-col");
+  });
+
+  it("keeps className overrides for other positions", async () => {
+    render(<Toaster position="top-right" className="top-12" />);
+    act(() => {
+      toast("Hinweis");
+    });
+    const viewport = (await screen.findByRole("dialog")).parentElement!;
+    expect(viewport).toHaveClass("top-12", "right-6");
+    expect(viewport).not.toHaveClass("top-6");
+  });
 });

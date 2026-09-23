@@ -6,7 +6,7 @@ import { mergeClassName } from "../../utils/cn";
 export type AccordionProps = ComponentPropsWithoutRef<typeof BaseAccordion.Root>;
 
 /** Groups the accordion items. Pass `multiple` to allow several open panels. */
-export const Accordion = forwardRef<ComponentRef<typeof BaseAccordion.Root>, AccordionProps>(function Accordion(
+export const Accordion = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAccordion.Root>, AccordionProps>(function Accordion(
   props,
   ref,
 ) {
@@ -16,7 +16,7 @@ export const Accordion = forwardRef<ComponentRef<typeof BaseAccordion.Root>, Acc
 export type AccordionItemProps = ComponentPropsWithoutRef<typeof BaseAccordion.Item>;
 
 /** One header + panel pair, separated from the next item by a hairline. */
-export const AccordionItem = forwardRef<ComponentRef<typeof BaseAccordion.Item>, AccordionItemProps>(
+export const AccordionItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAccordion.Item>, AccordionItemProps>(
   function AccordionItem({ className, ...props }, ref) {
     return (
       <BaseAccordion.Item
@@ -35,7 +35,7 @@ export type AccordionTriggerProps = ComponentPropsWithoutRef<typeof BaseAccordio
  * Header + Trigger in one: a full-width button with a chevron that turns 180° when the panel is open.
  * The ref and props go to the button.
  */
-export const AccordionTrigger = forwardRef<ComponentRef<typeof BaseAccordion.Trigger>, AccordionTriggerProps>(
+export const AccordionTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAccordion.Trigger>, AccordionTriggerProps>(
   function AccordionTrigger({ className, children, ...props }, ref) {
     const ChevronDown = useIcon("chevronDown");
     return (
@@ -68,7 +68,7 @@ export const AccordionTrigger = forwardRef<ComponentRef<typeof BaseAccordion.Tri
 export type AccordionContentProps = ComponentPropsWithoutRef<typeof BaseAccordion.Panel>;
 
 /** Collapsible content; animates its height via `--accordion-panel-height` (`--pui-duration-base`). */
-export const AccordionContent = forwardRef<ComponentRef<typeof BaseAccordion.Panel>, AccordionContentProps>(
+export const AccordionContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAccordion.Panel>, AccordionContentProps>(
   function AccordionContent({ className, children, ...props }, ref) {
     return (
       <BaseAccordion.Panel

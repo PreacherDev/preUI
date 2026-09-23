@@ -16,7 +16,7 @@ export type ResizablePanelGroupProps = Omit<GroupProps, "elementRef">;
  * Wraps resizable panels (react-resizable-panels 4 `Group`).
  * Use `orientation="horizontal" | "vertical"`; sizes like `defaultSize="30%"` (plain numbers are pixels in v4).
  */
-export const ResizablePanelGroup = forwardRef<HTMLDivElement, ResizablePanelGroupProps>(
+export const ResizablePanelGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, ResizablePanelGroupProps>(
   function ResizablePanelGroup({ className, orientation = "horizontal", ...props }, ref) {
     return (
       <Group
@@ -34,7 +34,7 @@ export const ResizablePanelGroup = forwardRef<HTMLDivElement, ResizablePanelGrou
 export type ResizablePanelProps = Omit<PanelProps, "elementRef">;
 
 /** One resizable panel (react-resizable-panels 4 `Panel`). `className` styles the inner content element. */
-export const ResizablePanel = forwardRef<HTMLDivElement, ResizablePanelProps>(function ResizablePanel(
+export const ResizablePanel = /* @__PURE__ */ forwardRef<HTMLDivElement, ResizablePanelProps>(function ResizablePanel(
   props,
   ref,
 ) {
@@ -51,7 +51,7 @@ export interface ResizableHandleProps extends Omit<SeparatorProps, "elementRef">
  * The library sets `aria-orientation` (opposite of the group orientation) and `data-separator`
  * (`inactive | hover | active | focus | disabled`), which drive the styles.
  */
-export const ResizableHandle = forwardRef<HTMLDivElement, ResizableHandleProps>(function ResizableHandle(
+export const ResizableHandle = /* @__PURE__ */ forwardRef<HTMLDivElement, ResizableHandleProps>(function ResizableHandle(
   { withHandle = false, className, children, ...props },
   ref,
 ) {

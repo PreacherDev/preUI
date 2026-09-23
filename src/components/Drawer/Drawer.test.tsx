@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRef } from "react";
 import {
   Drawer,
   DrawerClose,
@@ -7,6 +8,9 @@ import {
   DrawerDescription,
   DrawerFooter,
   DrawerHeader,
+  DrawerOverlay,
+  DrawerPopup,
+  DrawerPortal,
   DrawerTitle,
   DrawerTrigger,
 } from "./Drawer";
@@ -127,5 +131,92 @@ describe("Drawer", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveAttribute("data-slot", "drawer-close");
     expect(document.querySelector("[data-slot=drawer-overlay]")).toBeInTheDocument();
     expect(document.querySelector("[data-slot=drawer-viewport]")).toContainElement(drawer);
+  });
+});
+
+/** Options of every `focus()` call on `element`. */
+const focusOptionsOf = (spy: { mock: { contexts: unknown[]; calls: unknown[][] } }, element: HTMLElement) =>
+  spy.mock.contexts.flatMap((context, index) => (context === element ? [spy.mock.calls[index]![0]] : []));
+
+describe("Drawer overlays", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("portals into a container and positions viewport, popup and overlay inside it", async () => {
+    function Framed() {
+      const frameRef = useRef<HTMLDivElement>(null);
+      return (
+        <>
+          <div ref={frameRef} data-testid="frame" className="relative overflow-hidden" />
+          <Drawer>
+            <DrawerTrigger>Filter</DrawerTrigger>
+            <DrawerContent container={frameRef} overlayClassName="bg-pui-scrim/40">
+              <DrawerTitle>Filter</DrawerTitle>
+            </DrawerContent>
+          </Drawer>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Framed />);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    const drawer = await screen.findByRole("dialog");
+    const frame = screen.getByTestId("frame");
+    const overlay = document.querySelector("[data-slot=drawer-overlay]");
+    const viewport = document.querySelector("[data-slot=drawer-viewport]");
+    expect(frame).toContainElement(drawer);
+    expect(drawer).toHaveClass("absolute", "data-[swipe-direction=down]:max-h-[80%]");
+    expect(drawer).not.toHaveClass("fixed");
+    expect(viewport).toHaveClass("absolute", "inset-0");
+    expect(viewport).not.toHaveClass("fixed");
+    expect(overlay).toHaveClass("absolute", "inset-0", "bg-pui-scrim/40");
+    expect(overlay).not.toHaveClass("fixed");
+  });
+
+  it("renders no scrim with overlay={false}", async () => {
+    const user = userEvent.setup();
+    render(<Example overlay={false} />);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    await screen.findByRole("dialog");
+    expect(document.querySelector("[data-slot=drawer-overlay]")).toBeNull();
+  });
+
+  it("focuses an initialFocus ref without scrolling", async () => {
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    function WithRef() {
+      const inputRef = useRef<HTMLInputElement>(null);
+      return (
+        <Drawer>
+          <DrawerTrigger>Filter</DrawerTrigger>
+          <DrawerContent initialFocus={inputRef}>
+            <DrawerTitle>Filter</DrawerTitle>
+            <input ref={inputRef} aria-label="Suche" />
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+    const user = userEvent.setup();
+    render(<WithRef />);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    const input = await screen.findByRole("textbox", { name: "Suche" });
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(focusOptionsOf(focus, input)).toEqual([{ preventScroll: true }]);
+  });
+
+  it("exports DrawerPopup for custom compositions", async () => {
+    render(
+      <Drawer defaultOpen>
+        <DrawerPortal>
+          <DrawerOverlay />
+          <DrawerPopup>
+            <DrawerTitle>Eigener Aufbau</DrawerTitle>
+          </DrawerPopup>
+        </DrawerPortal>
+      </Drawer>,
+    );
+    const drawer = await screen.findByRole("dialog");
+    expect(drawer).toHaveAttribute("data-slot", "drawer-popup");
+    expect(drawer).toHaveClass("bg-pui-shell", "fixed");
   });
 });

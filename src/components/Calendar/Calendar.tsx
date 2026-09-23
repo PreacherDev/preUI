@@ -47,7 +47,7 @@ export type CalendarProps = ComponentProps<typeof DayPicker> & {
 };
 
 // DayPicker has no `ref` of its own: the forwarded ref reaches the root element through this context.
-const CalendarRefContext = createContext<ForwardedRef<HTMLDivElement>>(null);
+const CalendarRefContext = /* @__PURE__ */ createContext<ForwardedRef<HTMLDivElement>>(null);
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
   if (typeof ref === "function") ref(value);
@@ -179,7 +179,7 @@ function CalendarWeekNumber({ children, week: _week, ...props }: WeekNumberProps
  * Every month takes six weeks of space (`fixedWeeks`, default `true`), so the height never changes while
  * navigating; a trailing week made only of next-month days stays empty.
  */
-export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
+export const Calendar = /* @__PURE__ */ forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
   {
     className,
     classNames,
@@ -305,7 +305,7 @@ function CalendarDayButtonSlot(props: DayButtonProps) {
 }
 
 /** The styled day button of each grid cell. Reuse it in a custom `components.DayButton`, e.g. `(p) => <CalendarDayButton {...p} />`. */
-export const CalendarDayButton = forwardRef<HTMLButtonElement, CalendarDayButtonProps>(function CalendarDayButton(
+export const CalendarDayButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, CalendarDayButtonProps>(function CalendarDayButton(
   { className, day, modifiers, ...props },
   forwardedRef,
 ) {

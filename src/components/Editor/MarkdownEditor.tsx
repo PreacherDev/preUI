@@ -421,7 +421,7 @@ const innerEditorClassName = "min-w-0 rounded-none border-0 bg-transparent focus
  * Markdown source editor (CodeMirror, Markdown highlighting, wrapping) with a formatting toolbar and a
  * rendered preview — as Write / Preview tabs, side by side, or without preview.
  */
-export const MarkdownEditor = forwardRef<CodeEditorHandle, MarkdownEditorProps>(function MarkdownEditor(
+export const MarkdownEditor = /* @__PURE__ */ forwardRef<CodeEditorHandle, MarkdownEditorProps>(function MarkdownEditor(
   {
     value,
     defaultValue,

@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef } from "react";
 import { cn } from "../../utils/cn";
 
-export const badgeVariants = cva(
+export const badgeVariants = /* @__PURE__ */ cva(
   [
     "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap",
     // Border colour lives in the variants: `badgeVariants()` is also used without tailwind-merge, where a base
@@ -41,7 +41,7 @@ export interface BadgeProps extends Omit<useRender.ComponentProps<"span">, "ref"
 }
 
 /** Small tinted status pill. Use `render` to swap the element, e.g. `render={<a href="…" />}`. */
-export const Badge = forwardRef<HTMLElement, BadgeProps>(function Badge(
+export const Badge = /* @__PURE__ */ forwardRef<HTMLElement, BadgeProps>(function Badge(
   { variant, className, render, ...props },
   ref,
 ) {

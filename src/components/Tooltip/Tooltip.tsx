@@ -11,7 +11,7 @@ export type TooltipProps = BaseTooltip.Root.Props;
 export type TooltipTriggerProps = BaseTooltip.Trigger.Props;
 
 /** The element the tooltip describes. Renders a `<button>` (`data-slot="tooltip-trigger"`). */
-export const TooltipTrigger = forwardRef<HTMLButtonElement, TooltipTriggerProps>(function TooltipTrigger(props, ref) {
+export const TooltipTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, TooltipTriggerProps>(function TooltipTrigger(props, ref) {
   return <BaseTooltip.Trigger ref={ref} data-slot="tooltip-trigger" {...props} />;
 }) as unknown as typeof BaseTooltip.Trigger;
 
@@ -23,13 +23,15 @@ export interface TooltipContentProps extends ComponentPropsWithoutRef<typeof Bas
   alignOffset?: BaseTooltip.Positioner.Props["alignOffset"];
   /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
   positionerProps?: Omit<BaseTooltip.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseTooltip.Portal.Props["container"];
 }
 
 /** Portal + Positioner + Popup in one, on the lighter tooltip surface. */
-export const TooltipContent = forwardRef<ComponentRef<typeof BaseTooltip.Popup>, TooltipContentProps>(
-  function TooltipContent({ className, side = "top", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, ...props }, ref) {
+export const TooltipContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTooltip.Popup>, TooltipContentProps>(
+  function TooltipContent({ className, side = "top", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
-      <BaseTooltip.Portal data-slot="tooltip-portal">
+      <BaseTooltip.Portal data-slot="tooltip-portal" container={container}>
         <BaseTooltip.Positioner
           data-slot="tooltip-positioner"
           side={side}

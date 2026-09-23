@@ -5,7 +5,7 @@ import { cn } from "../../utils/cn";
 export type EmptyProps = ComponentPropsWithoutRef<"div">;
 
 /** Centred empty state: muted icon, one plain sentence, optional content (e.g. an action). */
-export const Empty = forwardRef<HTMLDivElement, EmptyProps>(function Empty({ className, ...props }, ref) {
+export const Empty = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyProps>(function Empty({ className, ...props }, ref) {
   return (
     <div
       ref={ref}
@@ -21,7 +21,7 @@ export const Empty = forwardRef<HTMLDivElement, EmptyProps>(function Empty({ cla
 
 export type EmptyHeaderProps = ComponentPropsWithoutRef<"div">;
 
-export const EmptyHeader = forwardRef<HTMLDivElement, EmptyHeaderProps>(function EmptyHeader(
+export const EmptyHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyHeaderProps>(function EmptyHeader(
   { className, ...props },
   ref,
 ) {
@@ -35,7 +35,7 @@ export const EmptyHeader = forwardRef<HTMLDivElement, EmptyHeaderProps>(function
   );
 });
 
-export const emptyMediaVariants = cva(
+export const emptyMediaVariants = /* @__PURE__ */ cva(
   "flex shrink-0 items-center justify-center text-pui-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
@@ -62,7 +62,7 @@ export interface EmptyMediaProps extends ComponentPropsWithoutRef<"div"> {
  * Icon or avatar above the title. Renders `data-slot="empty-icon"` — the slot name shadcn/ui uses for this part,
  * kept for CSS compatibility with shadcn themes.
  */
-export const EmptyMedia = forwardRef<HTMLDivElement, EmptyMediaProps>(function EmptyMedia(
+export const EmptyMedia = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyMediaProps>(function EmptyMedia(
   { className, variant = "default", ...props },
   ref,
 ) {
@@ -79,7 +79,7 @@ export const EmptyMedia = forwardRef<HTMLDivElement, EmptyMediaProps>(function E
 
 export type EmptyTitleProps = ComponentPropsWithoutRef<"div">;
 
-export const EmptyTitle = forwardRef<HTMLDivElement, EmptyTitleProps>(function EmptyTitle(
+export const EmptyTitle = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyTitleProps>(function EmptyTitle(
   { className, ...props },
   ref,
 ) {
@@ -95,7 +95,7 @@ export const EmptyTitle = forwardRef<HTMLDivElement, EmptyTitleProps>(function E
 
 export type EmptyDescriptionProps = ComponentPropsWithoutRef<"p">;
 
-export const EmptyDescription = forwardRef<HTMLParagraphElement, EmptyDescriptionProps>(function EmptyDescription(
+export const EmptyDescription = /* @__PURE__ */ forwardRef<HTMLParagraphElement, EmptyDescriptionProps>(function EmptyDescription(
   { className, ...props },
   ref,
 ) {
@@ -116,7 +116,7 @@ export const EmptyDescription = forwardRef<HTMLParagraphElement, EmptyDescriptio
 export type EmptyContentProps = ComponentPropsWithoutRef<"div">;
 
 /** Slot for actions or extra content below the header. */
-export const EmptyContent = forwardRef<HTMLDivElement, EmptyContentProps>(function EmptyContent(
+export const EmptyContent = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyContentProps>(function EmptyContent(
   { className, ...props },
   ref,
 ) {

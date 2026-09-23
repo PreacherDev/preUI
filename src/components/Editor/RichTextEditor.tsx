@@ -106,7 +106,7 @@ const editorContentClassName = [
  * Supports bold, italic, strike, inline code, headings 1–3, lists, quotes, code blocks,
  * dividers and links. Markdown shortcuts work while typing ("## ", "- ", "> ", "```" …).
  */
-export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
+export const RichTextEditor = /* @__PURE__ */ forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
   {
     value,
     defaultValue,

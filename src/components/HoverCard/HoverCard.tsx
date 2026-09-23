@@ -8,7 +8,7 @@ export type HoverCardProps = BasePreviewCard.Root.Props;
 export type HoverCardTriggerProps = BasePreviewCard.Trigger.Props;
 
 /** The link that opens the card on hover. Renders an `<a>` (`data-slot="hover-card-trigger"`). */
-export const HoverCardTrigger = forwardRef<HTMLAnchorElement, HoverCardTriggerProps>(
+export const HoverCardTrigger = /* @__PURE__ */ forwardRef<HTMLAnchorElement, HoverCardTriggerProps>(
   function HoverCardTrigger(props, ref) {
     return <BasePreviewCard.Trigger ref={ref} data-slot="hover-card-trigger" {...props} />;
   },
@@ -22,13 +22,15 @@ export interface HoverCardContentProps extends ComponentPropsWithoutRef<typeof B
   alignOffset?: BasePreviewCard.Positioner.Props["alignOffset"];
   /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
   positionerProps?: Omit<BasePreviewCard.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BasePreviewCard.Portal.Props["container"];
 }
 
 /** Portal + Positioner + Popup in one, styled as a floating surface like Popover. */
-export const HoverCardContent = forwardRef<ComponentRef<typeof BasePreviewCard.Popup>, HoverCardContentProps>(
-  function HoverCardContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, ...props }, ref) {
+export const HoverCardContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BasePreviewCard.Popup>, HoverCardContentProps>(
+  function HoverCardContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
-      <BasePreviewCard.Portal data-slot="hover-card-portal">
+      <BasePreviewCard.Portal data-slot="hover-card-portal" container={container}>
         <BasePreviewCard.Positioner
           data-slot="hover-card-positioner"
           side={side}

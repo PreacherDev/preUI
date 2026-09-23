@@ -149,7 +149,7 @@ function CopyButton({ code, copyLabel, copiedLabel, onCopy, className }: CopyBut
  * Read-only, syntax-highlighted code (Shiki). Renders the plain code immediately and swaps in the
  * highlighted tokens once Shiki and the grammar are loaded — with identical metrics, so nothing shifts.
  */
-export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function CodeBlock(
+export const CodeBlock = /* @__PURE__ */ forwardRef<HTMLDivElement, CodeBlockProps>(function CodeBlock(
   {
     code,
     language = "text",
@@ -276,7 +276,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
 export type CodeInlineProps = ComponentPropsWithoutRef<"code">;
 
 /** Inline code inside running text. */
-export const CodeInline = forwardRef<HTMLElement, CodeInlineProps>(function CodeInline({ className, ...props }, ref) {
+export const CodeInline = /* @__PURE__ */ forwardRef<HTMLElement, CodeInlineProps>(function CodeInline({ className, ...props }, ref) {
   return (
     <code
       ref={ref}

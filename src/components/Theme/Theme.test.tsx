@@ -4,7 +4,14 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStringAndHydrate } from "../../test-utils/ssr";
 import { ThemeProvider, ThemeScript, ThemeSelect, ThemeToggle, getThemeScript, useTheme, type ThemeProviderProps } from ".";
-import { normalizeThemeOptions, parseStoredTheme, resolveThemeState, type ThemeOptions } from "./theme-script";
+import {
+  normalizeThemeOptions,
+  parseStoredTheme,
+  resolveThemeState,
+  type ThemeOptions,
+  type ThemeStorage,
+  type ThemeStorageValue,
+} from "./theme-script";
 
 const KEY = "preui-theme";
 const html = document.documentElement;
@@ -411,5 +418,156 @@ describe("SSR + hydration", () => {
     expect(schemes).not.toContain("dark");
     setAttribute.mockRestore();
     result.unmount();
+  });
+});
+
+describe("ThemeProvider storage", () => {
+  /** A ThemeStorage whose `subscribe` callback can be fired from the test (like a NUI message). */
+  function createTestStorage(initial: ThemeStorageValue | null) {
+    let push: ((value: ThemeStorageValue) => void) | null = null;
+    const storage = {
+      get: vi.fn(() => initial),
+      set: vi.fn(),
+      subscribe: vi.fn((callback: (value: ThemeStorageValue) => void) => {
+        push = callback;
+        return () => {
+          push = null;
+        };
+      }),
+    } satisfies ThemeStorage;
+    return { storage, push: (value: ThemeStorageValue) => act(() => push?.(value)) };
+  }
+
+  it("storage={false} keeps the choice in state and never touches localStorage", async () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem");
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    const user = userEvent.setup();
+    renderProvider({ storage: false, themes: { brand: "both" } });
+    expect(state()).toMatchObject({ scheme: "dark", theme: null });
+    await user.click(screen.getByRole("button", { name: "light" }));
+    await user.click(screen.getByRole("button", { name: "brand" }));
+    expect(html).toHaveAttribute("data-scheme", "light");
+    expect(html).toHaveAttribute("data-theme", "brand");
+    expect(getItem).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
+    getItem.mockRestore();
+    setItem.mockRestore();
+  });
+
+  it("reads from and writes to a custom storage", async () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem");
+    const { storage } = createTestStorage({ scheme: "light", theme: "brand" });
+    const user = userEvent.setup();
+    renderProvider({ storage, themes: { brand: "both" } });
+    expect(state()).toMatchObject({ scheme: "light", resolvedScheme: "light", theme: "brand" });
+    expect(html).toHaveAttribute("data-scheme", "light");
+    await user.click(screen.getByRole("button", { name: "dark" }));
+    expect(storage.set).toHaveBeenLastCalledWith({ scheme: "dark", theme: "brand" });
+    await user.click(screen.getByRole("button", { name: "no-theme" }));
+    expect(storage.set).toHaveBeenLastCalledWith({ scheme: "dark", theme: null });
+    expect(getItem).not.toHaveBeenCalled();
+    getItem.mockRestore();
+  });
+
+  it("applies subscribe updates without re-mounting, with transitions suspended", () => {
+    const { storage, push } = createTestStorage(null);
+    const onChange = vi.fn();
+    const appendChild = vi.spyOn(document.head, "appendChild");
+    const { container } = renderProvider({ storage, onChange });
+    const probe = container.firstChild;
+    push({ scheme: "light" });
+    expect(html).toHaveAttribute("data-scheme", "light");
+    expect(onChange).toHaveBeenLastCalledWith({ scheme: "light", resolvedScheme: "light", theme: null });
+    expect(appendChild.mock.calls.some(([node]) => (node as Element).hasAttribute?.("data-preui-theme-transition"))).toBe(true);
+    push({ theme: "brand" }); // partial: the scheme stays
+    expect(state()).toMatchObject({ scheme: "light", theme: "brand" });
+    push({ theme: null });
+    expect(html).not.toHaveAttribute("data-theme");
+    push({ scheme: "bogus" as "light" }); // invalid values are ignored
+    expect(state()).toMatchObject({ scheme: "light" });
+    expect(container.firstChild).toBe(probe);
+    expect(storage.set).not.toHaveBeenCalled(); // updates from outside are not written back
+    appendChild.mockRestore();
+  });
+
+  it("unsubscribes on unmount", () => {
+    const unsubscribe = vi.fn();
+    const storage: ThemeStorage = { get: () => null, set: () => {}, subscribe: () => unsubscribe };
+    renderProvider({ storage }).unmount();
+    expect(unsubscribe).toHaveBeenCalled();
+  });
+
+  it("getThemeScript with storage never reads localStorage and applies the defaults", () => {
+    localStorage.setItem(KEY, JSON.stringify({ scheme: "light", theme: "brand" }));
+    const getItem = vi.spyOn(Storage.prototype, "getItem");
+    resetDom();
+    new Function(getThemeScript({ storage: false, defaultScheme: "dark", defaultTheme: "base" }))();
+    expect(html).toHaveAttribute("data-scheme", "dark");
+    expect(html).toHaveAttribute("data-theme", "base");
+    expect(getItem).not.toHaveBeenCalled();
+    getItem.mockRestore();
+  });
+});
+
+describe("ThemeProvider tokens", () => {
+  const runtimeStyle = () => document.getElementById("preui-runtime-tokens");
+
+  it("applies runtime tokens, updates them on change and removes them on unmount", () => {
+    const { rerender, unmount } = render(
+      <ThemeProvider tokens={{ dark: { primary: "#ef4444" } }}>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(runtimeStyle()?.textContent).toContain("--pui-primary: 0 84% 60%;");
+    rerender(
+      <ThemeProvider tokens={{ dark: { primary: "#22c55e" }, shared: { radius: "4px" } }}>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(document.querySelectorAll("#preui-runtime-tokens")).toHaveLength(1);
+    expect(runtimeStyle()?.textContent).toContain("--pui-radius: 4px;");
+    expect(runtimeStyle()?.textContent).not.toContain("0 84% 60%");
+    rerender(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(runtimeStyle()).toBeNull();
+    rerender(
+      <ThemeProvider tokens={{ light: { primary: "#2563eb" } }}>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(runtimeStyle()).not.toBeNull();
+    unmount();
+    expect(runtimeStyle()).toBeNull();
+  });
+
+  it("does not rewrite the style for a new object with the same content", () => {
+    const { rerender } = render(<ThemeProvider tokens={{ dark: { primary: "#ef4444" } }} />);
+    const element = runtimeStyle()!;
+    const setter = vi.spyOn(element, "textContent", "set");
+    rerender(<ThemeProvider tokens={{ dark: { primary: "#ef4444" } }} />);
+    expect(setter).not.toHaveBeenCalled();
+    setter.mockRestore();
+  });
+});
+
+describe("colorScheme={false} (transparent iframes, FiveM NUI)", () => {
+  it("the provider and the script never write color-scheme", () => {
+    renderProvider({ colorScheme: false, defaultScheme: "light" });
+    expect(html).toHaveAttribute("data-scheme", "light");
+    expect(html.style.colorScheme).toBe("");
+    resetDom();
+    html.style.colorScheme = "dark";
+    new Function(getThemeScript({ colorScheme: false, defaultScheme: "light" }))();
+    expect(html).toHaveAttribute("data-scheme", "light");
+    expect(html.style.colorScheme).toBe("dark"); // untouched by the script
+  });
+
+  it("removes a color-scheme set earlier", () => {
+    html.style.colorScheme = "dark";
+    renderProvider({ colorScheme: false });
+    expect(html.style.colorScheme).toBe("");
   });
 });

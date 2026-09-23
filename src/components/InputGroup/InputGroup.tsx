@@ -29,7 +29,7 @@ const inputGroupHasRules: HasFallbackRule[] = [
   { attr: "data-has-kbd", has: ":scope > kbd", target: ":scope > [data-slot=input-group-addon]" },
 ];
 
-export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(function InputGroup(
+export const InputGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, InputGroupProps>(function InputGroup(
   { className, ...props },
   ref,
 ) {
@@ -67,7 +67,7 @@ export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(function I
   );
 });
 
-export const inputGroupAddonVariants = cva(
+export const inputGroupAddonVariants = /* @__PURE__ */ cva(
   [
     "flex h-auto cursor-text select-none items-center justify-center gap-2 py-1.5 text-sm font-medium text-pui-muted-foreground",
     "[&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:shrink-0",
@@ -99,7 +99,7 @@ export interface InputGroupAddonProps extends ComponentPropsWithoutRef<"div"> {
 }
 
 /** Icon, text or button next to the control. Clicking it (outside buttons) focuses the control. */
-export const InputGroupAddon = forwardRef<HTMLDivElement, InputGroupAddonProps>(function InputGroupAddon(
+export const InputGroupAddon = /* @__PURE__ */ forwardRef<HTMLDivElement, InputGroupAddonProps>(function InputGroupAddon(
   { className, align = "inline-start", onClick, ...props },
   ref,
 ) {
@@ -121,7 +121,7 @@ export const InputGroupAddon = forwardRef<HTMLDivElement, InputGroupAddonProps>(
   );
 });
 
-export const inputGroupButtonVariants = cva("gap-2 shadow-none", {
+export const inputGroupButtonVariants = /* @__PURE__ */ cva("gap-2 shadow-none", {
   variants: {
     size: {
       xs: "h-6 gap-1 rounded-pui-sm px-2 text-xs [&_svg]:size-3.5",
@@ -142,7 +142,7 @@ export interface InputGroupButtonProps extends Omit<ButtonProps, "size"> {
 }
 
 /** Compact button for use inside an addon (ghost by default). */
-export const InputGroupButton = forwardRef<HTMLElement, InputGroupButtonProps>(function InputGroupButton(
+export const InputGroupButton = /* @__PURE__ */ forwardRef<HTMLElement, InputGroupButtonProps>(function InputGroupButton(
   { className, variant = "ghost", size = "xs", ...props },
   ref,
 ) {
@@ -161,7 +161,7 @@ export const InputGroupButton = forwardRef<HTMLElement, InputGroupButtonProps>(f
 export type InputGroupTextProps = ComponentPropsWithoutRef<"span">;
 
 /** Muted inline text such as a unit, prefix or counter. */
-export const InputGroupText = forwardRef<HTMLSpanElement, InputGroupTextProps>(function InputGroupText(
+export const InputGroupText = /* @__PURE__ */ forwardRef<HTMLSpanElement, InputGroupTextProps>(function InputGroupText(
   { className, ...props },
   ref,
 ) {
@@ -188,7 +188,7 @@ const controlBase = [
 export type InputGroupInputProps = ComponentPropsWithoutRef<typeof BaseInput>;
 
 /** Borderless input for use in `InputGroup`. Built on Base UI Input, so it links to a surrounding `Field`. */
-export const InputGroupInput = forwardRef<ComponentRef<typeof BaseInput>, InputGroupInputProps>(
+export const InputGroupInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseInput>, InputGroupInputProps>(
   function InputGroupInput({ className, ...props }, ref) {
     return (
       <BaseInput
@@ -209,7 +209,7 @@ export interface InputGroupTextareaProps
 }
 
 /** Borderless textarea for use in `InputGroup` (`Field.Control` rendered as `<textarea>`). */
-export const InputGroupTextarea = forwardRef<ComponentRef<typeof BaseField.Control>, InputGroupTextareaProps>(
+export const InputGroupTextarea = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Control>, InputGroupTextareaProps>(
   function InputGroupTextarea({ className, ...props }, ref) {
     return (
       <BaseField.Control

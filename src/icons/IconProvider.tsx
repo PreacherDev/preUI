@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { defaultIcons } from "./defaults";
 import type { IconName, IconSet } from "./types";
 
-const IconContext = createContext<IconSet>(defaultIcons);
+const IconContext = /* @__PURE__ */ createContext<IconSet>(defaultIcons);
 
 export interface IconProviderProps {
   /** Icons to override. Anything not provided falls back to the built-in set. */

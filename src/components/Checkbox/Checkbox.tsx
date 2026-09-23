@@ -12,7 +12,7 @@ export interface CheckboxProps extends BaseCheckbox.Root.Props {
  * 16px checkbox with a 4px radius. Checked and indeterminate fill with primary and show the `check` /
  * `minus` icon. Wrap it in a `<label>` (or `FieldLabel`) together with its text.
  */
-export const Checkbox = forwardRef<HTMLElement, CheckboxProps>(function Checkbox(
+export const Checkbox = /* @__PURE__ */ forwardRef<HTMLElement, CheckboxProps>(function Checkbox(
   { className, indicatorClassName, ...props },
   ref,
 ) {

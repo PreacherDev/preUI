@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Build output: FiveM loads web/dist, so build it before deploying (cd web && npm run build).
+# If you deploy the resource straight from git (git pull on the server), delete the next line and commit web/dist.
+web/dist/
+
+# Logs, editors, OS
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

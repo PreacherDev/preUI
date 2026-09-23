@@ -5,7 +5,7 @@ import { mergeClassName } from "../../utils/cn";
 export type SeparatorProps = ComponentPropsWithoutRef<typeof BaseSeparator>;
 
 /** 1px hairline in the border colour, horizontal (default) or `orientation="vertical"`. */
-export const Separator = forwardRef<ComponentRef<typeof BaseSeparator>, SeparatorProps>(function Separator(
+export const Separator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSeparator>, SeparatorProps>(function Separator(
   { className, ...props },
   ref,
 ) {

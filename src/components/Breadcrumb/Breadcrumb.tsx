@@ -6,7 +6,7 @@ import { cn } from "../../utils/cn";
 export type BreadcrumbProps = ComponentPropsWithoutRef<"nav">;
 
 /** Navigation landmark for a breadcrumb trail. Override the label with `aria-label`. */
-export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
+export const Breadcrumb = /* @__PURE__ */ forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
   { "aria-label": ariaLabel = "Breadcrumb", ...props },
   ref,
 ) {
@@ -15,7 +15,7 @@ export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Brea
 
 export type BreadcrumbListProps = ComponentPropsWithoutRef<"ol">;
 
-export const BreadcrumbList = forwardRef<HTMLOListElement, BreadcrumbListProps>(function BreadcrumbList(
+export const BreadcrumbList = /* @__PURE__ */ forwardRef<HTMLOListElement, BreadcrumbListProps>(function BreadcrumbList(
   { className, ...props },
   ref,
 ) {
@@ -34,7 +34,7 @@ export const BreadcrumbList = forwardRef<HTMLOListElement, BreadcrumbListProps>(
 
 export type BreadcrumbItemProps = ComponentPropsWithoutRef<"li">;
 
-export const BreadcrumbItem = forwardRef<HTMLLIElement, BreadcrumbItemProps>(function BreadcrumbItem(
+export const BreadcrumbItem = /* @__PURE__ */ forwardRef<HTMLLIElement, BreadcrumbItemProps>(function BreadcrumbItem(
   { className, ...props },
   ref,
 ) {
@@ -46,7 +46,7 @@ export const BreadcrumbItem = forwardRef<HTMLLIElement, BreadcrumbItemProps>(fun
 export interface BreadcrumbLinkProps extends Omit<useRender.ComponentProps<"a">, "ref"> {}
 
 /** A link in the trail. Use `render` for router links: `<BreadcrumbLink render={<Link to="/" />}>`. */
-export const BreadcrumbLink = forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(function BreadcrumbLink(
+export const BreadcrumbLink = /* @__PURE__ */ forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(function BreadcrumbLink(
   { className, render, ...props },
   ref,
 ) {
@@ -69,7 +69,7 @@ export const BreadcrumbLink = forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>
 export type BreadcrumbPageProps = ComponentPropsWithoutRef<"span">;
 
 /** The current page — the last, non-interactive entry. */
-export const BreadcrumbPage = forwardRef<HTMLSpanElement, BreadcrumbPageProps>(function BreadcrumbPage(
+export const BreadcrumbPage = /* @__PURE__ */ forwardRef<HTMLSpanElement, BreadcrumbPageProps>(function BreadcrumbPage(
   { className, ...props },
   ref,
 ) {
@@ -89,7 +89,7 @@ export const BreadcrumbPage = forwardRef<HTMLSpanElement, BreadcrumbPageProps>(f
 export type BreadcrumbSeparatorProps = ComponentPropsWithoutRef<"li">;
 
 /** Chevron between items; pass children to use a different glyph. */
-export const BreadcrumbSeparator = forwardRef<HTMLLIElement, BreadcrumbSeparatorProps>(function BreadcrumbSeparator(
+export const BreadcrumbSeparator = /* @__PURE__ */ forwardRef<HTMLLIElement, BreadcrumbSeparatorProps>(function BreadcrumbSeparator(
   { className, children, ...props },
   ref,
 ) {
@@ -114,7 +114,7 @@ export interface BreadcrumbEllipsisProps extends ComponentPropsWithoutRef<"span"
 }
 
 /** Placeholder for collapsed items (e.g. as a dropdown trigger). */
-export const BreadcrumbEllipsis = forwardRef<HTMLSpanElement, BreadcrumbEllipsisProps>(function BreadcrumbEllipsis(
+export const BreadcrumbEllipsis = /* @__PURE__ */ forwardRef<HTMLSpanElement, BreadcrumbEllipsisProps>(function BreadcrumbEllipsis(
   { className, label = "More", ...props },
   ref,
 ) {

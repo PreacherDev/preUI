@@ -23,7 +23,7 @@ export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
 // `[&:has([role=checkbox])]` on the cells, emulated for browsers without :has() (Chromium < 105).
 const tableHasRules: HasFallbackRule[] = [{ attr: "data-has-checkbox", has: "[role=checkbox]", target: "th, td" }];
 
-export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
+export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function Table(
   { className, containerClassName, ...props },
   ref,
 ) {
@@ -56,7 +56,7 @@ export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
 
 export type TableHeaderProps = HTMLAttributes<HTMLTableSectionElement>;
 
-export const TableHeader = forwardRef<HTMLTableSectionElement, TableHeaderProps>(function TableHeader(
+export const TableHeader = /* @__PURE__ */ forwardRef<HTMLTableSectionElement, TableHeaderProps>(function TableHeader(
   { className, ...props },
   ref,
 ) {
@@ -72,7 +72,7 @@ export const TableHeader = forwardRef<HTMLTableSectionElement, TableHeaderProps>
 
 export type TableBodyProps = HTMLAttributes<HTMLTableSectionElement>;
 
-export const TableBody = forwardRef<HTMLTableSectionElement, TableBodyProps>(function TableBody(
+export const TableBody = /* @__PURE__ */ forwardRef<HTMLTableSectionElement, TableBodyProps>(function TableBody(
   { className, ...props },
   ref,
 ) {
@@ -81,7 +81,7 @@ export const TableBody = forwardRef<HTMLTableSectionElement, TableBodyProps>(fun
 
 export type TableFooterProps = HTMLAttributes<HTMLTableSectionElement>;
 
-export const TableFooter = forwardRef<HTMLTableSectionElement, TableFooterProps>(function TableFooter(
+export const TableFooter = /* @__PURE__ */ forwardRef<HTMLTableSectionElement, TableFooterProps>(function TableFooter(
   { className, ...props },
   ref,
 ) {
@@ -101,7 +101,7 @@ export const TableFooter = forwardRef<HTMLTableSectionElement, TableFooterProps>
 export type TableRowProps = HTMLAttributes<HTMLTableRowElement>;
 
 /** Row with a hairline divider. Set `data-state="selected"` to highlight it. */
-export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(function TableRow({ className, ...props }, ref) {
+export const TableRow = /* @__PURE__ */ forwardRef<HTMLTableRowElement, TableRowProps>(function TableRow({ className, ...props }, ref) {
   return (
     <tr
       ref={ref}
@@ -118,7 +118,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(function 
 
 export type TableHeadProps = ThHTMLAttributes<HTMLTableCellElement>;
 
-export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(function TableHead(
+export const TableHead = /* @__PURE__ */ forwardRef<HTMLTableCellElement, TableHeadProps>(function TableHead(
   { className, ...props },
   ref,
 ) {
@@ -139,7 +139,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(functi
 
 export type TableCellProps = TdHTMLAttributes<HTMLTableCellElement>;
 
-export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(function TableCell(
+export const TableCell = /* @__PURE__ */ forwardRef<HTMLTableCellElement, TableCellProps>(function TableCell(
   { className, ...props },
   ref,
 ) {
@@ -155,7 +155,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(functi
 
 export type TableCaptionProps = HTMLAttributes<HTMLTableCaptionElement>;
 
-export const TableCaption = forwardRef<HTMLTableCaptionElement, TableCaptionProps>(function TableCaption(
+export const TableCaption = /* @__PURE__ */ forwardRef<HTMLTableCaptionElement, TableCaptionProps>(function TableCaption(
   { className, ...props },
   ref,
 ) {

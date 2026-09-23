@@ -3,7 +3,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 
 // Teach tailwind-merge the custom theme keys from the preset, so e.g. `rounded-full` replaces `rounded-pui`
 // and `text-sm` replaces `text-pui-eyebrow`.
-const twMerge = extendTailwindMerge({
+const twMerge = /* @__PURE__ */ extendTailwindMerge({
   extend: {
     theme: {
       borderRadius: ["pui", "pui-md", "pui-sm", "pui-window"],

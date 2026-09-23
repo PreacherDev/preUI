@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Command,
   CommandDialog,
@@ -158,5 +158,66 @@ describe("CommandDialog", () => {
     const dialog = await screen.findByRole("dialog", { name: "Befehle" });
     expect(dialog).toHaveAccessibleDescription("Suche einen Befehl");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+});
+
+describe("CommandDialog overlays", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders into a container with a contained scrim", async () => {
+    function Framed() {
+      const frameRef = useRef<HTMLDivElement>(null);
+      return (
+        <>
+          <div ref={frameRef} data-testid="frame" className="relative overflow-hidden" />
+          <CommandDialog open container={frameRef} overlayClassName="bg-pui-scrim/40">
+            <CommandInput placeholder="Suchen …" />
+          </CommandDialog>
+        </>
+      );
+    }
+    render(<Framed />);
+    const dialog = await screen.findByRole("dialog");
+    const overlay = document.querySelector("[data-slot=dialog-overlay]");
+    expect(screen.getByTestId("frame")).toContainElement(dialog);
+    expect(dialog).toHaveClass("absolute", "top-[15%]", "max-h-[70%]");
+    expect(dialog).not.toHaveClass("fixed", "top-[15vh]", "max-h-[70vh]", "max-h-[85%]");
+    expect(overlay).toHaveClass("absolute", "bg-pui-scrim/40");
+  });
+
+  it("renders no scrim with overlay={false}", async () => {
+    render(
+      <CommandDialog open overlay={false}>
+        <CommandInput placeholder="Suchen …" />
+      </CommandDialog>,
+    );
+    await screen.findByRole("dialog");
+    expect(document.querySelector("[data-slot=dialog-overlay]")).toBeNull();
+  });
+
+  it("focuses the search input without scrolling", async () => {
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    function Palette() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Palette
+          </button>
+          <CommandDialog open={open} onOpenChange={setOpen}>
+            <CommandInput placeholder="Suchen …" />
+          </CommandDialog>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Palette />);
+    await user.click(screen.getByRole("button", { name: "Palette" }));
+    const input = await screen.findByPlaceholderText("Suchen …");
+    await waitFor(() => expect(input).toHaveFocus());
+    const options = focus.mock.contexts.flatMap((context, index) => (context === input ? [focus.mock.calls[index]![0]] : []));
+    expect(options).toEqual([{ preventScroll: true }]);
   });
 });

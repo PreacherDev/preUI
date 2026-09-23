@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRef } from "react";
 import {
   Popover,
   PopoverClose,
@@ -89,5 +90,24 @@ describe("PopoverContent positioner props", () => {
     const popup = await screen.findByRole("dialog");
     expect(popup.parentElement).toHaveClass("z-50", "custom-positioner");
     expect(popup.parentElement).toHaveAttribute("data-slot", "popover-positioner");
+  });
+});
+
+describe("Popover container", () => {
+  it("portals into the given container", async () => {
+    function Framed() {
+      const frameRef = useRef<HTMLDivElement>(null);
+      return (
+        <div ref={frameRef} data-testid="frame">
+          <Example container={frameRef} />
+        </div>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Framed />);
+    await user.click(screen.getByRole("button", { name: "Details" }));
+    const popup = await screen.findByRole("dialog");
+    expect(document.querySelector("[data-slot=popover-portal]")?.parentElement).toBe(screen.getByTestId("frame"));
+    expect(screen.getByTestId("frame")).toContainElement(popup);
   });
 });

@@ -61,7 +61,7 @@ interface ChartContextValue {
   config: ChartConfig;
 }
 
-const ChartContext = createContext<ChartContextValue | null>(null);
+const ChartContext = /* @__PURE__ */ createContext<ChartContextValue | null>(null);
 
 /** Reads the `config` of the surrounding `ChartContainer`. */
 export function useChart(): ChartContextValue {
@@ -86,7 +86,7 @@ export interface ChartContainerProps extends ComponentPropsWithoutRef<"div"> {
 }
 
 /** Wraps a recharts chart: responsive sizing, `--color-<key>` variables, token styling of recharts internals. */
-export const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(function ChartContainer(
+export const ChartContainer = /* @__PURE__ */ forwardRef<HTMLDivElement, ChartContainerProps>(function ChartContainer(
   { id, className, children, config, ...props },
   ref,
 ) {
@@ -227,7 +227,7 @@ function formatValue(value: unknown): ReactNode {
 }
 
 /** Tooltip body in the handoff look (ChartTooltip): tooltip surface, colored indicators, tabular values. */
-export const ChartTooltipContent = forwardRef<HTMLDivElement, ChartTooltipContentProps>(function ChartTooltipContent(
+export const ChartTooltipContent = /* @__PURE__ */ forwardRef<HTMLDivElement, ChartTooltipContentProps>(function ChartTooltipContent(
   {
     active,
     payload,
@@ -392,7 +392,7 @@ export interface ChartLegendContentProps extends ComponentPropsWithoutRef<"div">
 }
 
 /** Legend row with colored swatches and config labels, placed below multi-series charts. */
-export const ChartLegendContent = forwardRef<ComponentRef<"div">, ChartLegendContentProps>(function ChartLegendContent(
+export const ChartLegendContent = /* @__PURE__ */ forwardRef<ComponentRef<"div">, ChartLegendContentProps>(function ChartLegendContent(
   { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey, ...props },
   ref,
 ) {

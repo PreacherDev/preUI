@@ -7,7 +7,7 @@ import { cn, mergeClassName } from "../../utils/cn";
  * Colour of the bar. Convention: `primary` running, `positive` complete, `warning` above 85% capacity,
  * `negative` failed/over limit, `muted` inactive.
  */
-export const progressIndicatorVariants = cva(
+export const progressIndicatorVariants = /* @__PURE__ */ cva(
   [
     "h-full rounded-full transition-all duration-pui-slow ease-pui",
     // Indeterminate (value={null}): a 40% bar sliding across the track; with reduced motion a dimmed full bar.
@@ -51,7 +51,7 @@ export interface ProgressProps extends ComponentPropsWithoutRef<typeof BaseProgr
  * `prefers-reduced-motion`). Optional `ProgressLabel` /
  * `ProgressValue` children sit on one row above the bar.
  */
-export const Progress = forwardRef<ComponentRef<typeof BaseProgress.Root>, ProgressProps>(function Progress(
+export const Progress = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseProgress.Root>, ProgressProps>(function Progress(
   { className, tone, trackClassName, indicatorClassName, locale = "en-US", children, ...props },
   ref,
 ) {
@@ -78,7 +78,7 @@ export const Progress = forwardRef<ComponentRef<typeof BaseProgress.Root>, Progr
 export type ProgressLabelProps = ComponentPropsWithoutRef<typeof BaseProgress.Label>;
 
 /** Accessible label, left on the row above the bar. */
-export const ProgressLabel = forwardRef<ComponentRef<typeof BaseProgress.Label>, ProgressLabelProps>(
+export const ProgressLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseProgress.Label>, ProgressLabelProps>(
   function ProgressLabel({ className, ...props }, ref) {
     return (
       <BaseProgress.Label
@@ -94,7 +94,7 @@ export const ProgressLabel = forwardRef<ComponentRef<typeof BaseProgress.Label>,
 export type ProgressValueProps = ComponentPropsWithoutRef<typeof BaseProgress.Value>;
 
 /** Formatted value, right-aligned on the row above the bar. */
-export const ProgressValue = forwardRef<ComponentRef<typeof BaseProgress.Value>, ProgressValueProps>(
+export const ProgressValue = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseProgress.Value>, ProgressValueProps>(
   function ProgressValue({ className, ...props }, ref) {
     return (
       <BaseProgress.Value

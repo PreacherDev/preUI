@@ -14,7 +14,7 @@ export type TabsProps = ComponentPropsWithoutRef<typeof BaseTabs.Root>;
 /**
  * Groups the tab list and its panels. Lays them out as a column (a row with `orientation="vertical"`).
  */
-export const Tabs = forwardRef<ComponentRef<typeof BaseTabs.Root>, TabsProps>(function Tabs(
+export const Tabs = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTabs.Root>, TabsProps>(function Tabs(
   { className, ...props },
   ref,
 ) {
@@ -31,7 +31,7 @@ export const Tabs = forwardRef<ComponentRef<typeof BaseTabs.Root>, TabsProps>(fu
 export type TabsListProps = ComponentPropsWithoutRef<typeof BaseTabs.List>;
 
 /** Row of tabs on a hairline; the underline of the active tab sits on top of it. */
-export const TabsList = forwardRef<ComponentRef<typeof BaseTabs.List>, TabsListProps>(function TabsList(
+export const TabsList = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTabs.List>, TabsListProps>(function TabsList(
   // Arrow keys activate the tab right away, like shadcn/Radix (Base UI's default only moves focus).
   { className, activateOnFocus = true, ...props },
   ref,
@@ -56,7 +56,7 @@ export const TabsList = forwardRef<ComponentRef<typeof BaseTabs.List>, TabsListP
 export type TabsTriggerProps = ComponentPropsWithoutRef<typeof BaseTabs.Tab>;
 
 /** A tab. The active one gets a 2px foreground underline, never a filled pill. */
-export const TabsTrigger = forwardRef<ComponentRef<typeof BaseTabs.Tab>, TabsTriggerProps>(function TabsTrigger(
+export const TabsTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTabs.Tab>, TabsTriggerProps>(function TabsTrigger(
   { className, ...props },
   ref,
 ) {
@@ -84,7 +84,7 @@ export const TabsTrigger = forwardRef<ComponentRef<typeof BaseTabs.Tab>, TabsTri
 export type TabsContentProps = ComponentPropsWithoutRef<typeof BaseTabs.Panel>;
 
 /** Content of one tab. */
-export const TabsContent = forwardRef<ComponentRef<typeof BaseTabs.Panel>, TabsContentProps>(function TabsContent(
+export const TabsContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTabs.Panel>, TabsContentProps>(function TabsContent(
   { className, ...props },
   ref,
 ) {
@@ -111,7 +111,7 @@ export interface TabsBarProps extends HTMLAttributes<HTMLDivElement> {
  * hairline instead of the list. When space runs out the tabs scroll horizontally (no wrapping, the action
  * stays inside the bar).
  */
-export const TabsBar = forwardRef<HTMLDivElement, TabsBarProps>(function TabsBar(
+export const TabsBar = /* @__PURE__ */ forwardRef<HTMLDivElement, TabsBarProps>(function TabsBar(
   { className, action, children, ...props },
   ref,
 ) {

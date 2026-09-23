@@ -4,7 +4,7 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "re
 import { cn, mergeClassName } from "../../utils/cn";
 
 /** Colour of the bar, same scale as Progress (e.g. `warning` above 85% capacity). */
-export const meterIndicatorVariants = cva("h-full rounded-full transition-all duration-pui-slow ease-pui", {
+export const meterIndicatorVariants = /* @__PURE__ */ cva("h-full rounded-full transition-all duration-pui-slow ease-pui", {
   variants: {
     tone: {
       primary: "bg-pui-primary",
@@ -38,7 +38,7 @@ export interface MeterProps extends ComponentPropsWithoutRef<typeof BaseMeter.Ro
  * A static measurement within a range (storage, quota), in the Progress look: 4px pill bar.
  * Optional `MeterLabel` / `MeterValue` children sit on one row above the bar.
  */
-export const Meter = forwardRef<ComponentRef<typeof BaseMeter.Root>, MeterProps>(function Meter(
+export const Meter = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMeter.Root>, MeterProps>(function Meter(
   { className, tone, trackClassName, indicatorClassName, locale = "en-US", children, ...props },
   ref,
 ) {
@@ -65,7 +65,7 @@ export const Meter = forwardRef<ComponentRef<typeof BaseMeter.Root>, MeterProps>
 export type MeterLabelProps = ComponentPropsWithoutRef<typeof BaseMeter.Label>;
 
 /** Accessible label, left on the row above the bar. */
-export const MeterLabel = forwardRef<ComponentRef<typeof BaseMeter.Label>, MeterLabelProps>(function MeterLabel(
+export const MeterLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMeter.Label>, MeterLabelProps>(function MeterLabel(
   { className, ...props },
   ref,
 ) {
@@ -82,7 +82,7 @@ export const MeterLabel = forwardRef<ComponentRef<typeof BaseMeter.Label>, Meter
 export type MeterValueProps = ComponentPropsWithoutRef<typeof BaseMeter.Value>;
 
 /** Formatted value, right-aligned on the row above the bar. */
-export const MeterValue = forwardRef<ComponentRef<typeof BaseMeter.Value>, MeterValueProps>(function MeterValue(
+export const MeterValue = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseMeter.Value>, MeterValueProps>(function MeterValue(
   { className, ...props },
   ref,
 ) {

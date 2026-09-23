@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NUI pages sit on top of the game: keep the page itself transparent. */
+html,
+body {
+  background: transparent;
+}
+
+/*
+ * No `color-scheme` on <html>: tailwind.config.js uses createPreuiPreset({ colorScheme: false }) and App.tsx
+ * <ThemeProvider colorScheme={false}>. FiveM shows every NUI page in an iframe of its root page, and Chromium
+ * paints an opaque canvas behind an iframe whose color-scheme differs from its embedder's — the whole screen would
+ * turn dark. preUI's colours come from its tokens (data-scheme), not from color-scheme.
+ */

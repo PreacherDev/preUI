@@ -4,7 +4,7 @@ import { forwardRef, type ComponentPropsWithoutRef } from "react";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName, type StateClassName } from "../../utils/cn";
 
-export const numberFieldVariants = cva(
+export const numberFieldVariants = /* @__PURE__ */ cva(
   [
     "flex w-full items-stretch overflow-hidden rounded-pui-md border border-pui-input bg-pui-background text-sm",
     "transition-colors duration-pui-fast ease-pui focus-within:border-pui-ring",
@@ -55,7 +55,7 @@ export interface NumberFieldProps extends BaseNumberField.Root.Props {
  * Numeric field with -/+ steppers on both sides, separated by borders; the value is centred with
  * tabular figures. Keyboard (arrows, Page Up/Down, Home/End) and wheel/scrub stepping come from Base UI.
  */
-export const NumberField = forwardRef<HTMLDivElement, NumberFieldProps>(function NumberField(
+export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFieldProps>(function NumberField(
   {
     className,
     size,

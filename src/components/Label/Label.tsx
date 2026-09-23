@@ -4,7 +4,7 @@ import { cn } from "../../utils/cn";
 export type LabelProps = LabelHTMLAttributes<HTMLLabelElement>;
 
 /** Small muted field label (12px, medium, sentence case). Dims next to a disabled peer or inside a disabled group. */
-export const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label({ className, ...props }, ref) {
+export const Label = /* @__PURE__ */ forwardRef<HTMLLabelElement, LabelProps>(function Label({ className, ...props }, ref) {
   return (
     <label
       ref={ref}

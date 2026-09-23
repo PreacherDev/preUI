@@ -4,7 +4,7 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "re
 import { mergeClassName } from "../../utils/cn";
 import { toggleVariants, type ToggleSize, type ToggleVariant } from "../Toggle/Toggle";
 
-export const toolbarVariants = cva(
+export const toolbarVariants = /* @__PURE__ */ cva(
   [
     "flex items-center gap-1",
     "data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch",
@@ -31,7 +31,7 @@ export interface ToolbarProps extends ComponentPropsWithoutRef<typeof BaseToolba
 }
 
 /** Container with arrow-key navigation for buttons, toggles, links and inputs. Give it an `aria-label`. */
-export const Toolbar = forwardRef<ComponentRef<typeof BaseToolbar.Root>, ToolbarProps>(function Toolbar(
+export const Toolbar = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToolbar.Root>, ToolbarProps>(function Toolbar(
   { className, variant, ...props },
   ref,
 ) {
@@ -49,7 +49,7 @@ export const Toolbar = forwardRef<ComponentRef<typeof BaseToolbar.Root>, Toolbar
 export type ToolbarGroupProps = ComponentPropsWithoutRef<typeof BaseToolbar.Group>;
 
 /** Groups related toolbar items. */
-export const ToolbarGroup = forwardRef<ComponentRef<typeof BaseToolbar.Group>, ToolbarGroupProps>(
+export const ToolbarGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToolbar.Group>, ToolbarGroupProps>(
   function ToolbarGroup({ className, ...props }, ref) {
     return (
       <BaseToolbar.Group
@@ -75,7 +75,7 @@ export interface ToolbarButtonProps extends ComponentPropsWithoutRef<typeof Base
  * Toolbar button, styled like a `Toggle` (same classes, so `render={<Toggle size="sm" />}` composes cleanly
  * into a pressable toolbar item).
  */
-export const ToolbarButton = forwardRef<ComponentRef<typeof BaseToolbar.Button>, ToolbarButtonProps>(
+export const ToolbarButton = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToolbar.Button>, ToolbarButtonProps>(
   function ToolbarButton({ className, variant, size = "sm", type = "button", ...props }, ref) {
     return (
       <BaseToolbar.Button
@@ -94,7 +94,7 @@ export const ToolbarButton = forwardRef<ComponentRef<typeof BaseToolbar.Button>,
 export type ToolbarLinkProps = ComponentPropsWithoutRef<typeof BaseToolbar.Link>;
 
 /** Text link inside a toolbar. */
-export const ToolbarLink = forwardRef<ComponentRef<typeof BaseToolbar.Link>, ToolbarLinkProps>(
+export const ToolbarLink = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToolbar.Link>, ToolbarLinkProps>(
   function ToolbarLink({ className, ...props }, ref) {
     return (
       <BaseToolbar.Link
@@ -117,7 +117,7 @@ export const ToolbarLink = forwardRef<ComponentRef<typeof BaseToolbar.Link>, Too
 export type ToolbarInputProps = ComponentPropsWithoutRef<typeof BaseToolbar.Input>;
 
 /** Compact (small control height) text field that takes part in toolbar keyboard navigation. */
-export const ToolbarInput = forwardRef<ComponentRef<typeof BaseToolbar.Input>, ToolbarInputProps>(
+export const ToolbarInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToolbar.Input>, ToolbarInputProps>(
   function ToolbarInput({ className, ...props }, ref) {
     return (
       <BaseToolbar.Input
@@ -140,7 +140,7 @@ export const ToolbarInput = forwardRef<ComponentRef<typeof BaseToolbar.Input>, T
 export type ToolbarSeparatorProps = ComponentPropsWithoutRef<typeof BaseToolbar.Separator>;
 
 /** Hairline between toolbar groups; runs perpendicular to the toolbar. */
-export const ToolbarSeparator = forwardRef<ComponentRef<typeof BaseToolbar.Separator>, ToolbarSeparatorProps>(
+export const ToolbarSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToolbar.Separator>, ToolbarSeparatorProps>(
   function ToolbarSeparator({ className, ...props }, ref) {
     return (
       <BaseToolbar.Separator

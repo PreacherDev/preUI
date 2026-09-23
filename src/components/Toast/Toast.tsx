@@ -131,16 +131,61 @@ const toastClassName = [
   "data-[limited]:hidden",
 ];
 
+/** Where the `Toaster` stacks its toasts. */
+export type ToasterPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+
+type SwipeDirection = "up" | "down" | "left" | "right";
+
+const positionConfig: Record<ToasterPosition, { viewport: string; swipe: SwipeDirection[] }> = {
+  "bottom-right": { viewport: "bottom-6 right-6", swipe: ["down", "right"] },
+  "bottom-left": { viewport: "bottom-6 left-6", swipe: ["down", "left"] },
+  "bottom-center": { viewport: "bottom-6 left-1/2 -translate-x-1/2", swipe: ["down"] },
+  "top-right": { viewport: "top-6 right-6", swipe: ["up", "right"] },
+  "top-left": { viewport: "top-6 left-6", swipe: ["up", "left"] },
+  "top-center": { viewport: "top-6 left-1/2 -translate-x-1/2", swipe: ["up"] },
+};
+
+/** Extra classes for top positions: enter/leave slide down from 8px above instead of up; swipe up/left. */
+const topToastClassName = [
+  "data-[starting-style]:[transform:translateY(-0.5rem)]",
+  "data-[ending-style]:[transform:translateY(-0.5rem)]",
+];
+const swipeUpClassName =
+  "data-[ending-style]:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)_-_100%))]";
+const swipeLeftClassName =
+  "data-[ending-style]:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)_-_100%))]";
+
+function isTopPosition(position: ToasterPosition) {
+  return position.startsWith("top");
+}
+
+/** `bottom-right` keeps the original class list; other positions append overrides (later classes win in `cn`). */
+function getToastClassName(position: ToasterPosition) {
+  if (position === "bottom-right") return toastClassName;
+  return [
+    ...toastClassName,
+    isTopPosition(position) && topToastClassName,
+    position.endsWith("left") && swipeLeftClassName,
+    isTopPosition(position) && swipeUpClassName,
+  ];
+}
+
 interface ToastItemProps {
   toast: ToastObject;
   closeLabel: string;
   toastClassName: ToasterProps["toastClassName"];
+  position: ToasterPosition;
 }
 
-function ToastItem({ toast, closeLabel, toastClassName: className }: ToastItemProps) {
+function ToastItem({ toast, closeLabel, toastClassName: className, position }: ToastItemProps) {
   const CloseIcon = useIcon("close");
   return (
-    <BaseToast.Root toast={toast} data-slot="toast" className={mergeClassName(toastClassName, className)}>
+    <BaseToast.Root
+      toast={toast}
+      data-slot="toast"
+      swipeDirection={positionConfig[position].swipe}
+      className={mergeClassName(getToastClassName(position), className)}
+    >
       {isToastType(toast.type) && <ToastIcon type={toast.type} />}
       <div data-slot="toast-content" className="flex min-w-0 flex-1 flex-col gap-0.5">
         <BaseToast.Title data-slot="toast-title" className="font-medium text-pui-popover-foreground" />
@@ -173,12 +218,18 @@ function ToastItem({ toast, closeLabel, toastClassName: className }: ToastItemPr
   );
 }
 
-function ToastList({ closeLabel, toastClassName }: Omit<ToastItemProps, "toast">) {
+function ToastList({ closeLabel, toastClassName, position }: Omit<ToastItemProps, "toast">) {
   const { toasts } = BaseToast.useToastManager();
   return (
     <>
       {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} closeLabel={closeLabel} toastClassName={toastClassName} />
+        <ToastItem
+          key={toast.id}
+          toast={toast}
+          closeLabel={closeLabel}
+          toastClassName={toastClassName}
+          position={position}
+        />
       ))}
     </>
   );
@@ -195,15 +246,29 @@ export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.
   toastClassName?: BaseToast.Root.Props["className"];
   /** Portal container; defaults to `document.body`. */
   container?: BaseToast.Portal.Props["container"];
+  /**
+   * Corner or edge the toasts stack at (24px inset). Default `"bottom-right"`; can change at runtime.
+   * At the top, the newest toast is on top and toasts slide in downwards.
+   */
+  position?: ToasterPosition;
 }
 
 /**
  * Mount once (e.g. next to your app root), then call `toast()` from anywhere. Renders the toasts
- * bottom-right, 320px wide, newest at the bottom. Types `success`, `error`, `info`, `warning` and
+ * bottom-right by default (see `position`), 320px wide, newest closest to the screen edge. Types `success`, `error`, `info`, `warning` and
  * `loading` get an icon and color.
  */
-export const Toaster = forwardRef<ComponentRef<typeof BaseToast.Viewport>, ToasterProps>(function Toaster(
-  { className, timeout = 3200, limit, closeLabel = "Close", toastClassName, container, ...props },
+export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.Viewport>, ToasterProps>(function Toaster(
+  {
+    className,
+    timeout = 3200,
+    limit,
+    closeLabel = "Close",
+    toastClassName,
+    container,
+    position = "bottom-right",
+    ...props
+  },
   ref,
 ) {
   return (
@@ -212,13 +277,21 @@ export const Toaster = forwardRef<ComponentRef<typeof BaseToast.Viewport>, Toast
         <BaseToast.Viewport
           ref={ref}
           data-slot="toaster"
+          data-position={position}
           className={mergeClassName(
-            "pointer-events-none fixed bottom-6 right-6 z-[100] flex w-80 max-w-[calc(100vw-3rem)] flex-col-reverse gap-2 outline-none",
+            [
+              "pointer-events-none fixed",
+              positionConfig[position].viewport,
+              "z-[100] flex w-80 max-w-[calc(100vw-3rem)]",
+              // Newest toast closest to the screen edge.
+              isTopPosition(position) ? "flex-col" : "flex-col-reverse",
+              "gap-2 outline-none",
+            ],
             className,
           )}
           {...props}
         >
-          <ToastList closeLabel={closeLabel} toastClassName={toastClassName} />
+          <ToastList closeLabel={closeLabel} toastClassName={toastClassName} position={position} />
         </BaseToast.Viewport>
       </BaseToast.Portal>
     </BaseToast.Provider>

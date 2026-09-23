@@ -53,7 +53,7 @@ export interface AutocompleteInputProps extends Omit<BaseInputProps, "className"
  * Search-style field: leading search icon, input, clear button (chevron trigger with `showTrigger`).
  * `ComboboxInput` is the select-like counterpart (no icon, trigger shown by default) — both take the same props.
  */
-export const AutocompleteInput = forwardRef<ComponentRef<typeof BaseAutocomplete.Input>, AutocompleteInputProps>(
+export const AutocompleteInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Input>, AutocompleteInputProps>(
   function AutocompleteInput(
     {
       className,
@@ -122,16 +122,18 @@ export interface AutocompleteContentProps extends ComponentPropsWithoutRef<typeo
   sideOffset?: PositionerProps["sideOffset"];
   alignOffset?: PositionerProps["alignOffset"];
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseAutocomplete.Portal.Props["container"];
 }
 
 /** Portal + Positioner + Popup in one. Put `AutocompleteEmpty` and `AutocompleteList` inside. */
-export const AutocompleteContent = forwardRef<ComponentRef<typeof BaseAutocomplete.Popup>, AutocompleteContentProps>(
+export const AutocompleteContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Popup>, AutocompleteContentProps>(
   function AutocompleteContent(
-    { className, side = "bottom", align = "start", sideOffset = 4, alignOffset = 0, positionerProps, ...props },
+    { className, side = "bottom", align = "start", sideOffset = 4, alignOffset = 0, positionerProps, container, ...props },
     ref,
   ) {
     return (
-      <BaseAutocomplete.Portal>
+      <BaseAutocomplete.Portal container={container}>
         <BaseAutocomplete.Positioner
           side={side}
           align={align}
@@ -154,7 +156,7 @@ export interface AutocompleteListProps extends ComponentPropsWithoutRef<typeof B
  * The scrolling list. It is rendered as the viewport of a preUI ScrollArea (floating thumb, no native
  * scrollbar); `className` applies to that scrolling element, e.g. `max-h-96`.
  */
-export const AutocompleteList = forwardRef<ComponentRef<typeof BaseAutocomplete.List>, AutocompleteListProps>(
+export const AutocompleteList = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.List>, AutocompleteListProps>(
   function AutocompleteList({ className, ...props }, ref) {
     return <BaseAutocomplete.List ref={ref} className={mergeClassName(listClass, className)} render={renderListInScrollArea} {...props} />;
   },
@@ -163,7 +165,7 @@ export const AutocompleteList = forwardRef<ComponentRef<typeof BaseAutocomplete.
 export interface AutocompleteItemProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Item> {}
 
 /** Suggestion row. */
-export const AutocompleteItem = forwardRef<ComponentRef<typeof BaseAutocomplete.Item>, AutocompleteItemProps>(
+export const AutocompleteItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Item>, AutocompleteItemProps>(
   function AutocompleteItem({ className, ...props }, ref) {
     return <BaseAutocomplete.Item ref={ref} data-slot="autocomplete-item" className={mergeClassName(plainOptionClass, className)} {...props} />;
   },
@@ -172,7 +174,7 @@ export const AutocompleteItem = forwardRef<ComponentRef<typeof BaseAutocomplete.
 export interface AutocompleteEmptyProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Empty> {}
 
 /** Shown when no suggestion matches. Collapses otherwise. */
-export const AutocompleteEmpty = forwardRef<ComponentRef<typeof BaseAutocomplete.Empty>, AutocompleteEmptyProps>(
+export const AutocompleteEmpty = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Empty>, AutocompleteEmptyProps>(
   function AutocompleteEmpty({ className, ...props }, ref) {
     return <BaseAutocomplete.Empty ref={ref} data-slot="autocomplete-empty" className={mergeClassName(emptyClass, className)} {...props} />;
   },
@@ -180,7 +182,7 @@ export const AutocompleteEmpty = forwardRef<ComponentRef<typeof BaseAutocomplete
 
 export interface AutocompleteStatusProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Status> {}
 
-export const AutocompleteStatus = forwardRef<ComponentRef<typeof BaseAutocomplete.Status>, AutocompleteStatusProps>(
+export const AutocompleteStatus = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Status>, AutocompleteStatusProps>(
   function AutocompleteStatus({ className, ...props }, ref) {
     return <BaseAutocomplete.Status ref={ref} data-slot="autocomplete-status" className={mergeClassName(emptyClass, className)} {...props} />;
   },
@@ -188,7 +190,7 @@ export const AutocompleteStatus = forwardRef<ComponentRef<typeof BaseAutocomplet
 
 export interface AutocompleteGroupProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Group> {}
 
-export const AutocompleteGroup = forwardRef<ComponentRef<typeof BaseAutocomplete.Group>, AutocompleteGroupProps>(
+export const AutocompleteGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Group>, AutocompleteGroupProps>(
   function AutocompleteGroup({ className, ...props }, ref) {
     return <BaseAutocomplete.Group ref={ref} data-slot="autocomplete-group" className={mergeClassName("block", className)} {...props} />;
   },
@@ -196,7 +198,7 @@ export const AutocompleteGroup = forwardRef<ComponentRef<typeof BaseAutocomplete
 
 export interface AutocompleteLabelProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.GroupLabel> {}
 
-export const AutocompleteLabel = forwardRef<
+export const AutocompleteLabel = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseAutocomplete.GroupLabel>,
   AutocompleteLabelProps
 >(function AutocompleteLabel({ className, ...props }, ref) {
@@ -205,7 +207,7 @@ export const AutocompleteLabel = forwardRef<
 
 export interface AutocompleteSeparatorProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.Separator> {}
 
-export const AutocompleteSeparator = forwardRef<
+export const AutocompleteSeparator = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseAutocomplete.Separator>,
   AutocompleteSeparatorProps
 >(function AutocompleteSeparator({ className, ...props }, ref) {
