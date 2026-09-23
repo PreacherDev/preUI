@@ -11,7 +11,7 @@ export interface SpinnerProps extends HTMLAttributes<HTMLSpanElement> {
  * Rotating loading indicator using the registered `spinner` icon.
  * Size it with `className` (`size-4` by default); the icon inherits the text color.
  */
-export const Spinner = forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
+export const Spinner = /* @__PURE__ */ forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
   { label = "Loading", className, ...props },
   ref,
 ) {

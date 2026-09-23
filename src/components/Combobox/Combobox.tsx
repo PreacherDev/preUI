@@ -56,7 +56,7 @@ export interface ComboboxInputProps extends Omit<BaseInputProps, "className" | "
  * `AutocompleteInput` is the search-style counterpart (search icon, no trigger by default) — both take the
  * same props.
  */
-export const ComboboxInput = forwardRef<ComponentRef<typeof BaseCombobox.Input>, ComboboxInputProps>(
+export const ComboboxInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Input>, ComboboxInputProps>(
   function ComboboxInput(
     {
       className,
@@ -124,7 +124,7 @@ export interface ComboboxChipsProps extends ComponentPropsWithoutRef<typeof Base
  * Field for `multiple` comboboxes: wraps selected chips and a `ComboboxChipsInput`.
  * Typically rendered as `<ComboboxChips><ComboboxValue>{(value) => …}</ComboboxValue></ComboboxChips>`.
  */
-export const ComboboxChips = forwardRef<ComponentRef<typeof BaseCombobox.InputGroup>, ComboboxChipsProps>(
+export const ComboboxChips = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.InputGroup>, ComboboxChipsProps>(
   function ComboboxChips({ className, size = "default", children, ...props }, ref) {
     const minHeight = { sm: "min-h-pui-control-sm", default: "min-h-pui-control", lg: "min-h-pui-control-lg" }[size];
     return (
@@ -147,7 +147,7 @@ export const ComboboxChips = forwardRef<ComponentRef<typeof BaseCombobox.InputGr
 export interface ComboboxChipsInputProps extends BaseInputProps {}
 
 /** Bare input placed after the chips inside `ComboboxChips`. */
-export const ComboboxChipsInput = forwardRef<ComponentRef<typeof BaseCombobox.Input>, ComboboxChipsInputProps>(
+export const ComboboxChipsInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Input>, ComboboxChipsInputProps>(
   function ComboboxChipsInput({ className, ...props }, ref) {
     return <BaseCombobox.Input ref={ref} data-slot="combobox-chips-input" className={mergeClassName([bareInputClass, "h-6 min-w-16 px-1.5"], className)} {...props} />;
   },
@@ -161,7 +161,7 @@ export interface ComboboxChipProps extends ComponentPropsWithoutRef<typeof BaseC
 }
 
 /** Selected value as a tinted pill with a remove button. */
-export const ComboboxChip = forwardRef<ComponentRef<typeof BaseCombobox.Chip>, ComboboxChipProps>(function ComboboxChip(
+export const ComboboxChip = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Chip>, ComboboxChipProps>(function ComboboxChip(
   { className, children, removeLabel = "Remove", hideRemove = false, ...props },
   ref,
 ) {
@@ -203,16 +203,18 @@ export interface ComboboxContentProps extends ComponentPropsWithoutRef<typeof Ba
   sideOffset?: PositionerProps["sideOffset"];
   alignOffset?: PositionerProps["alignOffset"];
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseCombobox.Portal.Props["container"];
 }
 
 /** Portal + Positioner + Popup in one. Put `ComboboxEmpty` and `ComboboxList` inside. */
-export const ComboboxContent = forwardRef<ComponentRef<typeof BaseCombobox.Popup>, ComboboxContentProps>(
+export const ComboboxContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Popup>, ComboboxContentProps>(
   function ComboboxContent(
-    { className, side = "bottom", align = "start", sideOffset = 4, alignOffset = 0, positionerProps, ...props },
+    { className, side = "bottom", align = "start", sideOffset = 4, alignOffset = 0, positionerProps, container, ...props },
     ref,
   ) {
     return (
-      <BaseCombobox.Portal>
+      <BaseCombobox.Portal container={container}>
         <BaseCombobox.Positioner
           side={side}
           align={align}
@@ -235,7 +237,7 @@ export interface ComboboxListProps extends ComponentPropsWithoutRef<typeof BaseC
  * The scrolling list. It is rendered as the viewport of a preUI ScrollArea (floating thumb, no native
  * scrollbar); `className` applies to that scrolling element, e.g. `max-h-96`.
  */
-export const ComboboxList = forwardRef<ComponentRef<typeof BaseCombobox.List>, ComboboxListProps>(function ComboboxList(
+export const ComboboxList = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.List>, ComboboxListProps>(function ComboboxList(
   { className, ...props },
   ref,
 ) {
@@ -245,7 +247,7 @@ export const ComboboxList = forwardRef<ComponentRef<typeof BaseCombobox.List>, C
 export interface ComboboxItemProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Item> {}
 
 /** Option with a check mark on the right when selected. */
-export const ComboboxItem = forwardRef<ComponentRef<typeof BaseCombobox.Item>, ComboboxItemProps>(function ComboboxItem(
+export const ComboboxItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Item>, ComboboxItemProps>(function ComboboxItem(
   { className, children, ...props },
   ref,
 ) {
@@ -263,7 +265,7 @@ export const ComboboxItem = forwardRef<ComponentRef<typeof BaseCombobox.Item>, C
 export interface ComboboxEmptyProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Empty> {}
 
 /** Shown when no item matches. Collapses otherwise. */
-export const ComboboxEmpty = forwardRef<ComponentRef<typeof BaseCombobox.Empty>, ComboboxEmptyProps>(
+export const ComboboxEmpty = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Empty>, ComboboxEmptyProps>(
   function ComboboxEmpty({ className, ...props }, ref) {
     return <BaseCombobox.Empty ref={ref} data-slot="combobox-empty" className={mergeClassName(emptyClass, className)} {...props} />;
   },
@@ -272,7 +274,7 @@ export const ComboboxEmpty = forwardRef<ComponentRef<typeof BaseCombobox.Empty>,
 export interface ComboboxStatusProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Status> {}
 
 /** Live status line, e.g. "Searching…" for async lists. */
-export const ComboboxStatus = forwardRef<ComponentRef<typeof BaseCombobox.Status>, ComboboxStatusProps>(
+export const ComboboxStatus = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Status>, ComboboxStatusProps>(
   function ComboboxStatus({ className, ...props }, ref) {
     return <BaseCombobox.Status ref={ref} data-slot="combobox-status" className={mergeClassName(emptyClass, className)} {...props} />;
   },
@@ -280,7 +282,7 @@ export const ComboboxStatus = forwardRef<ComponentRef<typeof BaseCombobox.Status
 
 export interface ComboboxGroupProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Group> {}
 
-export const ComboboxGroup = forwardRef<ComponentRef<typeof BaseCombobox.Group>, ComboboxGroupProps>(
+export const ComboboxGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Group>, ComboboxGroupProps>(
   function ComboboxGroup({ className, ...props }, ref) {
     return <BaseCombobox.Group ref={ref} data-slot="combobox-group" className={mergeClassName("block", className)} {...props} />;
   },
@@ -288,7 +290,7 @@ export const ComboboxGroup = forwardRef<ComponentRef<typeof BaseCombobox.Group>,
 
 export interface ComboboxLabelProps extends ComponentPropsWithoutRef<typeof BaseCombobox.GroupLabel> {}
 
-export const ComboboxLabel = forwardRef<ComponentRef<typeof BaseCombobox.GroupLabel>, ComboboxLabelProps>(
+export const ComboboxLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.GroupLabel>, ComboboxLabelProps>(
   function ComboboxLabel({ className, ...props }, ref) {
     return <BaseCombobox.GroupLabel ref={ref} data-slot="combobox-label" className={mergeClassName(groupLabelClass, className)} {...props} />;
   },
@@ -296,7 +298,7 @@ export const ComboboxLabel = forwardRef<ComponentRef<typeof BaseCombobox.GroupLa
 
 export interface ComboboxSeparatorProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Separator> {}
 
-export const ComboboxSeparator = forwardRef<ComponentRef<typeof BaseCombobox.Separator>, ComboboxSeparatorProps>(
+export const ComboboxSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Separator>, ComboboxSeparatorProps>(
   function ComboboxSeparator({ className, ...props }, ref) {
     return <BaseCombobox.Separator ref={ref} data-slot="combobox-separator" className={mergeClassName(separatorClass, className)} {...props} />;
   },

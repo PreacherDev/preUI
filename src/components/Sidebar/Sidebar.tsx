@@ -87,7 +87,7 @@ export interface SidebarContextValue {
   toggleSidebar: () => void;
 }
 
-const SidebarContext = createContext<SidebarContextValue | null>(null);
+const SidebarContext = /* @__PURE__ */ createContext<SidebarContextValue | null>(null);
 
 /** Reads the sidebar state. Must be used inside `SidebarProvider`. */
 export function useSidebar(): SidebarContextValue {
@@ -130,7 +130,7 @@ const sidebarWrapperHasRules: HasFallbackRule[] = [
  * `sidebar_state` cookie (read it back with `getSidebarStateFromCookie` → `defaultOpen`) and toggles on
  * Ctrl/Cmd+B. Wraps `Sidebar` and `SidebarInset`.
  */
-export const SidebarProvider = forwardRef<HTMLDivElement, SidebarProviderProps>(function SidebarProvider(
+export const SidebarProvider = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProviderProps>(function SidebarProvider(
   {
     defaultOpen = true,
     open: openProp,
@@ -235,7 +235,7 @@ export interface SidebarProps extends ComponentPropsWithoutRef<"div"> {
  * The side panel. On desktop it is a fixed column (`className` goes to that column — pass e.g. `absolute h-full`
  * to keep it inside a positioned container); below 768px it renders inside a `Sheet`.
  */
-export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(function Sidebar(
+export const Sidebar = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProps>(function Sidebar(
   {
     side = "left",
     variant = "sidebar",
@@ -369,7 +369,7 @@ export interface SidebarTriggerProps extends ButtonProps {
 }
 
 /** Ghost icon button that toggles the sidebar (sheet on mobile). */
-export const SidebarTrigger = forwardRef<HTMLElement, SidebarTriggerProps>(function SidebarTrigger(
+export const SidebarTrigger = /* @__PURE__ */ forwardRef<HTMLElement, SidebarTriggerProps>(function SidebarTrigger(
   { label = "Toggle Sidebar", variant = "ghost", size = "icon-sm", onClick, children, ...props },
   ref,
 ) {
@@ -400,7 +400,7 @@ export interface SidebarRailProps extends ComponentPropsWithoutRef<"button"> {
 }
 
 /** Thin, invisible hit area on the sidebar's edge that toggles it on click. */
-export const SidebarRail = forwardRef<HTMLButtonElement, SidebarRailProps>(function SidebarRail(
+export const SidebarRail = /* @__PURE__ */ forwardRef<HTMLButtonElement, SidebarRailProps>(function SidebarRail(
   { label = "Toggle Sidebar", className, onClick, ...props },
   ref,
 ) {
@@ -440,7 +440,7 @@ export const SidebarRail = forwardRef<HTMLButtonElement, SidebarRailProps>(funct
 export type SidebarInsetProps = ComponentPropsWithoutRef<"main">;
 
 /** The main content next to the sidebar. With `variant="inset"` it becomes the bordered content panel. */
-export const SidebarInset = forwardRef<HTMLElement, SidebarInsetProps>(function SidebarInset(
+export const SidebarInset = /* @__PURE__ */ forwardRef<HTMLElement, SidebarInsetProps>(function SidebarInset(
   { className, ...props },
   ref,
 ) {
@@ -462,7 +462,7 @@ export const SidebarInset = forwardRef<HTMLElement, SidebarInsetProps>(function 
 export type SidebarInputProps = InputProps;
 
 /** Compact search/filter field for the sidebar header. */
-export const SidebarInput = forwardRef<HTMLInputElement, SidebarInputProps>(function SidebarInput(
+export const SidebarInput = /* @__PURE__ */ forwardRef<HTMLInputElement, SidebarInputProps>(function SidebarInput(
   { className, size = "sm", ...props },
   ref,
 ) {
@@ -480,7 +480,7 @@ export const SidebarInput = forwardRef<HTMLInputElement, SidebarInputProps>(func
 
 export type SidebarHeaderProps = ComponentPropsWithoutRef<"div">;
 
-export const SidebarHeader = forwardRef<HTMLDivElement, SidebarHeaderProps>(function SidebarHeader(
+export const SidebarHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarHeaderProps>(function SidebarHeader(
   { className, ...props },
   ref,
 ) {
@@ -497,7 +497,7 @@ export const SidebarHeader = forwardRef<HTMLDivElement, SidebarHeaderProps>(func
 
 export type SidebarFooterProps = ComponentPropsWithoutRef<"div">;
 
-export const SidebarFooter = forwardRef<HTMLDivElement, SidebarFooterProps>(function SidebarFooter(
+export const SidebarFooter = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarFooterProps>(function SidebarFooter(
   { className, ...props },
   ref,
 ) {
@@ -515,7 +515,7 @@ export const SidebarFooter = forwardRef<HTMLDivElement, SidebarFooterProps>(func
 export type SidebarSeparatorProps = SeparatorProps;
 
 /** 1px hairline between groups; 24px wide in the icon rail. */
-export const SidebarSeparator = forwardRef<ComponentRef<typeof Separator>, SidebarSeparatorProps>(
+export const SidebarSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof Separator>, SidebarSeparatorProps>(
   function SidebarSeparator({ className, ...props }, ref) {
     return (
       <Separator
@@ -541,7 +541,7 @@ export type SidebarContentProps = Omit<ScrollAreaProps, "orientation" | "reserve
  * `className="gap-0"` still works. The thumb floats in the groups' 8px padding, so it never covers a button,
  * also not in the 56px icon rail. Horizontal overflow is clipped (the rail animates its width).
  */
-export const SidebarContent = forwardRef<ComponentRef<typeof ScrollArea>, SidebarContentProps>(function SidebarContent(
+export const SidebarContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof ScrollArea>, SidebarContentProps>(function SidebarContent(
   { className, viewportClassName, viewportProps, contentClassName, ...props },
   ref,
 ) {
@@ -567,7 +567,7 @@ export const SidebarContent = forwardRef<ComponentRef<typeof ScrollArea>, Sideba
 
 export type SidebarGroupProps = ComponentPropsWithoutRef<"div">;
 
-export const SidebarGroup = forwardRef<HTMLDivElement, SidebarGroupProps>(function SidebarGroup(
+export const SidebarGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarGroupProps>(function SidebarGroup(
   { className, ...props },
   ref,
 ) {
@@ -585,7 +585,7 @@ export const SidebarGroup = forwardRef<HTMLDivElement, SidebarGroupProps>(functi
 export interface SidebarGroupLabelProps extends Omit<useRender.ComponentProps<"div">, "ref"> {}
 
 /** Eyebrow heading of a group; fades out in the icon rail. */
-export const SidebarGroupLabel = forwardRef<HTMLElement, SidebarGroupLabelProps>(function SidebarGroupLabel(
+export const SidebarGroupLabel = /* @__PURE__ */ forwardRef<HTMLElement, SidebarGroupLabelProps>(function SidebarGroupLabel(
   { className, render, ...props },
   ref,
 ) {
@@ -611,7 +611,7 @@ export const SidebarGroupLabel = forwardRef<HTMLElement, SidebarGroupLabelProps>
 export interface SidebarGroupActionProps extends Omit<useRender.ComponentProps<"button">, "ref"> {}
 
 /** Small icon button at the right of a group label (e.g. "add"). Give it an `aria-label`. */
-export const SidebarGroupAction = forwardRef<HTMLElement, SidebarGroupActionProps>(function SidebarGroupAction(
+export const SidebarGroupAction = /* @__PURE__ */ forwardRef<HTMLElement, SidebarGroupActionProps>(function SidebarGroupAction(
   { className, render, ...props },
   ref,
 ) {
@@ -638,7 +638,7 @@ export const SidebarGroupAction = forwardRef<HTMLElement, SidebarGroupActionProp
 
 export type SidebarGroupContentProps = ComponentPropsWithoutRef<"div">;
 
-export const SidebarGroupContent = forwardRef<HTMLDivElement, SidebarGroupContentProps>(
+export const SidebarGroupContent = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarGroupContentProps>(
   function SidebarGroupContent({ className, ...props }, ref) {
     return (
       <div
@@ -664,7 +664,7 @@ const sidebarMenuHasRules: HasFallbackRule[] = [
   { attr: "data-has-badge", has: "[data-sidebar=menu-badge]", target: ":scope > [data-sidebar=menu-item]" },
 ];
 
-export const SidebarMenu = forwardRef<HTMLUListElement, SidebarMenuProps>(function SidebarMenu(
+export const SidebarMenu = /* @__PURE__ */ forwardRef<HTMLUListElement, SidebarMenuProps>(function SidebarMenu(
   { className, ...props },
   ref,
 ) {
@@ -682,7 +682,7 @@ export const SidebarMenu = forwardRef<HTMLUListElement, SidebarMenuProps>(functi
 
 export type SidebarMenuItemProps = ComponentPropsWithoutRef<"li">;
 
-export const SidebarMenuItem = forwardRef<HTMLLIElement, SidebarMenuItemProps>(function SidebarMenuItem(
+export const SidebarMenuItem = /* @__PURE__ */ forwardRef<HTMLLIElement, SidebarMenuItemProps>(function SidebarMenuItem(
   { className, ...props },
   ref,
 ) {
@@ -697,7 +697,7 @@ export const SidebarMenuItem = forwardRef<HTMLLIElement, SidebarMenuItemProps>(f
   );
 });
 
-export const sidebarMenuButtonVariants = cva(
+export const sidebarMenuButtonVariants = /* @__PURE__ */ cva(
   [
     "peer/menu-button flex w-full items-center overflow-hidden rounded-pui-md text-left text-pui-muted-foreground outline-none",
     "transition-[width,height,padding,color,background-color] duration-pui-base ease-pui",
@@ -743,7 +743,7 @@ export interface SidebarMenuButtonProps
  * A navigation entry: 40px high (`--pui-control-h-lg`), 18px icon, label truncates. Use `render` for links:
  * `<SidebarMenuButton render={<a href="/lager" />}>`.
  */
-export const SidebarMenuButton = forwardRef<HTMLElement, SidebarMenuButtonProps>(function SidebarMenuButton(
+export const SidebarMenuButton = /* @__PURE__ */ forwardRef<HTMLElement, SidebarMenuButtonProps>(function SidebarMenuButton(
   { render, isActive = false, variant = "default", size = "default", tooltip, className, ...props },
   ref,
 ) {
@@ -784,7 +784,7 @@ export interface SidebarMenuActionProps extends Omit<useRender.ComponentProps<"b
 }
 
 /** Icon button on the right edge of a menu item (e.g. "more"). Give it an `aria-label`. */
-export const SidebarMenuAction = forwardRef<HTMLElement, SidebarMenuActionProps>(function SidebarMenuAction(
+export const SidebarMenuAction = /* @__PURE__ */ forwardRef<HTMLElement, SidebarMenuActionProps>(function SidebarMenuAction(
   { className, render, showOnHover = false, ...props },
   ref,
 ) {
@@ -819,7 +819,7 @@ export type SidebarMenuBadgeProps = ComponentPropsWithoutRef<"div">;
  * Round counter on the right of a menu item — "something waits here", not "new". In the collapsed icon rail it
  * sits on the icon's top-right corner.
  */
-export const SidebarMenuBadge = forwardRef<HTMLDivElement, SidebarMenuBadgeProps>(function SidebarMenuBadge(
+export const SidebarMenuBadge = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarMenuBadgeProps>(function SidebarMenuBadge(
   { className, ...props },
   ref,
 ) {
@@ -862,7 +862,7 @@ function skeletonWidthFromId(id: string): number {
 }
 
 /** Loading placeholder with the height of a (default) menu button. */
-export const SidebarMenuSkeleton = forwardRef<HTMLDivElement, SidebarMenuSkeletonProps>(
+export const SidebarMenuSkeleton = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarMenuSkeletonProps>(
   function SidebarMenuSkeleton({ className, showIcon = false, width: widthProp, ...props }, ref) {
     const id = useId();
     const width =
@@ -891,7 +891,7 @@ export const SidebarMenuSkeleton = forwardRef<HTMLDivElement, SidebarMenuSkeleto
 export type SidebarMenuSubProps = ComponentPropsWithoutRef<"ul">;
 
 /** Nested list, indented under the parent icon with a hairline. Hidden in the icon rail. */
-export const SidebarMenuSub = forwardRef<HTMLUListElement, SidebarMenuSubProps>(function SidebarMenuSub(
+export const SidebarMenuSub = /* @__PURE__ */ forwardRef<HTMLUListElement, SidebarMenuSubProps>(function SidebarMenuSub(
   { className, ...props },
   ref,
 ) {
@@ -912,7 +912,7 @@ export const SidebarMenuSub = forwardRef<HTMLUListElement, SidebarMenuSubProps>(
 
 export type SidebarMenuSubItemProps = ComponentPropsWithoutRef<"li">;
 
-export const SidebarMenuSubItem = forwardRef<HTMLLIElement, SidebarMenuSubItemProps>(function SidebarMenuSubItem(
+export const SidebarMenuSubItem = /* @__PURE__ */ forwardRef<HTMLLIElement, SidebarMenuSubItemProps>(function SidebarMenuSubItem(
   { className, ...props },
   ref,
 ) {
@@ -933,7 +933,7 @@ export interface SidebarMenuSubButtonProps extends Omit<useRender.ComponentProps
 }
 
 /** Entry of a nested list. Renders an `<a>`; use `render` for router links. */
-export const SidebarMenuSubButton = forwardRef<HTMLElement, SidebarMenuSubButtonProps>(
+export const SidebarMenuSubButton = /* @__PURE__ */ forwardRef<HTMLElement, SidebarMenuSubButtonProps>(
   function SidebarMenuSubButton({ render, size = "md", isActive = false, className, ...props }, ref) {
     return useRender({
       defaultTagName: "a",

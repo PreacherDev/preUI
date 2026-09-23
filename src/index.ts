@@ -55,10 +55,12 @@ export * from "./components/Alert";
 export * from "./components/AspectRatio";
 export * from "./components/Avatar";
 export * from "./components/Badge";
+export * from "./components/BentoGrid";
 export * from "./components/Card";
 export * from "./components/Collapsible";
 export * from "./components/Empty";
 export * from "./components/Item";
+export * from "./components/Kanban";
 export * from "./components/Kbd";
 export * from "./components/Meter";
 export * from "./components/Progress";
@@ -68,10 +70,25 @@ export * from "./components/Skeleton";
 export * from "./components/Spinner";
 export * from "./components/Table";
 
-// Theming (scheme + named themes)
+// Game UI
+export * from "./components/HudContainer";
+export * from "./components/HudStatus";
+export * from "./components/KeybindHint";
+export * from "./components/KeybindInput";
+export * from "./components/ListMenu";
+export * from "./components/ProgressCircle";
+export * from "./components/RadialMenu";
+export * from "./components/SkillCheck";
+
+// Theming (scheme + named themes, runtime tokens, palettes, contrast)
 export * from "./components/Theme";
+export * from "./components/ContrastBadge";
+export * from "./theming";
+export type { PreuiScheme, PreuiTokenName, PreuiTokens } from "./tailwind/tokens";
 
 // Icons & utilities
 export * from "./icons";
 export { cn, mergeClassName } from "./utils/cn";
 export type { StateClassName } from "./utils/cn";
+export * from "./utils/escape";
+export * from "./utils/use-window-toggle";

@@ -20,7 +20,7 @@ import { Separator } from "../Separator/Separator";
  * but shadcn also uses them standalone (e.g. a FieldDescription under a FieldLegend, or a FieldLabel
  * wrapping a whole Field as a choice card) — outside a Field they render plain, equally styled elements.
  */
-const InFieldContext = createContext(false);
+const InFieldContext = /* @__PURE__ */ createContext(false);
 
 type AnyClassName = string | ((state: never) => string | undefined) | undefined;
 const resolveClassName = (className: AnyClassName) =>
@@ -35,7 +35,7 @@ interface PlainPartProps extends Omit<HTMLAttributes<HTMLElement>, "className" |
   render?: unknown;
 }
 
-const PlainPart = forwardRef<HTMLElement, PlainPartProps>(function PlainPart({ tag, className, style, render, ...props }, ref) {
+const PlainPart = /* @__PURE__ */ forwardRef<HTMLElement, PlainPartProps>(function PlainPart({ tag, className, style, render, ...props }, ref) {
   return useRender({
     defaultTagName: tag,
     render: render as never,
@@ -51,7 +51,7 @@ const PlainPart = forwardRef<HTMLElement, PlainPartProps>(function PlainPart({ t
 /** Render-prop part that exposes the field's validity state; renders no element. */
 export const FieldValidity = BaseField.Validity;
 
-const fieldVariants = cva("flex", {
+const fieldVariants = /* @__PURE__ */ cva("flex", {
   variants: {
     orientation: {
       /** Label above the control. */
@@ -71,7 +71,7 @@ export interface FieldProps extends ComponentPropsWithoutRef<typeof BaseField.Ro
 /** Groups label, control, description and error; handles labelling and validation. */
 const fieldHasRules: HasFallbackRule[] = [{ attr: "data-has-content", has: ":scope > [data-slot=field-content]" }];
 
-export const Field = forwardRef<ComponentRef<typeof BaseField.Root>, FieldProps>(function Field(
+export const Field = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Root>, FieldProps>(function Field(
   { className, orientation = "vertical", ...props },
   ref,
 ) {
@@ -92,7 +92,7 @@ export const Field = forwardRef<ComponentRef<typeof BaseField.Root>, FieldProps>
 export type FieldLabelProps = ComponentPropsWithoutRef<typeof BaseField.Label>;
 
 /** Field label; dims when the field is disabled or when it follows a disabled control (e.g. in a `FieldItem`). */
-export const FieldLabel = forwardRef<ComponentRef<typeof BaseField.Label>, FieldLabelProps>(function FieldLabel(
+export const FieldLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Label>, FieldLabelProps>(function FieldLabel(
   { className, ...props },
   ref,
 ) {
@@ -112,7 +112,7 @@ export const FieldLabel = forwardRef<ComponentRef<typeof BaseField.Label>, Field
 
 export type FieldDescriptionProps = ComponentPropsWithoutRef<typeof BaseField.Description>;
 
-export const FieldDescription = forwardRef<ComponentRef<typeof BaseField.Description>, FieldDescriptionProps>(
+export const FieldDescription = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Description>, FieldDescriptionProps>(
   function FieldDescription({ className, ...props }, ref) {
     // Directly under a FieldLegend it hugs the legend (6px like label → control) instead of the fieldset gap.
     const classes = mergeClassName("text-xs text-pui-muted-foreground [[data-variant=legend]+&]:-mt-2.5", className);
@@ -125,7 +125,7 @@ export const FieldDescription = forwardRef<ComponentRef<typeof BaseField.Descrip
 
 export type FieldErrorProps = ComponentPropsWithoutRef<typeof BaseField.Error>;
 
-export const FieldError = forwardRef<ComponentRef<typeof BaseField.Error>, FieldErrorProps>(function FieldError(
+export const FieldError = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Error>, FieldErrorProps>(function FieldError(
   { className, ...props },
   ref,
 ) {
@@ -141,7 +141,7 @@ export const FieldError = forwardRef<ComponentRef<typeof BaseField.Error>, Field
 export type FieldItemProps = ComponentPropsWithoutRef<typeof BaseField.Item>;
 
 /** Wraps one option (checkbox, radio) inside a group field. */
-export const FieldItem = forwardRef<ComponentRef<typeof BaseField.Item>, FieldItemProps>(function FieldItem(
+export const FieldItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Item>, FieldItemProps>(function FieldItem(
   { className, ...props },
   ref,
 ) {
@@ -151,14 +151,14 @@ export const FieldItem = forwardRef<ComponentRef<typeof BaseField.Item>, FieldIt
 export type FieldGroupProps = ComponentPropsWithoutRef<"div">;
 
 /** Stacks several `Field`s (or `FieldSet`s) with even spacing. */
-export const FieldGroup = forwardRef<HTMLDivElement, FieldGroupProps>(function FieldGroup({ className, ...props }, ref) {
+export const FieldGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, FieldGroupProps>(function FieldGroup({ className, ...props }, ref) {
   return <div ref={ref} data-slot="field-group" className={cn("flex w-full flex-col gap-5", className)} {...props} />;
 });
 
 export type FieldContentProps = ComponentPropsWithoutRef<"div">;
 
 /** Stacks label, description and error next to a control in a horizontal `Field`. */
-export const FieldContent = forwardRef<HTMLDivElement, FieldContentProps>(function FieldContent(
+export const FieldContent = /* @__PURE__ */ forwardRef<HTMLDivElement, FieldContentProps>(function FieldContent(
   { className, ...props },
   ref,
 ) {
@@ -175,7 +175,7 @@ export const FieldContent = forwardRef<HTMLDivElement, FieldContentProps>(functi
 export type FieldTitleProps = ComponentPropsWithoutRef<"div">;
 
 /** Title line that is not a `<label>` (e.g. inside a choice card). */
-export const FieldTitle = forwardRef<HTMLDivElement, FieldTitleProps>(function FieldTitle({ className, ...props }, ref) {
+export const FieldTitle = /* @__PURE__ */ forwardRef<HTMLDivElement, FieldTitleProps>(function FieldTitle({ className, ...props }, ref) {
   return (
     <div
       ref={ref}
@@ -189,7 +189,7 @@ export const FieldTitle = forwardRef<HTMLDivElement, FieldTitleProps>(function F
 export type FieldSetProps = ComponentPropsWithoutRef<typeof BaseFieldset.Root>;
 
 /** Groups related fields under a shared `FieldLegend`. Disabling it disables every field inside. */
-export const FieldSet = forwardRef<ComponentRef<typeof BaseFieldset.Root>, FieldSetProps>(function FieldSet(
+export const FieldSet = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseFieldset.Root>, FieldSetProps>(function FieldSet(
   { className, ...props },
   ref,
 ) {
@@ -203,7 +203,7 @@ export const FieldSet = forwardRef<ComponentRef<typeof BaseFieldset.Root>, Field
   );
 });
 
-const fieldLegendVariants = cva("data-[disabled]:opacity-50", {
+const fieldLegendVariants = /* @__PURE__ */ cva("data-[disabled]:opacity-50", {
   variants: {
     variant: {
       /** Section heading. */
@@ -219,7 +219,7 @@ export interface FieldLegendProps extends ComponentPropsWithoutRef<typeof BaseFi
   variant?: "legend" | "label";
 }
 
-export const FieldLegend = forwardRef<ComponentRef<typeof BaseFieldset.Legend>, FieldLegendProps>(function FieldLegend(
+export const FieldLegend = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseFieldset.Legend>, FieldLegendProps>(function FieldLegend(
   { className, variant = "legend", ...props },
   ref,
 ) {
@@ -237,7 +237,7 @@ export const FieldLegend = forwardRef<ComponentRef<typeof BaseFieldset.Legend>, 
 export type FieldSeparatorProps = ComponentPropsWithoutRef<"div">;
 
 /** Hairline between field groups, optionally with centred text ("or"). */
-export const FieldSeparator = forwardRef<HTMLDivElement, FieldSeparatorProps>(function FieldSeparator(
+export const FieldSeparator = /* @__PURE__ */ forwardRef<HTMLDivElement, FieldSeparatorProps>(function FieldSeparator(
   { className, children, ...props },
   ref,
 ) {

@@ -2,7 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type HTMLAttributes } from "react";
 import { cn } from "../../utils/cn";
 
-export const alertVariants = cva(
+export const alertVariants = /* @__PURE__ */ cva(
   [
     // The icon column is `auto`: 0 without an icon, icon + its 12px margin with one (no `:has()` needed,
     // which Chromium < 105 lacks).
@@ -35,7 +35,7 @@ export interface AlertProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /** Callout for a short, important message. An optional leading `<svg>` icon gets its own grid column. */
-export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
+export const Alert = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertProps>(function Alert(
   { variant, className, role = "alert", ...props },
   ref,
 ) {
@@ -53,7 +53,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
 
 export type AlertTitleProps = HTMLAttributes<HTMLDivElement>;
 
-export const AlertTitle = forwardRef<HTMLDivElement, AlertTitleProps>(function AlertTitle(
+export const AlertTitle = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertTitleProps>(function AlertTitle(
   { className, ...props },
   ref,
 ) {
@@ -69,7 +69,7 @@ export const AlertTitle = forwardRef<HTMLDivElement, AlertTitleProps>(function A
 
 export type AlertDescriptionProps = HTMLAttributes<HTMLDivElement>;
 
-export const AlertDescription = forwardRef<HTMLDivElement, AlertDescriptionProps>(function AlertDescription(
+export const AlertDescription = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertDescriptionProps>(function AlertDescription(
   { className, ...props },
   ref,
 ) {

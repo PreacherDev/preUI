@@ -4,7 +4,7 @@ import { cn } from "../../utils/cn";
 export type CardProps = HTMLAttributes<HTMLDivElement>;
 
 /** Content block on the card surface: 1px border, 8px radius, no shadow (the handoff "Panel"). */
-export const Card = forwardRef<HTMLDivElement, CardProps>(function Card({ className, ...props }, ref) {
+export const Card = /* @__PURE__ */ forwardRef<HTMLDivElement, CardProps>(function Card({ className, ...props }, ref) {
   return (
     <div
       ref={ref}
@@ -24,7 +24,7 @@ export type CardHeaderProps = HTMLAttributes<HTMLDivElement>;
  * Header bar with a bottom divider. Title and description stack in the first column,
  * a `CardAction` sits at the end — top-aligned with the title when there is a description, otherwise centred.
  */
-export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(function CardHeader(
+export const CardHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, CardHeaderProps>(function CardHeader(
   { className, ...props },
   ref,
 ) {
@@ -48,7 +48,7 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(function C
 
 export type CardTitleProps = HTMLAttributes<HTMLDivElement>;
 
-export const CardTitle = forwardRef<HTMLDivElement, CardTitleProps>(function CardTitle(
+export const CardTitle = /* @__PURE__ */ forwardRef<HTMLDivElement, CardTitleProps>(function CardTitle(
   { className, ...props },
   ref,
 ) {
@@ -68,7 +68,7 @@ export const CardTitle = forwardRef<HTMLDivElement, CardTitleProps>(function Car
 
 export type CardDescriptionProps = HTMLAttributes<HTMLDivElement>;
 
-export const CardDescription = forwardRef<HTMLDivElement, CardDescriptionProps>(function CardDescription(
+export const CardDescription = /* @__PURE__ */ forwardRef<HTMLDivElement, CardDescriptionProps>(function CardDescription(
   { className, ...props },
   ref,
 ) {
@@ -84,7 +84,7 @@ export const CardDescription = forwardRef<HTMLDivElement, CardDescriptionProps>(
 
 export type CardActionProps = HTMLAttributes<HTMLDivElement>;
 
-export const CardAction = forwardRef<HTMLDivElement, CardActionProps>(function CardAction(
+export const CardAction = /* @__PURE__ */ forwardRef<HTMLDivElement, CardActionProps>(function CardAction(
   { className, ...props },
   ref,
 ) {
@@ -103,7 +103,7 @@ export const CardAction = forwardRef<HTMLDivElement, CardActionProps>(function C
 
 export type CardContentProps = HTMLAttributes<HTMLDivElement>;
 
-export const CardContent = forwardRef<HTMLDivElement, CardContentProps>(function CardContent(
+export const CardContent = /* @__PURE__ */ forwardRef<HTMLDivElement, CardContentProps>(function CardContent(
   { className, ...props },
   ref,
 ) {
@@ -113,7 +113,7 @@ export const CardContent = forwardRef<HTMLDivElement, CardContentProps>(function
 export type CardFooterProps = HTMLAttributes<HTMLDivElement>;
 
 /** Footer bar mirroring the header: top divider, actions in a row. */
-export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(function CardFooter(
+export const CardFooter = /* @__PURE__ */ forwardRef<HTMLDivElement, CardFooterProps>(function CardFooter(
   { className, ...props },
   ref,
 ) {

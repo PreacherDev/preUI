@@ -39,7 +39,7 @@ const edgeFadeViewport =
  * so nothing shifts; the thumb only appears while the area is hovered or scrolled.
  * Constrain the height on the root (`className="h-72"`) or the viewport (`viewportClassName="max-h-72"`).
  */
-export const ScrollArea = forwardRef<ComponentRef<typeof BaseScrollArea.Root>, ScrollAreaProps>(
+export const ScrollArea = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseScrollArea.Root>, ScrollAreaProps>(
   function ScrollArea(
     {
       className,
@@ -108,7 +108,7 @@ export type ScrollBarProps = ComponentPropsWithoutRef<typeof BaseScrollArea.Scro
  * A 10px scrollbar with a 4px pill thumb. Hidden (transparent) until the pointer is over the scroll area,
  * `/35` muted foreground on hover, `/60` while the thumb itself is hovered.
  */
-export const ScrollBar = forwardRef<
+export const ScrollBar = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseScrollArea.Scrollbar>,
   ScrollBarProps
 >(function ScrollBar({ className, orientation = "vertical", ...props }, ref) {

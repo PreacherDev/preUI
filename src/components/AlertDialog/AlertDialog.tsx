@@ -2,57 +2,104 @@ import { AlertDialog as BaseAlertDialog } from "@base-ui/react/alert-dialog";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
 import { buttonVariants, type ButtonSize, type ButtonVariant } from "../Button/Button";
-import { ModalSections, modalPopupClassName, overlayClassName } from "../Dialog/Dialog";
+import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
+import {
+  containedAttr,
+  ModalContainedContext,
+  ModalSections,
+  modalOverlayClassName,
+  modalPopupClassName,
+  modalPopupContainedClassName,
+  useModalContained,
+  type ModalContentOptions,
+  type ModalPortalOptions,
+} from "../Dialog/Dialog";
 
 export const AlertDialog = BaseAlertDialog.Root;
 
 export type AlertDialogProps = BaseAlertDialog.Root.Props;
 export interface AlertDialogTriggerProps extends BaseAlertDialog.Trigger.Props {}
-export interface AlertDialogPortalProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Portal> {}
+export interface AlertDialogPortalProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Portal>, ModalPortalOptions {}
 
 /** Opens the alert dialog. Renders a `<button>` (`data-slot="alert-dialog-trigger"`). */
-export const AlertDialogTrigger = forwardRef<HTMLButtonElement, AlertDialogTriggerProps>(
+export const AlertDialogTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, AlertDialogTriggerProps>(
   function AlertDialogTrigger(props, ref) {
     return <BaseAlertDialog.Trigger ref={ref} data-slot="alert-dialog-trigger" {...props} />;
   },
 ) as unknown as typeof BaseAlertDialog.Trigger;
 
-export const AlertDialogPortal = forwardRef<HTMLDivElement, AlertDialogPortalProps>(
-  function AlertDialogPortal(props, ref) {
-    return <BaseAlertDialog.Portal ref={ref} data-slot="alert-dialog-portal" {...props} />;
+/** Renders overlay and popup into `container` (default `document.body`); contained in it when set. */
+export const AlertDialogPortal = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertDialogPortalProps>(
+  function AlertDialogPortal({ contained, ...props }, ref) {
+    return (
+      <ModalContainedContext.Provider value={contained ?? props.container != null}>
+        <BaseAlertDialog.Portal ref={ref} data-slot="alert-dialog-portal" {...props} />
+      </ModalContainedContext.Provider>
+    );
   },
 );
 
 export interface AlertDialogOverlayProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Backdrop> {}
 
-export const AlertDialogOverlay = forwardRef<ComponentRef<typeof BaseAlertDialog.Backdrop>, AlertDialogOverlayProps>(
+export const AlertDialogOverlay = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAlertDialog.Backdrop>, AlertDialogOverlayProps>(
   function AlertDialogOverlay({ className, ...props }, ref) {
-    return <BaseAlertDialog.Backdrop ref={ref} data-slot="alert-dialog-overlay" className={mergeClassName(overlayClassName, className)} {...props} />;
+    const contained = useModalContained();
+    return (
+      <BaseAlertDialog.Backdrop
+        ref={ref}
+        data-slot="alert-dialog-overlay"
+        data-contained={containedAttr(contained)}
+        className={mergeClassName([modalOverlayClassName, contained && "absolute"], className)}
+        {...props}
+      />
+    );
   },
 );
 
-export interface AlertDialogContentProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Popup> {}
+export interface AlertDialogPopupProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Popup> {}
+
+/**
+ * The styled alert dialog surface without portal and overlay — for composing your own
+ * `<AlertDialogPortal><AlertDialogOverlay /><AlertDialogPopup>…</AlertDialogPopup></AlertDialogPortal>`.
+ * Initial focus goes to the first tabbable element without scrolling the page or a parent frame.
+ */
+export const AlertDialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAlertDialog.Popup>, AlertDialogPopupProps>(
+  function AlertDialogPopup({ className, children, initialFocus, ...props }, ref) {
+    const contained = useModalContained();
+    const focus = useInitialFocusWithoutScroll(initialFocus, ref);
+    return (
+      <BaseAlertDialog.Popup
+        ref={focus.ref}
+        initialFocus={focus.initialFocus}
+        data-slot="alert-dialog-popup"
+        data-contained={containedAttr(contained)}
+        className={mergeClassName([modalPopupClassName, "max-w-md", contained && modalPopupContainedClassName], className)}
+        {...props}
+      >
+        <ModalSections header={[AlertDialogHeader]} footer={[AlertDialogFooter]}>
+          {children}
+        </ModalSections>
+      </BaseAlertDialog.Popup>
+    );
+  },
+);
+
+export interface AlertDialogContentProps
+  extends AlertDialogPopupProps,
+    ModalContentOptions<AlertDialogOverlayProps["className"]> {}
 
 /**
  * Portal + Overlay + Popup in one. Looks like Dialog but narrower (confirmations) and without a close X:
  * the user has to pick one of the footer actions. Header and footer stay in place; other children scroll in a
- * preUI `ScrollArea` once the dialog reaches its maximum height.
+ * preUI `ScrollArea` once the dialog reaches its maximum height. `container` renders it into another element
+ * and centres it there.
  */
-export const AlertDialogContent = forwardRef<ComponentRef<typeof BaseAlertDialog.Popup>, AlertDialogContentProps>(
-  function AlertDialogContent({ className, children, ...props }, ref) {
+export const AlertDialogContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAlertDialog.Popup>, AlertDialogContentProps>(
+  function AlertDialogContent({ container, contained, overlay = true, overlayClassName, ...props }, ref) {
     return (
-      <AlertDialogPortal>
-        <AlertDialogOverlay />
-        <BaseAlertDialog.Popup
-          ref={ref}
-          data-slot="alert-dialog-content"
-          className={mergeClassName([modalPopupClassName, "max-w-md"], className)}
-          {...props}
-        >
-          <ModalSections header={[AlertDialogHeader]} footer={[AlertDialogFooter]}>
-            {children}
-          </ModalSections>
-        </BaseAlertDialog.Popup>
+      <AlertDialogPortal container={container} contained={contained}>
+        {overlay && <AlertDialogOverlay className={overlayClassName} />}
+        <AlertDialogPopup ref={ref} data-slot="alert-dialog-content" {...props} />
       </AlertDialogPortal>
     );
   },
@@ -60,7 +107,7 @@ export const AlertDialogContent = forwardRef<ComponentRef<typeof BaseAlertDialog
 
 export interface AlertDialogHeaderProps extends ComponentPropsWithoutRef<"div"> {}
 
-export const AlertDialogHeader = forwardRef<HTMLDivElement, AlertDialogHeaderProps>(function AlertDialogHeader(
+export const AlertDialogHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertDialogHeaderProps>(function AlertDialogHeader(
   { className, ...props },
   ref,
 ) {
@@ -70,7 +117,7 @@ export const AlertDialogHeader = forwardRef<HTMLDivElement, AlertDialogHeaderPro
 export interface AlertDialogFooterProps extends ComponentPropsWithoutRef<"div"> {}
 
 /** Right-aligned actions: `AlertDialogCancel` and the confirming `AlertDialogAction`. */
-export const AlertDialogFooter = forwardRef<HTMLDivElement, AlertDialogFooterProps>(function AlertDialogFooter(
+export const AlertDialogFooter = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertDialogFooterProps>(function AlertDialogFooter(
   { className, ...props },
   ref,
 ) {
@@ -86,7 +133,7 @@ export const AlertDialogFooter = forwardRef<HTMLDivElement, AlertDialogFooterPro
 
 export interface AlertDialogTitleProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Title> {}
 
-export const AlertDialogTitle = forwardRef<ComponentRef<typeof BaseAlertDialog.Title>, AlertDialogTitleProps>(
+export const AlertDialogTitle = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAlertDialog.Title>, AlertDialogTitleProps>(
   function AlertDialogTitle({ className, ...props }, ref) {
     return (
       <BaseAlertDialog.Title
@@ -101,7 +148,7 @@ export const AlertDialogTitle = forwardRef<ComponentRef<typeof BaseAlertDialog.T
 
 export interface AlertDialogDescriptionProps extends ComponentPropsWithoutRef<typeof BaseAlertDialog.Description> {}
 
-export const AlertDialogDescription = forwardRef<
+export const AlertDialogDescription = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseAlertDialog.Description>,
   AlertDialogDescriptionProps
 >(function AlertDialogDescription({ className, ...props }, ref) {
@@ -122,7 +169,7 @@ export interface AlertDialogActionProps extends ComponentPropsWithoutRef<typeof 
 }
 
 /** The confirming action. Closes the dialog; run your logic in `onClick`. */
-export const AlertDialogAction = forwardRef<ComponentRef<typeof BaseAlertDialog.Close>, AlertDialogActionProps>(
+export const AlertDialogAction = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAlertDialog.Close>, AlertDialogActionProps>(
   function AlertDialogAction({ className, variant = "solid", size, ...props }, ref) {
     return (
       <BaseAlertDialog.Close
@@ -144,7 +191,7 @@ export interface AlertDialogCancelProps extends ComponentPropsWithoutRef<typeof 
 }
 
 /** Dismisses the dialog without doing anything. */
-export const AlertDialogCancel = forwardRef<ComponentRef<typeof BaseAlertDialog.Close>, AlertDialogCancelProps>(
+export const AlertDialogCancel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAlertDialog.Close>, AlertDialogCancelProps>(
   function AlertDialogCancel({ className, variant = "ghost", size, ...props }, ref) {
     return (
       <BaseAlertDialog.Close

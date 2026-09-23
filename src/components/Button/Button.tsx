@@ -4,7 +4,7 @@ import { forwardRef, type ReactNode } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
 
-export const buttonVariants = cva(
+export const buttonVariants = /* @__PURE__ */ cva(
   [
     "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap select-none",
     "rounded-pui-md border border-transparent font-medium",
@@ -72,7 +72,7 @@ export interface ButtonProps extends BaseButton.Props {
  * Button built on Base UI. Use `render` to swap the element (e.g. `render={<div />} nativeButton={false}`).
  * For links, style an `<a>` with `buttonVariants()` instead.
  */
-export const Button = forwardRef<HTMLElement, ButtonProps>(function Button(
+export const Button = /* @__PURE__ */ forwardRef<HTMLElement, ButtonProps>(function Button(
   {
     variant,
     size,

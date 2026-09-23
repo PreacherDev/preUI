@@ -24,7 +24,7 @@ src/components/<Name>/
 Ordnername in PascalCase wie der exportierte Hauptname (`AlertDialog`, `DropdownMenu`, `InputOTP`, `NumberField`).
 Nicht-Base-UI-Komponenten (Card, Table, Badge …) sind einfache, gestylte HTML-Elemente mit `forwardRef` + `cn()`.
 
-**Geteilte Dateien nicht ändern:** `src/index.ts`, `src/icons/*`, `src/tailwind/preset.ts`, `src/utils/cn.ts`,
+**Geteilte Dateien nicht ändern:** `src/index.ts`, `src/icons/*`, `src/tailwind/preset.ts`, `src/tailwind/tokens.ts`, `src/theming/*`, `src/utils/cn.ts`,
 `package.json`, `tsdown.config.ts`, `vitest.*`. Fehlt dort etwas (Icon, Token), im Abschlussbericht melden.
 
 ## Benennung: wie shadcn/ui
@@ -243,7 +243,7 @@ Regeln für Komponenten:
 
 - **Jede Komponente muss in beiden Schemata funktionieren.** Keine festen Hell/Dunkel-Annahmen: kein `text-white`,
   `bg-black/…`, `rgb(255 255 255 / x)`-Highlights, `rgb(0 0 0 / x)`-Schatten oder weiße Alpha-Rahmen – nur Tokens.
-  Fehlt ein Token, wird es in `src/tailwind/preset.ts` in **beiden** Token-Sets ergänzt (`baseTokens` und
+  Fehlt ein Token, wird es in `src/tailwind/tokens.ts` in **beiden** Token-Sets ergänzt (`baseTokens` und
   `lightSchemeTokens`, gleiche Schlüssel – ein Test prüft das), plus Tailwind-Key, `cn.ts` und diese Tabelle.
 - Kein `@media (prefers-color-scheme)` im CSS: „System" löst der Provider/das Skript auf, das CSS bleibt rein
   attributgesteuert (vorhersagbar, SSR-gleich).

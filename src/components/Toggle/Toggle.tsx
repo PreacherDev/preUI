@@ -12,7 +12,7 @@ import { mergeClassName } from "../../utils/cn";
  * Sizes follow Button (`sm` / `default` / `lg` = the control-height tokens, `icon`, `icon-sm`), plus `segment`:
  * the compact h-6 item of the segmented `ToggleGroup`, whose hover only changes the text colour.
  */
-export const toggleVariants = cva(
+export const toggleVariants = /* @__PURE__ */ cva(
   [
     "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap select-none",
     "rounded-pui-md border border-transparent font-medium text-pui-muted-foreground",
@@ -58,7 +58,7 @@ export interface ToggleProps extends ComponentPropsWithoutRef<typeof BaseToggle>
 }
 
 /** Two-state button (`pressed` / `defaultPressed` / `onPressedChange`). Give icon-only toggles an `aria-label`. */
-export const Toggle = forwardRef<ComponentRef<typeof BaseToggle>, ToggleProps>(function Toggle(
+export const Toggle = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToggle>, ToggleProps>(function Toggle(
   { className, variant, size, type = "button", ...props },
   ref,
 ) {

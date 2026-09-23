@@ -4,7 +4,7 @@ import { cn } from "../../utils/cn";
 export type SkeletonProps = HTMLAttributes<HTMLDivElement>;
 
 /** Placeholder block for content that is still loading. Size it with `className`. */
-export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(function Skeleton({ className, ...props }, ref) {
+export const Skeleton = /* @__PURE__ */ forwardRef<HTMLDivElement, SkeletonProps>(function Skeleton({ className, ...props }, ref) {
   return (
     <div
       ref={ref}

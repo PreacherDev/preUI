@@ -89,6 +89,19 @@ describe("Item", () => {
   });
 });
 
+describe("Item highlighted state", () => {
+  it("styles data-highlighted rows like a menu item (for useListNavigation)", () => {
+    render(
+      <Item data-highlighted="" data-testid="row">
+        <ItemContent>Sultan RS</ItemContent>
+      </Item>,
+    );
+    const row = screen.getByTestId("row");
+    expect(row).toHaveClass("data-[highlighted]:bg-pui-accent", "data-[highlighted]:text-pui-accent-foreground");
+    expect(row).toHaveAttribute("data-highlighted", "");
+  });
+});
+
 describe("Item list semantics", () => {
   it("plain items inside ItemGroup are list items; render items keep their role", () => {
     render(

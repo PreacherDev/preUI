@@ -18,7 +18,7 @@ const defaultSlotLabel = (index: number, length: number) => `Character ${index +
  * One-time-code entry. Without `children` it renders `length` slots; pass `InputOTPGroup`,
  * `InputOTPSlot` and `InputOTPSeparator` as children for grouped layouts.
  */
-export const InputOTP = forwardRef<ComponentRef<typeof BaseOtpField.Root>, InputOTPProps>(function InputOTP(
+export const InputOTP = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseOtpField.Root>, InputOTPProps>(function InputOTP(
   { className, children, length, getSlotLabel = defaultSlotLabel, slotClassName, ...props },
   ref,
 ) {
@@ -45,7 +45,7 @@ export const InputOTP = forwardRef<ComponentRef<typeof BaseOtpField.Root>, Input
 export type InputOTPGroupProps = HTMLAttributes<HTMLDivElement>;
 
 /** Layout wrapper for a run of slots (e.g. 3 + 3 around a separator). */
-export const InputOTPGroup = forwardRef<HTMLDivElement, InputOTPGroupProps>(function InputOTPGroup(
+export const InputOTPGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, InputOTPGroupProps>(function InputOTPGroup(
   { className, ...props },
   ref,
 ) {
@@ -55,7 +55,7 @@ export const InputOTPGroup = forwardRef<HTMLDivElement, InputOTPGroupProps>(func
 export type InputOTPSlotProps = ComponentPropsWithoutRef<typeof BaseOtpField.Input>;
 
 /** One character slot, styled like an input. */
-export const InputOTPSlot = forwardRef<ComponentRef<typeof BaseOtpField.Input>, InputOTPSlotProps>(function InputOTPSlot(
+export const InputOTPSlot = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseOtpField.Input>, InputOTPSlotProps>(function InputOTPSlot(
   { className, ...props },
   ref,
 ) {
@@ -81,7 +81,7 @@ export const InputOTPSlot = forwardRef<ComponentRef<typeof BaseOtpField.Input>, 
 export type InputOTPSeparatorProps = ComponentPropsWithoutRef<typeof BaseOtpField.Separator>;
 
 /** Visual divider between slot groups. */
-export const InputOTPSeparator = forwardRef<ComponentRef<typeof BaseOtpField.Separator>, InputOTPSeparatorProps>(
+export const InputOTPSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseOtpField.Separator>, InputOTPSeparatorProps>(
   function InputOTPSeparator({ className, ...props }, ref) {
     return (
       <BaseOtpField.Separator

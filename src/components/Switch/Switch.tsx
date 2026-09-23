@@ -8,7 +8,7 @@ export interface SwitchProps extends BaseSwitch.Root.Props {
 }
 
 /** 36x20 track with a 16px thumb; checked fills the track with primary. */
-export const Switch = forwardRef<HTMLElement, SwitchProps>(function Switch(
+export const Switch = /* @__PURE__ */ forwardRef<HTMLElement, SwitchProps>(function Switch(
   { className, thumbClassName, ...props },
   ref,
 ) {

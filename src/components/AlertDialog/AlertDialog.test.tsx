@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRef } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,6 +9,9 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPopup,
+  AlertDialogPortal,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./AlertDialog";
@@ -128,5 +132,80 @@ describe("AlertDialog", () => {
     expect(viewport).not.toBeNull();
     expect(viewport).not.toContainElement(screen.getByTestId("header"));
     expect(viewport).not.toContainElement(screen.getByTestId("footer"));
+  });
+});
+
+/** Options of every `focus()` call on `element`. */
+const focusOptionsOf = (spy: { mock: { contexts: unknown[]; calls: unknown[][] } }, element: HTMLElement) =>
+  spy.mock.contexts.flatMap((context, index) => (context === element ? [spy.mock.calls[index]![0]] : []));
+
+describe("AlertDialog overlays", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("portals into a container and positions inside it", async () => {
+    function Framed() {
+      const frameRef = useRef<HTMLDivElement>(null);
+      return (
+        <>
+          <div ref={frameRef} data-testid="frame" className="relative" />
+          <AlertDialog>
+            <AlertDialogTrigger>Löschen</AlertDialogTrigger>
+            <AlertDialogContent container={frameRef} overlayClassName="bg-pui-scrim/40">
+              <AlertDialogTitle>Akte löschen?</AlertDialogTitle>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Framed />);
+    await user.click(screen.getByRole("button", { name: "Löschen" }));
+    const dialog = await screen.findByRole("alertdialog");
+    const overlay = document.querySelector("[data-slot=alert-dialog-overlay]");
+    expect(screen.getByTestId("frame")).toContainElement(dialog);
+    expect(screen.getByTestId("frame")).toContainElement(overlay as HTMLElement);
+    expect(dialog).toHaveClass("absolute", "max-h-[85%]", "max-w-md");
+    expect(dialog).not.toHaveClass("fixed");
+    expect(overlay).toHaveClass("absolute", "inset-0", "bg-pui-scrim/40");
+    expect(overlay).not.toHaveClass("fixed", "bg-pui-scrim/scrim");
+  });
+
+  it("renders no scrim with overlay={false}", async () => {
+    const user = userEvent.setup();
+    render(<Example overlay={false} />);
+    await user.click(screen.getByRole("button", { name: "Löschen" }));
+    await screen.findByRole("alertdialog");
+    expect(document.querySelector("[data-slot=alert-dialog-overlay]")).toBeNull();
+  });
+
+  it("focuses the first action without scrolling", async () => {
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    const user = userEvent.setup();
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Löschen" }));
+    const cancel = await screen.findByRole("button", { name: "Abbrechen" });
+    await waitFor(() => expect(cancel).toHaveFocus());
+    expect(focusOptionsOf(focus, cancel)).toEqual([{ preventScroll: true }]);
+  });
+
+  it("exports AlertDialogPopup for custom compositions", async () => {
+    render(
+      <AlertDialog defaultOpen>
+        <AlertDialogPortal>
+          <AlertDialogOverlay />
+          <AlertDialogPopup>
+            <AlertDialogTitle>Sicher?</AlertDialogTitle>
+          </AlertDialogPopup>
+        </AlertDialogPortal>
+      </AlertDialog>,
+    );
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveAttribute("data-slot", "alert-dialog-popup");
+    expect(dialog).toHaveClass("bg-pui-shell", "max-w-md", "fixed");
   });
 });

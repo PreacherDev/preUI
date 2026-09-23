@@ -9,12 +9,12 @@ export interface PopoverTriggerProps extends BasePopover.Trigger.Props {}
 export interface PopoverCloseProps extends ComponentPropsWithoutRef<typeof BasePopover.Close> {}
 
 /** Opens the popover. Renders a `<button>` (`data-slot="popover-trigger"`). */
-export const PopoverTrigger = forwardRef<HTMLButtonElement, PopoverTriggerProps>(function PopoverTrigger(props, ref) {
+export const PopoverTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, PopoverTriggerProps>(function PopoverTrigger(props, ref) {
   return <BasePopover.Trigger ref={ref} data-slot="popover-trigger" {...props} />;
 }) as unknown as typeof BasePopover.Trigger;
 
 /** Closes the popover. Renders a `<button>` (`data-slot="popover-close"`). */
-export const PopoverClose = forwardRef<HTMLButtonElement, PopoverCloseProps>(function PopoverClose(props, ref) {
+export const PopoverClose = /* @__PURE__ */ forwardRef<HTMLButtonElement, PopoverCloseProps>(function PopoverClose(props, ref) {
   return <BasePopover.Close ref={ref} data-slot="popover-close" {...props} />;
 });
 
@@ -26,13 +26,15 @@ export interface PopoverContentProps extends ComponentPropsWithoutRef<typeof Bas
   alignOffset?: BasePopover.Positioner.Props["alignOffset"];
   /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
   positionerProps?: Omit<BasePopover.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BasePopover.Portal.Props["container"];
 }
 
 /** Portal + Positioner + Popup in one, styled as a floating surface. */
-export const PopoverContent = forwardRef<ComponentRef<typeof BasePopover.Popup>, PopoverContentProps>(
-  function PopoverContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, ...props }, ref) {
+export const PopoverContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BasePopover.Popup>, PopoverContentProps>(
+  function PopoverContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
-      <BasePopover.Portal data-slot="popover-portal">
+      <BasePopover.Portal data-slot="popover-portal" container={container}>
         <BasePopover.Positioner
           data-slot="popover-positioner"
           side={side}
@@ -64,7 +66,7 @@ export const PopoverContent = forwardRef<ComponentRef<typeof BasePopover.Popup>,
 export interface PopoverHeaderProps extends ComponentPropsWithoutRef<"div"> {}
 
 /** Stacks `PopoverTitle` and `PopoverDescription`. */
-export const PopoverHeader = forwardRef<HTMLDivElement, PopoverHeaderProps>(function PopoverHeader(
+export const PopoverHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, PopoverHeaderProps>(function PopoverHeader(
   { className, ...props },
   ref,
 ) {
@@ -73,7 +75,7 @@ export const PopoverHeader = forwardRef<HTMLDivElement, PopoverHeaderProps>(func
 
 export interface PopoverTitleProps extends ComponentPropsWithoutRef<typeof BasePopover.Title> {}
 
-export const PopoverTitle = forwardRef<ComponentRef<typeof BasePopover.Title>, PopoverTitleProps>(function PopoverTitle(
+export const PopoverTitle = /* @__PURE__ */ forwardRef<ComponentRef<typeof BasePopover.Title>, PopoverTitleProps>(function PopoverTitle(
   { className, ...props },
   ref,
 ) {
@@ -89,7 +91,7 @@ export const PopoverTitle = forwardRef<ComponentRef<typeof BasePopover.Title>, P
 
 export interface PopoverDescriptionProps extends ComponentPropsWithoutRef<typeof BasePopover.Description> {}
 
-export const PopoverDescription = forwardRef<ComponentRef<typeof BasePopover.Description>, PopoverDescriptionProps>(
+export const PopoverDescription = /* @__PURE__ */ forwardRef<ComponentRef<typeof BasePopover.Description>, PopoverDescriptionProps>(
   function PopoverDescription({ className, ...props }, ref) {
     return (
       <BasePopover.Description

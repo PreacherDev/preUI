@@ -4,7 +4,7 @@ import { cn } from "../../utils/cn";
 export type KbdProps = HTMLAttributes<HTMLElement>;
 
 /** Keyboard key cap for shortcuts, e.g. `<Kbd>Esc</Kbd>`. */
-export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd({ className, ...props }, ref) {
+export const Kbd = /* @__PURE__ */ forwardRef<HTMLElement, KbdProps>(function Kbd({ className, ...props }, ref) {
   return (
     <kbd
       ref={ref}
@@ -24,7 +24,7 @@ export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd({ className, .
 export type KbdGroupProps = HTMLAttributes<HTMLElement>;
 
 /** Groups the keys of one shortcut, e.g. `<KbdGroup><Kbd>Ctrl</Kbd><Kbd>K</Kbd></KbdGroup>`. */
-export const KbdGroup = forwardRef<HTMLElement, KbdGroupProps>(function KbdGroup({ className, ...props }, ref) {
+export const KbdGroup = /* @__PURE__ */ forwardRef<HTMLElement, KbdGroupProps>(function KbdGroup({ className, ...props }, ref) {
   return (
     <kbd ref={ref} data-slot="kbd-group" className={cn("inline-flex items-center gap-1", className)} {...props} />
   );

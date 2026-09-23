@@ -1,8 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRef } from "react";
 import { IconProvider } from "../../icons";
 import {
   Dialog,
+  DialogOverlay,
+  DialogPopup,
+  DialogPortal,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -156,5 +160,148 @@ describe("Dialog", () => {
     expect(x).toHaveClass("focus-visible:ring-pui", "duration-pui-fast");
     expect(document.querySelector("[data-slot=dialog-overlay]")).toHaveClass("bg-pui-scrim/scrim", "duration-pui-base");
     expect(document.querySelector("[data-slot=dialog-portal]")).toContainElement(dialog);
+  });
+});
+
+function Framed(props: DialogContentProps) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  return (
+    <>
+      <div ref={frameRef} data-testid="frame" className="relative overflow-hidden" />
+      <Dialog>
+        <DialogTrigger>Open</DialogTrigger>
+        <DialogContent container={frameRef} {...props}>
+          <DialogTitle>Akte</DialogTitle>
+          <input aria-label="Name" />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+describe("Dialog in a container", () => {
+  it("portals into the container and positions overlay and popup inside it", async () => {
+    const user = userEvent.setup();
+    render(<Framed />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const dialog = await screen.findByRole("dialog");
+    const frame = screen.getByTestId("frame");
+    const overlay = document.querySelector("[data-slot=dialog-overlay]");
+    expect(frame).toContainElement(dialog);
+    expect(frame).toContainElement(overlay as HTMLElement);
+    expect(overlay).toHaveClass("absolute", "inset-0");
+    expect(overlay).not.toHaveClass("fixed");
+    expect(overlay).toHaveAttribute("data-contained");
+    expect(dialog).toHaveClass("absolute", "left-1/2", "top-1/2", "max-h-[85%]");
+    expect(dialog).not.toHaveClass("fixed", "max-h-[85vh]");
+    expect(dialog).toHaveAttribute("data-contained");
+  });
+
+  it("keeps viewport positioning with contained={false}", async () => {
+    const user = userEvent.setup();
+    render(<Framed contained={false} />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(screen.getByTestId("frame")).toContainElement(dialog);
+    expect(dialog).toHaveClass("fixed", "max-h-[85vh]");
+    expect(dialog).not.toHaveAttribute("data-contained");
+  });
+
+  it("stays fixed to the viewport without a container", async () => {
+    render(<Example defaultOpen />);
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveClass("fixed");
+    expect(document.querySelector("[data-slot=dialog-overlay]")).toHaveClass("fixed", "inset-0");
+  });
+});
+
+describe("Dialog overlay options", () => {
+  it("merges overlayClassName into the scrim", async () => {
+    render(<Example defaultOpen overlayClassName="bg-pui-scrim/40" />);
+    await screen.findByRole("dialog");
+    const overlay = document.querySelector("[data-slot=dialog-overlay]");
+    expect(overlay).toHaveClass("bg-pui-scrim/40", "fixed", "inset-0");
+    expect(overlay).not.toHaveClass("bg-pui-scrim/scrim");
+  });
+
+  it("renders no scrim with overlay={false}", async () => {
+    render(<Example defaultOpen overlay={false} />);
+    await screen.findByRole("dialog");
+    expect(document.querySelector("[data-slot=dialog-overlay]")).toBeNull();
+    expect(document.querySelector("[data-slot=dialog-portal]")).toBeInTheDocument();
+  });
+});
+
+describe("Dialog initial focus", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("focuses the first tabbable element without scrolling", async () => {
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    const user = userEvent.setup();
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const cancel = await screen.findByRole("button", { name: "Abbrechen" });
+    await waitFor(() => expect(cancel).toHaveFocus());
+    const calls = focus.mock.contexts.map((element, index) => [element, focus.mock.calls[index]![0]] as const);
+    const cancelCalls = calls.filter(([element]) => element === cancel);
+    expect(cancelCalls.length).toBeGreaterThan(0);
+    for (const [, options] of cancelCalls) expect(options).toEqual({ preventScroll: true });
+  });
+
+  it("focuses an initialFocus ref without scrolling", async () => {
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    function WithRef() {
+      const inputRef = useRef<HTMLInputElement>(null);
+      return (
+        <Dialog>
+          <DialogTrigger>Open</DialogTrigger>
+          <DialogContent initialFocus={inputRef}>
+            <DialogTitle>Suche</DialogTitle>
+            <button type="button">Erster</button>
+            <input ref={inputRef} aria-label="Suchbegriff" />
+          </DialogContent>
+        </Dialog>
+      );
+    }
+    const user = userEvent.setup();
+    render(<WithRef />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const input = await screen.findByRole("textbox", { name: "Suchbegriff" });
+    await waitFor(() => expect(input).toHaveFocus());
+    const inputCalls = focus.mock.contexts.flatMap((element, index) => (element === input ? [focus.mock.calls[index]![0]] : []));
+    expect(inputCalls).toEqual([{ preventScroll: true }]);
+  });
+
+  it("moves no focus with initialFocus={false}", async () => {
+    const user = userEvent.setup();
+    render(<Example initialFocus={false} />);
+    const trigger = screen.getByRole("button", { name: "Open" });
+    await user.click(trigger);
+    await screen.findByRole("dialog");
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(trigger).toHaveFocus();
+  });
+});
+
+describe("DialogPopup", () => {
+  it("composes with DialogPortal and DialogOverlay", async () => {
+    render(
+      <Dialog defaultOpen>
+        <DialogPortal>
+          <DialogOverlay className="bg-pui-scrim/20" />
+          <DialogPopup className="max-w-sm" showCloseButton={false}>
+            <DialogTitle>Eigener Aufbau</DialogTitle>
+          </DialogPopup>
+        </DialogPortal>
+      </Dialog>,
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveAttribute("data-slot", "dialog-popup");
+    expect(dialog).toHaveClass("bg-pui-shell", "max-w-sm");
+    expect(dialog).not.toHaveClass("max-w-lg");
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot=dialog-overlay]")).toHaveClass("bg-pui-scrim/20");
   });
 });

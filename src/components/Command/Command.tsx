@@ -8,7 +8,14 @@ import {
   type ForwardedRef,
   type ReactNode,
 } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../Dialog/Dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  type DialogContentProps,
+  type ModalContentOptions,
+} from "../Dialog/Dialog";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
@@ -47,7 +54,7 @@ const findGroupHeading = (node: HTMLElement) => node.querySelector<HTMLElement>(
 export interface CommandProps extends ComponentPropsWithoutRef<typeof CommandPrimitive> {}
 
 /** The command menu root (cmdk). Filters and sorts its items by the input value. */
-export const Command = forwardRef<ComponentRef<typeof CommandPrimitive>, CommandProps>(function Command(
+export const Command = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive>, CommandProps>(function Command(
   { className, ...props },
   ref,
 ) {
@@ -64,7 +71,9 @@ export const Command = forwardRef<ComponentRef<typeof CommandPrimitive>, Command
   );
 });
 
-export interface CommandDialogProps extends Omit<ComponentProps<typeof Dialog>, "children"> {
+export interface CommandDialogProps
+  extends Omit<ComponentProps<typeof Dialog>, "children">,
+    ModalContentOptions<DialogContentProps["overlayClassName"]> {
   children?: ReactNode;
   /** Accessible (visually hidden) dialog title. Default `"Command Palette"`. */
   title?: string;
@@ -77,9 +86,19 @@ export interface CommandDialogProps extends Omit<ComponentProps<typeof Dialog>, 
   closeLabel?: string;
   /** Props for the inner `Command` (e.g. `filter`, `loop`, `shouldFilter`). */
   commandProps?: CommandProps;
+  /**
+   * Element that gets focus when the palette opens. Default: the search input (focused without scrolling the page
+   * or a parent frame).
+   */
+  initialFocus?: DialogContentProps["initialFocus"];
+  /** Element that gets focus when the palette closes. Default: the element focused before (usually the trigger). */
+  finalFocus?: DialogContentProps["finalFocus"];
 }
 
-/** A Command palette inside a modal Dialog. Control it with `open` / `onOpenChange`. */
+/**
+ * A Command palette inside a modal Dialog. Control it with `open` / `onOpenChange`. `container` renders it into
+ * another element (e.g. a tablet frame): the palette and its scrim then stay inside that element.
+ */
 export function CommandDialog({
   title = "Command Palette",
   description = "Search for a command to run…",
@@ -88,15 +107,28 @@ export function CommandDialog({
   showCloseButton = true,
   closeLabel,
   commandProps,
+  container,
+  contained = container != null,
+  overlay,
+  overlayClassName,
+  initialFocus,
+  finalFocus,
   ...props
 }: CommandDialogProps) {
   return (
     <Dialog {...props}>
       <DialogContent
+        container={container}
+        contained={contained}
+        overlay={overlay}
+        overlayClassName={overlayClassName}
+        initialFocus={initialFocus}
+        finalFocus={finalFocus}
         // Anchored near the top instead of centred: filtering changes the list height, and the input must
         // not jump while typing — the palette only grows and shrinks downwards.
         className={cn(
           "top-[15vh] max-h-[70vh] origin-top translate-y-0 gap-0 overflow-hidden bg-pui-popover p-0",
+          contained && "top-[15%] max-h-[70%]",
           className,
         )}
         showCloseButton={showCloseButton}
@@ -123,7 +155,7 @@ export function CommandDialog({
 export interface CommandInputProps extends ComponentPropsWithoutRef<typeof CommandPrimitive.Input> {}
 
 /** Search field with a leading search icon and a bottom border. */
-export const CommandInput = forwardRef<ComponentRef<typeof CommandPrimitive.Input>, CommandInputProps>(
+export const CommandInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive.Input>, CommandInputProps>(
   function CommandInput({ className, ...props }, ref) {
     const SearchIcon = useIcon("search");
     return (
@@ -155,7 +187,7 @@ export interface CommandListProps extends ComponentPropsWithoutRef<typeof Comman
  * element (e.g. `max-h-96`). The list element carries `[cmdk-list]` and `data-slot="scroll-area-viewport"`,
  * the wrapper `data-slot="scroll-area"`. The viewport is not a Tab stop (focus stays in the input).
  */
-export const CommandList = forwardRef<ComponentRef<typeof CommandPrimitive.List>, CommandListProps>(
+export const CommandList = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive.List>, CommandListProps>(
   function CommandList({ className, children, ...props }, ref) {
     return (
       <ScrollArea
@@ -173,7 +205,7 @@ export const CommandList = forwardRef<ComponentRef<typeof CommandPrimitive.List>
 export interface CommandEmptyProps extends ComponentPropsWithoutRef<typeof CommandPrimitive.Empty> {}
 
 /** Shown when no item matches the search. */
-export const CommandEmpty = forwardRef<ComponentRef<typeof CommandPrimitive.Empty>, CommandEmptyProps>(
+export const CommandEmpty = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive.Empty>, CommandEmptyProps>(
   function CommandEmpty({ className, ...props }, ref) {
     return (
       <CommandPrimitive.Empty
@@ -189,7 +221,7 @@ export const CommandEmpty = forwardRef<ComponentRef<typeof CommandPrimitive.Empt
 export interface CommandGroupProps extends ComponentPropsWithoutRef<typeof CommandPrimitive.Group> {}
 
 /** A group of items; `heading` is rendered as an eyebrow label. */
-export const CommandGroup = forwardRef<ComponentRef<typeof CommandPrimitive.Group>, CommandGroupProps>(
+export const CommandGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive.Group>, CommandGroupProps>(
   function CommandGroup({ className, ...props }, ref) {
     const groupRef = useListScrollRef(ref, findGroupHeading);
     return (
@@ -209,7 +241,7 @@ export const CommandGroup = forwardRef<ComponentRef<typeof CommandPrimitive.Grou
 
 export interface CommandSeparatorProps extends ComponentPropsWithoutRef<typeof CommandPrimitive.Separator> {}
 
-export const CommandSeparator = forwardRef<ComponentRef<typeof CommandPrimitive.Separator>, CommandSeparatorProps>(
+export const CommandSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive.Separator>, CommandSeparatorProps>(
   function CommandSeparator({ className, ...props }, ref) {
     return (
       <CommandPrimitive.Separator
@@ -225,7 +257,7 @@ export const CommandSeparator = forwardRef<ComponentRef<typeof CommandPrimitive.
 export interface CommandItemProps extends ComponentPropsWithoutRef<typeof CommandPrimitive.Item> {}
 
 /** A selectable entry, styled like a menu item. `onSelect` fires on click and Enter. */
-export const CommandItem = forwardRef<ComponentRef<typeof CommandPrimitive.Item>, CommandItemProps>(
+export const CommandItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof CommandPrimitive.Item>, CommandItemProps>(
   function CommandItem({ className, ...props }, ref) {
     const itemRef = useListScrollRef(ref);
     return (
@@ -249,7 +281,7 @@ export const CommandItem = forwardRef<ComponentRef<typeof CommandPrimitive.Item>
 export interface CommandShortcutProps extends ComponentPropsWithoutRef<"span"> {}
 
 /** Right-aligned keyboard hint inside an item. */
-export const CommandShortcut = forwardRef<HTMLSpanElement, CommandShortcutProps>(function CommandShortcut(
+export const CommandShortcut = /* @__PURE__ */ forwardRef<HTMLSpanElement, CommandShortcutProps>(function CommandShortcut(
   { className, ...props },
   ref,
 ) {

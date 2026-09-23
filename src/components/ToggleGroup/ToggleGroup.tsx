@@ -4,7 +4,7 @@ import { createContext, forwardRef, useContext, type ComponentPropsWithoutRef, t
 import { mergeClassName } from "../../utils/cn";
 import { Toggle, type ToggleProps, type ToggleSize, type ToggleVariant } from "../Toggle/Toggle";
 
-export const toggleGroupVariants = cva(
+export const toggleGroupVariants = /* @__PURE__ */ cva(
   [
     "inline-flex items-center data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch",
     "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -31,7 +31,7 @@ interface ToggleGroupContextValue {
   itemVariant?: ToggleVariant;
 }
 
-const ToggleGroupContext = createContext<ToggleGroupContextValue>({});
+const ToggleGroupContext = /* @__PURE__ */ createContext<ToggleGroupContextValue>({});
 
 export interface ToggleGroupProps extends ComponentPropsWithoutRef<typeof BaseToggleGroup> {
   variant?: ToggleGroupVariant;
@@ -45,7 +45,7 @@ export interface ToggleGroupProps extends ComponentPropsWithoutRef<typeof BaseTo
  * Shared state for a set of toggles. Single choice by default (`value` is still a `string[]`);
  * pass `multiple` for several.
  */
-export const ToggleGroup = forwardRef<ComponentRef<typeof BaseToggleGroup>, ToggleGroupProps>(
+export const ToggleGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToggleGroup>, ToggleGroupProps>(
   function ToggleGroup({ className, variant = "segmented", size, itemVariant, ...props }, ref) {
     const itemSize = size ?? (variant === "segmented" ? "segment" : "default");
     return (
@@ -69,7 +69,7 @@ export interface ToggleGroupItemProps extends ToggleProps {
 }
 
 /** A toggle inside a `ToggleGroup`; size and variant come from the group unless set here. */
-export const ToggleGroupItem = forwardRef<ComponentRef<typeof Toggle>, ToggleGroupItemProps>(
+export const ToggleGroupItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof Toggle>, ToggleGroupItemProps>(
   function ToggleGroupItem({ size, variant, ...props }, ref) {
     const context = useContext(ToggleGroupContext);
     return (

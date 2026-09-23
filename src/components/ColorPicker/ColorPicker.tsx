@@ -80,7 +80,7 @@ export interface ColorPickerContextValue {
   commit: () => void;
 }
 
-const ColorPickerContext = createContext<ColorPickerContextValue | null>(null);
+const ColorPickerContext = /* @__PURE__ */ createContext<ColorPickerContextValue | null>(null);
 
 /** State and setters of the surrounding `ColorPicker` — for own parts (e.g. HSL fields, a reset button). */
 export function useColorPicker(): ColorPickerContextValue {
@@ -160,7 +160,7 @@ export interface ColorPickerProps
  * Popover mode by default; `inline` renders the parts in place. Holds the colour in HSV so the hue stays put
  * when the colour becomes grey or black.
  */
-export const ColorPicker = forwardRef<HTMLDivElement, ColorPickerProps>(function ColorPicker(
+export const ColorPicker = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPickerProps>(function ColorPicker(
   {
     value: valueProp,
     defaultValue = "#000000",
@@ -314,7 +314,7 @@ export interface ColorPickerTriggerProps extends BasePopover.Trigger.Props {}
  * Swatch button that opens the picker (`data-slot="color-picker-trigger"`). Shows the current colour over a
  * checkerboard when `alpha` is on. `children` render on top of the swatch.
  */
-export const ColorPickerTrigger = forwardRef<HTMLButtonElement, ColorPickerTriggerProps>(function ColorPickerTrigger(
+export const ColorPickerTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, ColorPickerTriggerProps>(function ColorPickerTrigger(
   { className, children, ...props },
   ref,
 ) {
@@ -354,7 +354,7 @@ export interface ColorPickerContentProps extends PopoverContentProps {}
  * The popup (preUI `PopoverContent`: portalled, positioned, flips at the viewport edge). Without children it
  * renders the default layout.
  */
-export const ColorPickerContent = forwardRef<HTMLDivElement, ColorPickerContentProps>(function ColorPickerContent(
+export const ColorPickerContent = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPickerContentProps>(function ColorPickerContent(
   { className, children, side = "bottom", align = "start", ...props },
   ref,
 ) {
@@ -390,7 +390,7 @@ const AREA_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "H
  * Keys: arrows ±1 (Shift ±10), Home/End saturation 0/100, PageUp/PageDown brightness ±10.
  * Pointer: press + drag with pointer capture (`touch-action: none`), no native drag.
  */
-export const ColorPickerArea = forwardRef<HTMLDivElement, ColorPickerAreaProps>(function ColorPickerArea(
+export const ColorPickerArea = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPickerAreaProps>(function ColorPickerArea(
   {
     className,
     thumbClassName,
@@ -531,7 +531,7 @@ const channelTrackClass = "h-2.5 shadow-[inset_0_0_0_1px_hsl(var(--pui-border))]
 export interface ColorPickerHueProps extends ChannelSliderProps {}
 
 /** Hue slider (0–360) built on preUI `Slider` (`data-slot="color-picker-hue"`). */
-export const ColorPickerHue = forwardRef<HTMLDivElement, ColorPickerHueProps>(function ColorPickerHue(
+export const ColorPickerHue = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPickerHueProps>(function ColorPickerHue(
   { style, thumbLabels, trackClassName, indicatorClassName, controlClassName, ...props },
   ref,
 ) {
@@ -560,7 +560,7 @@ export const ColorPickerHue = forwardRef<HTMLDivElement, ColorPickerHueProps>(fu
 export interface ColorPickerAlphaProps extends ChannelSliderProps {}
 
 /** Alpha slider (0–100 %) over a checkerboard (`data-slot="color-picker-alpha"`). Needs `alpha` on the root. */
-export const ColorPickerAlpha = forwardRef<HTMLDivElement, ColorPickerAlphaProps>(function ColorPickerAlpha(
+export const ColorPickerAlpha = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPickerAlphaProps>(function ColorPickerAlpha(
   { style, thumbLabels, trackClassName, indicatorClassName, controlClassName, ...props },
   ref,
 ) {
@@ -602,7 +602,7 @@ export interface ColorPickerInputProps extends Omit<InputProps, "value" | "defau
  * Hex field (`#rrggbb`, `#rgb`, with `alpha` also `#rrggbbaa`; `rgb()`/`hsl()` are accepted too). Invalid text
  * sets `aria-invalid`; valid text is applied on Enter or blur, Escape restores the current value.
  */
-export const ColorPickerInput = forwardRef<HTMLInputElement, ColorPickerInputProps>(function ColorPickerInput(
+export const ColorPickerInput = /* @__PURE__ */ forwardRef<HTMLInputElement, ColorPickerInputProps>(function ColorPickerInput(
   { className, onChange, onBlur, onKeyDown, size = "sm", ...props },
   ref,
 ) {
@@ -661,7 +661,7 @@ export interface ColorPickerSwatchProps extends Omit<ComponentPropsWithoutRef<"b
 }
 
 /** One preset colour button (`data-slot="color-picker-swatch"`, `aria-pressed` when it is the current colour). */
-export const ColorPickerSwatch = forwardRef<HTMLButtonElement, ColorPickerSwatchProps>(function ColorPickerSwatch(
+export const ColorPickerSwatch = /* @__PURE__ */ forwardRef<HTMLButtonElement, ColorPickerSwatchProps>(function ColorPickerSwatch(
   { value: swatch, className, onClick, disabled: disabledProp, "aria-label": ariaLabel, ...props },
   ref,
 ) {
@@ -705,7 +705,7 @@ export interface ColorPickerSwatchesProps extends ComponentPropsWithoutRef<"div"
 }
 
 /** Group of preset colours (`data-slot="color-picker-swatches"`). */
-export const ColorPickerSwatches = forwardRef<HTMLDivElement, ColorPickerSwatchesProps>(function ColorPickerSwatches(
+export const ColorPickerSwatches = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPickerSwatchesProps>(function ColorPickerSwatches(
   { swatches: swatchesProp, className, children, ...props },
   ref,
 ) {
@@ -730,7 +730,7 @@ export const ColorPickerSwatches = forwardRef<HTMLDivElement, ColorPickerSwatche
 });
 
 /* ------------------------------------------------------------------------------------------------
- * Eye dropper (only where the browser has window.EyeDropper — not in Chromium 103 / FiveM)
+ * Eye dropper (only where the browser has window.EyeDropper, Chromium 95+)
  * ----------------------------------------------------------------------------------------------*/
 
 interface EyeDropperLike {
@@ -742,9 +742,9 @@ export interface ColorPickerEyeDropperProps extends ComponentPropsWithoutRef<"bu
 
 /**
  * Picks a colour from the screen via the EyeDropper API. Renders nothing until an effect confirmed
- * `window.EyeDropper` exists (so SSR and browsers without it — Chromium 103, FiveM — show no button).
+ * `window.EyeDropper` exists (so SSR and browsers without it show no button).
  */
-export const ColorPickerEyeDropper = forwardRef<HTMLButtonElement, ColorPickerEyeDropperProps>(
+export const ColorPickerEyeDropper = /* @__PURE__ */ forwardRef<HTMLButtonElement, ColorPickerEyeDropperProps>(
   function ColorPickerEyeDropper({ className, children, onClick, disabled: disabledProp, ...props }, ref) {
     const { disabled, labels, setColor } = useColorPicker();
     const [supported, setSupported] = useState(false);

@@ -217,7 +217,7 @@ function applyExternalValue(view: EditorView, next: string) {
  * language-provided autocompletion and lazily loaded languages, styled with preUI tokens.
  * Works controlled (`value` + `onValueChange`) or uncontrolled (`defaultValue`).
  */
-export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(function CodeEditor(
+export const CodeEditor = /* @__PURE__ */ forwardRef<CodeEditorHandle, CodeEditorProps>(function CodeEditor(
   {
     value,
     defaultValue,

@@ -38,7 +38,7 @@ const thumbCount = (value: unknown) => (Array.isArray(value) ? value.length : 1)
  * for a range; one thumb is rendered per value. `children` (e.g. `SliderLabel`, `SliderValue`) render
  * above the track.
  */
-export const Slider = forwardRef(function Slider(
+export const Slider = /* @__PURE__ */ forwardRef(function Slider(
   {
     className,
     controlClassName,
@@ -121,7 +121,7 @@ export const Slider = forwardRef(function Slider(
 }) as <Value extends SliderRawValue = SliderRawValue>(props: SliderProps<Value> & RefAttributes<HTMLDivElement>) => ReactElement;
 
 /** Visible label for the slider; place it as a child of `Slider`. */
-export const SliderLabel = forwardRef<ComponentRef<typeof BaseSlider.Label>, ComponentPropsWithoutRef<typeof BaseSlider.Label>>(
+export const SliderLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSlider.Label>, ComponentPropsWithoutRef<typeof BaseSlider.Label>>(
   function SliderLabel({ className, ...props }, ref) {
     return (
       <BaseSlider.Label
@@ -135,7 +135,7 @@ export const SliderLabel = forwardRef<ComponentRef<typeof BaseSlider.Label>, Com
 );
 
 /** Formatted current value (an `<output>`); place it as a child of `Slider`. */
-export const SliderValue = forwardRef<ComponentRef<typeof BaseSlider.Value>, ComponentPropsWithoutRef<typeof BaseSlider.Value>>(
+export const SliderValue = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSlider.Value>, ComponentPropsWithoutRef<typeof BaseSlider.Value>>(
   function SliderValue({ className, ...props }, ref) {
     return (
       <BaseSlider.Value

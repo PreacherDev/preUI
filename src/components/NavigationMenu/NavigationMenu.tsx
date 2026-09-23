@@ -7,7 +7,7 @@ import { ScrollArea } from "../ScrollArea/ScrollArea";
 
 export type NavigationMenuItemProps = ComponentPropsWithoutRef<typeof BaseNavigationMenu.Item>;
 
-export const NavigationMenuItem = forwardRef<ComponentRef<typeof BaseNavigationMenu.Item>, NavigationMenuItemProps>(
+export const NavigationMenuItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseNavigationMenu.Item>, NavigationMenuItemProps>(
   function NavigationMenuItem(props, ref) {
     return <BaseNavigationMenu.Item ref={ref} data-slot="navigation-menu-item" {...props} />;
   },
@@ -15,7 +15,7 @@ export const NavigationMenuItem = forwardRef<ComponentRef<typeof BaseNavigationM
 
 export type NavigationMenuProps = ComponentPropsWithoutRef<typeof BaseNavigationMenu.Root>;
 
-export const NavigationMenu = forwardRef<ComponentRef<typeof BaseNavigationMenu.Root>, NavigationMenuProps>(
+export const NavigationMenu = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseNavigationMenu.Root>, NavigationMenuProps>(
   function NavigationMenu({ className, ...props }, ref) {
     return (
       <BaseNavigationMenu.Root
@@ -31,7 +31,7 @@ export const NavigationMenu = forwardRef<ComponentRef<typeof BaseNavigationMenu.
 export type NavigationMenuListProps = ComponentPropsWithoutRef<typeof BaseNavigationMenu.List>;
 
 /** Row of triggers and links. */
-export const NavigationMenuList = forwardRef<ComponentRef<typeof BaseNavigationMenu.List>, NavigationMenuListProps>(
+export const NavigationMenuList = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseNavigationMenu.List>, NavigationMenuListProps>(
   function NavigationMenuList({ className, ...props }, ref) {
     return (
       <BaseNavigationMenu.List
@@ -51,7 +51,7 @@ export const NavigationMenuList = forwardRef<ComponentRef<typeof BaseNavigationM
  * Ghost-button look shared by triggers and top-level links:
  * `<NavigationMenuLink className={navigationMenuTriggerStyle()} />`.
  */
-export const navigationMenuTriggerStyle = cva([
+export const navigationMenuTriggerStyle = /* @__PURE__ */ cva([
   "inline-flex h-pui-control cursor-default select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-pui-md px-3 text-sm font-medium no-underline outline-none",
   "text-pui-muted-foreground transition-colors duration-pui-fast ease-pui",
   "hover:bg-pui-accent hover:text-pui-accent-foreground",
@@ -63,7 +63,7 @@ export const navigationMenuTriggerStyle = cva([
 export type NavigationMenuTriggerProps = ComponentPropsWithoutRef<typeof BaseNavigationMenu.Trigger>;
 
 /** Opens the item's content panel. Renders a chevron that turns while open. */
-export const NavigationMenuTrigger = forwardRef<
+export const NavigationMenuTrigger = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseNavigationMenu.Trigger>,
   NavigationMenuTriggerProps
 >(function NavigationMenuTrigger({ className, children, ...props }, ref) {
@@ -84,7 +84,7 @@ export type NavigationMenuContentProps = ComponentPropsWithoutRef<typeof BaseNav
  * Panel shown in the floating surface while its item is active. The panel scrolls inside a ScrollArea when it is
  * taller than the space available below the trigger (capped at the positioner's `--available-height`).
  */
-export const NavigationMenuContent = forwardRef<
+export const NavigationMenuContent = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseNavigationMenu.Content>,
   NavigationMenuContentProps
 >(function NavigationMenuContent({ className, children, ...props }, ref) {
@@ -119,7 +119,7 @@ export const NavigationMenuContent = forwardRef<
 export type NavigationMenuLinkProps = ComponentPropsWithoutRef<typeof BaseNavigationMenu.Link>;
 
 /** Link row inside a content panel. Add a muted `<p>` below the title for a two-line card. */
-export const NavigationMenuLink = forwardRef<ComponentRef<typeof BaseNavigationMenu.Link>, NavigationMenuLinkProps>(
+export const NavigationMenuLink = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseNavigationMenu.Link>, NavigationMenuLinkProps>(
   function NavigationMenuLink({ className, ...props }, ref) {
     return (
       <BaseNavigationMenu.Link
@@ -152,21 +152,23 @@ export interface NavigationMenuViewportProps extends ComponentPropsWithoutRef<ty
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
   /** Class for the inner viewport that hosts the active content. */
   viewportClassName?: ComponentPropsWithoutRef<typeof BaseNavigationMenu.Viewport>["className"];
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseNavigationMenu.Portal.Props["container"];
 }
 
 /**
  * Portal + Positioner + Popup + Viewport in one: the floating surface that shows the active item's
  * content. Place it once inside `NavigationMenu`, after the list.
  */
-export const NavigationMenuViewport = forwardRef<
+export const NavigationMenuViewport = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseNavigationMenu.Popup>,
   NavigationMenuViewportProps
 >(function NavigationMenuViewport(
-  { className, side = "bottom", align = "start", sideOffset = 6, alignOffset = 0, positionerProps, viewportClassName, ...props },
+  { className, side = "bottom", align = "start", sideOffset = 6, alignOffset = 0, positionerProps, container, viewportClassName, ...props },
   ref,
 ) {
   return (
-    <BaseNavigationMenu.Portal>
+    <BaseNavigationMenu.Portal container={container}>
       <BaseNavigationMenu.Positioner
         side={side}
         align={align}

@@ -113,7 +113,7 @@ const idPrefix = (id: string) => `md${id.replace(/[^a-zA-Z0-9_-]/g, "")}-`;
  * code, `CodeInline`, preUI `Table`s, read-only `Checkbox`es for task lists. Safe by default: raw HTML is
  * skipped and URLs are sanitised.
  */
-export const Markdown = forwardRef<HTMLDivElement, MarkdownProps>(function Markdown(
+export const Markdown = /* @__PURE__ */ forwardRef<HTMLDivElement, MarkdownProps>(function Markdown(
   {
     children,
     content,

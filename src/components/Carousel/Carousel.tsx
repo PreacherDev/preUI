@@ -40,7 +40,7 @@ interface CarouselContextValue {
   canScrollNext: boolean;
 }
 
-const CarouselContext = createContext<CarouselContextValue | null>(null);
+const CarouselContext = /* @__PURE__ */ createContext<CarouselContextValue | null>(null);
 
 /** Access the carousel state (api, orientation, scroll helpers) inside `<Carousel>`. */
 export function useCarousel(): CarouselContextValue {
@@ -52,7 +52,7 @@ export function useCarousel(): CarouselContextValue {
 }
 
 /** Root of the carousel: sets up Embla, keyboard navigation and the context for its parts. */
-export const Carousel = forwardRef<HTMLDivElement, CarouselProps>(function Carousel(
+export const Carousel = /* @__PURE__ */ forwardRef<HTMLDivElement, CarouselProps>(function Carousel(
   { orientation = "horizontal", opts, setApi, plugins, className, children, onKeyDownCapture, ...props },
   ref,
 ) {
@@ -126,7 +126,7 @@ export const Carousel = forwardRef<HTMLDivElement, CarouselProps>(function Carou
 });
 
 /** Viewport + slide track. */
-export const CarouselContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+export const CarouselContent = /* @__PURE__ */ forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   function CarouselContent({ className, ...props }, ref) {
     const { carouselRef, orientation } = useCarousel();
     return (
@@ -143,7 +143,7 @@ export const CarouselContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDiv
 );
 
 /** One slide. Use `basis-1/2`, `basis-1/3` … to show several slides per view. */
-export const CarouselItem = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+export const CarouselItem = /* @__PURE__ */ forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   function CarouselItem({ className, ...props }, ref) {
     const { orientation } = useCarousel();
     return (
@@ -178,7 +178,7 @@ export interface CarouselNextProps extends ButtonProps {
 const navButtonBase = "absolute rounded-full";
 
 /** Scrolls to the previous slide; disabled at the start (unless `loop`). */
-export const CarouselPrevious = forwardRef<HTMLElement, CarouselPreviousProps>(function CarouselPrevious(
+export const CarouselPrevious = /* @__PURE__ */ forwardRef<HTMLElement, CarouselPreviousProps>(function CarouselPrevious(
   { className, variant = "outline", size = "icon-sm", label = "Previous slide", onClick, ...props },
   ref,
 ) {
@@ -213,7 +213,7 @@ export const CarouselPrevious = forwardRef<HTMLElement, CarouselPreviousProps>(f
 });
 
 /** Scrolls to the next slide; disabled at the end (unless `loop`). */
-export const CarouselNext = forwardRef<HTMLElement, CarouselNextProps>(function CarouselNext(
+export const CarouselNext = /* @__PURE__ */ forwardRef<HTMLElement, CarouselNextProps>(function CarouselNext(
   { className, variant = "outline", size = "icon-sm", label = "Next slide", onClick, ...props },
   ref,
 ) {

@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@pre_scripts/preui": ["../../src/index.ts"]
+    }
+  },
+  "include": ["src", "../../vitest.setup.ts"]
+}

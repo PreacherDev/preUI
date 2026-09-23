@@ -1,6 +1,6 @@
 # Befehle & Abläufe
 
-Alle Befehle im Ordner `G:\custom-ui-libraries\preUI-0.0.1` ausführen, sofern nicht anders angegeben.
+Alle Befehle im Ordner `G:\custom-ui-libraries\preUI` ausführen, sofern nicht anders angegeben.
 
 ---
 
@@ -29,7 +29,7 @@ Base-UI-Doku liegt lokal unter `node_modules/@base-ui/react/docs/react/component
    - Namen zu `IconName` in `src/icons/types.ts` hinzufügen
    - Default-SVG in `src/icons/defaults.tsx` und Mapping in `src/icons/adapters/lucide.tsx` ergänzen
    - In der Komponente: `const Icon = useIcon("<name>");`
-4. Braucht sie **neue Farben/Tokens**: in `src/tailwind/preset.ts` ergänzen (Variable in `baseTokens`,
+4. Braucht sie **neue Farben/Tokens**: Variable in `src/tailwind/tokens.ts` ergänzen (in `baseTokens`,
    Farbe in `theme.extend.colors.pui`).
    Neue Radius-/Schatten-/Schriftgrößen-Namen auch in `src/utils/cn.ts` (tailwind-merge) eintragen.
 5. Demo anlegen: `preUI-playground/src/demos/<Name>Demo.tsx` mit `export function <Name>Demo()` –
@@ -46,7 +46,7 @@ Base-UI-Doku liegt lokal unter `node_modules/@base-ui/react/docs/react/component
 
 ## Library im Playground testen
 
-Playground liegt unter `G:custom-ui-librariespreUI-playground`.
+Playground liegt unter `G:\custom-ui-libraries\preUI-playground`.
 
 - Jede Datei `src/demos/*Demo.tsx` erscheint automatisch (Seitenleiste + Abschnitt).
 - Oben rechts: Icons (eingebaut / lucide) umschalten. Eigene Themes: Seite „Theme“ (`?page=theme`).
@@ -61,11 +61,11 @@ Zwei Terminals:
 
 ```bash
 # Terminal 1 – Library
-cd G:custom-ui-librariespreUI-0.0.1
+cd G:\custom-ui-libraries\preUI
 npm run dev
 
 # Terminal 2 – Playground
-cd G:custom-ui-librariespreUI-playground
+cd G:\custom-ui-libraries\preUI-playground
 npm run dev
 ```
 
@@ -85,7 +85,7 @@ npm run dev
 Nur nötig, falls der Playground neu aufgesetzt wird. Im Playground-Ordner:
 
 ```bash
-npm install ../preUI-0.0.1 lucide-react @fontsource-variable/inter @fontsource/jetbrains-mono
+npm install ../preUI lucide-react @fontsource-variable/inter @fontsource/jetbrains-mono
 npm install recharts react-is react-day-picker embla-carousel-react cmdk react-resizable-panels react-hook-form @tanstack/react-table @tanstack/table-core
 npm install shiki @codemirror/state @codemirror/view @codemirror/language @codemirror/commands @codemirror/language-data @codemirror/search @codemirror/autocomplete @lezer/highlight react-markdown remark-gfm @tiptap/core @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/markdown @tiptap/extensions
 npm install -D tailwindcss@^3 postcss autoprefixer
@@ -130,7 +130,7 @@ export default defineConfig({
   plugins: [react()],
   // eine Instanz je Library, sonst brechen React-Contexts (react-hook-form, recharts …)
   resolve: { dedupe: ["react", "react-dom", "recharts", "react-day-picker", "embla-carousel-react", "cmdk", "react-resizable-panels", "react-hook-form", "@tanstack/react-table", "@codemirror/state", "@codemirror/view", "@codemirror/language", "@lezer/highlight", "@lezer/common", "@lezer/lr", "@tiptap/core", "@tiptap/pm", "@tiptap/react", "react-markdown", "shiki"] },
-  server: { fs: { allow: [".."] } },          // Schriftdateien aus ../preUI-0.0.1 im Dev-Modus erlauben
+  server: { fs: { allow: [".."] } },          // Schriftdateien aus ../preUI im Dev-Modus erlauben
 });
 ```
 
@@ -142,7 +142,7 @@ export default defineConfig({
 |---|---|
 | Tokens als eigene Datei (wie shadcn) | Im Nutzer-Projekt: `npx preui init` → `src/preui.css` (dunkel + hell), dazu `createPreuiPreset({ injectTokens: false })` |
 | Nur ein Schema schreiben | `npx preui init --scheme dark` bzw. `--scheme light` (Standard: `both`; auch `--scheme=light`) |
-| Neues Token einführen | In `src/tailwind/preset.ts` in `baseTokens` **und** `lightSchemeTokens` (gleiche Schlüssel, ein Test prüft das; Maße/Motion/Schrift nur in `sharedTokenNames`) + Tailwind-Key in `theme.extend`; neue Klassennamen in `src/utils/cn.ts` (tailwind-merge) eintragen; Token-Tabelle in COMPONENT_GUIDE.md |
+| Neues Token einführen | In `src/tailwind/tokens.ts` in `baseTokens` **und** `lightSchemeTokens` (gleiche Schlüssel, ein Test prüft das; Maße/Motion/Schrift nur in `sharedTokenNames`) + Tailwind-Key in `theme.extend` (`src/tailwind/preset.ts`); Kontrast-Test (`src/theming/theming.test.ts`) muss grün bleiben; neue Klassennamen in `src/utils/cn.ts` (tailwind-merge) eintragen; Token-Tabelle in COMPONENT_GUIDE.md |
 | Tokens ausprobieren | Playground `?page=theme` (Theme-Builder: Basis Dunkel / Hell / Beide, CSS kopieren/herunterladen) |
 | Hell/Dunkel im Playground | Schema-Menü oben rechts oder `?scheme=light` / `?scheme=dark` / `?scheme=system` |
 | `tokens.css` | wird bei `npm run build` aus dem Preset erzeugt (`scripts/generate-tokens.mjs`), enthält beide Blöcke |
@@ -191,9 +191,9 @@ Optional: das echte Paket im Playground testen
 ```bash
 npm pack                                            # erzeugt pre_scripts-preui-<version>.tgz
 cd ../preUI-playground
-npm install ../preUI-0.0.1/pre_scripts-preui-<version>.tgz
+npm install ../preUI/pre_scripts-preui-<version>.tgz
 # testen, danach wieder auf den lokalen Ordner umstellen:
-npm install ../preUI-0.0.1
+npm install ../preUI
 ```
 
 Die `.tgz`-Datei danach löschen (nicht committen).

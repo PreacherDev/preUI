@@ -20,7 +20,7 @@ import { renderListInScrollArea } from "./list-scroll-area";
 export const Select = BaseSelect.Root;
 export type SelectGroupProps = ComponentPropsWithoutRef<typeof BaseSelect.Group>;
 
-export const SelectGroup = forwardRef<ComponentRef<typeof BaseSelect.Group>, SelectGroupProps>(function SelectGroup(
+export const SelectGroup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.Group>, SelectGroupProps>(function SelectGroup(
   props,
   ref,
 ) {
@@ -32,7 +32,7 @@ export interface SelectTriggerProps extends ComponentPropsWithoutRef<typeof Base
 }
 
 /** Field-styled trigger with an up/down chevron. Put a `SelectValue` inside. */
-export const SelectTrigger = forwardRef<ComponentRef<typeof BaseSelect.Trigger>, SelectTriggerProps>(
+export const SelectTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.Trigger>, SelectTriggerProps>(
   function SelectTrigger({ className, size = "default", children, ...props }, ref) {
     const ChevronsUpDown = useIcon("chevronsUpDown");
     return (
@@ -63,7 +63,7 @@ export const SelectTrigger = forwardRef<ComponentRef<typeof BaseSelect.Trigger>,
 
 export type SelectValueProps = ComponentPropsWithoutRef<typeof BaseSelect.Value>;
 
-export const SelectValue = forwardRef<ComponentRef<typeof BaseSelect.Value>, SelectValueProps>(function SelectValue(
+export const SelectValue = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.Value>, SelectValueProps>(function SelectValue(
   { className, ...props },
   ref,
 ) {
@@ -95,13 +95,15 @@ export interface SelectContentProps extends ComponentPropsWithoutRef<typeof Base
    * Off by default — the list scrolls with the preUI ScrollArea thumb, wheel and keyboard.
    */
   scrollButtons?: boolean;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseSelect.Portal.Props["container"];
 }
 
 /**
  * Portal + Positioner + Popup + List in one, styled as a floating list below the trigger.
  * The list scrolls inside a preUI ScrollArea (floating thumb, no native scrollbar).
  */
-export const SelectContent = forwardRef<ComponentRef<typeof BaseSelect.Popup>, SelectContentProps>(
+export const SelectContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.Popup>, SelectContentProps>(
   function SelectContent(
     {
       className,
@@ -113,13 +115,14 @@ export const SelectContent = forwardRef<ComponentRef<typeof BaseSelect.Popup>, S
       positionerProps,
       listClassName,
       scrollButtons = false,
+      container,
       children,
       ...props
     },
     ref,
   ) {
     return (
-      <BaseSelect.Portal>
+      <BaseSelect.Portal container={container}>
         <BaseSelect.Positioner
           side={side}
           align={align}
@@ -150,7 +153,7 @@ export const SelectContent = forwardRef<ComponentRef<typeof BaseSelect.Popup>, S
 export type SelectItemProps = ComponentPropsWithoutRef<typeof BaseSelect.Item>;
 
 /** Option with a check mark on the right when selected. */
-export const SelectItem = forwardRef<ComponentRef<typeof BaseSelect.Item>, SelectItemProps>(function SelectItem(
+export const SelectItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.Item>, SelectItemProps>(function SelectItem(
   { className, children, ...props },
   ref,
 ) {
@@ -168,7 +171,7 @@ export const SelectItem = forwardRef<ComponentRef<typeof BaseSelect.Item>, Selec
 export type SelectLabelProps = ComponentPropsWithoutRef<typeof BaseSelect.GroupLabel>;
 
 /** Eyebrow label of a `SelectGroup` (announced as the group's name). Label the field itself with `FieldLabel`. */
-export const SelectLabel = forwardRef<ComponentRef<typeof BaseSelect.GroupLabel>, SelectLabelProps>(
+export const SelectLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.GroupLabel>, SelectLabelProps>(
   function SelectLabel({ className, ...props }, ref) {
     return <BaseSelect.GroupLabel ref={ref} data-slot="select-label" className={mergeClassName(groupLabelClass, className)} {...props} />;
   },
@@ -176,7 +179,7 @@ export const SelectLabel = forwardRef<ComponentRef<typeof BaseSelect.GroupLabel>
 
 export type SelectSeparatorProps = ComponentPropsWithoutRef<typeof BaseSelect.Separator>;
 
-export const SelectSeparator = forwardRef<ComponentRef<typeof BaseSelect.Separator>, SelectSeparatorProps>(
+export const SelectSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.Separator>, SelectSeparatorProps>(
   function SelectSeparator({ className, ...props }, ref) {
     return <BaseSelect.Separator ref={ref} data-slot="select-separator" className={mergeClassName(separatorClass, className)} {...props} />;
   },
@@ -190,7 +193,7 @@ const scrollButtonClass = [
 export type SelectScrollUpButtonProps = ComponentPropsWithoutRef<typeof BaseSelect.ScrollUpArrow>;
 
 /** Shown at the top of an overflowing list; scrolls up while hovered. Enable in `SelectContent` with `scrollButtons`. */
-export const SelectScrollUpButton = forwardRef<ComponentRef<typeof BaseSelect.ScrollUpArrow>, SelectScrollUpButtonProps>(
+export const SelectScrollUpButton = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSelect.ScrollUpArrow>, SelectScrollUpButtonProps>(
   function SelectScrollUpButton({ className, children, ...props }, ref) {
     const ChevronUp = useIcon("chevronUp");
     return (
@@ -209,7 +212,7 @@ export const SelectScrollUpButton = forwardRef<ComponentRef<typeof BaseSelect.Sc
 export type SelectScrollDownButtonProps = ComponentPropsWithoutRef<typeof BaseSelect.ScrollDownArrow>;
 
 /** Shown at the bottom of an overflowing list; scrolls down while hovered. Enable in `SelectContent` with `scrollButtons`. */
-export const SelectScrollDownButton = forwardRef<
+export const SelectScrollDownButton = /* @__PURE__ */ forwardRef<
   ComponentRef<typeof BaseSelect.ScrollDownArrow>,
   SelectScrollDownButtonProps
 >(function SelectScrollDownButton({ className, children, ...props }, ref) {

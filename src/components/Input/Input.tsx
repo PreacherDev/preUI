@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import { mergeClassName } from "../../utils/cn";
 
 /** Shared text-field look (Input, Field control). */
-export const inputVariants = cva(
+export const inputVariants = /* @__PURE__ */ cva(
   [
     "flex w-full min-w-0 rounded-pui-md border border-pui-input bg-pui-background text-pui-foreground",
     "placeholder:text-pui-muted-foreground",
@@ -39,7 +39,7 @@ export interface InputProps extends Omit<BaseInput.Props, "size"> {
 }
 
 /** Single-line text field. Works standalone or inside `Field` (label, description, validation). */
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+export const Input = /* @__PURE__ */ forwardRef<HTMLInputElement, InputProps>(function Input(
   { className, size, htmlSize, ...props },
   ref,
 ) {

@@ -7,10 +7,12 @@ const [command, ...args] = process.argv.slice(2);
 
 // `--scheme light` and `--scheme=light` both work.
 let scheme = "both";
+let colorScheme = true;
 const rest = [];
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
-  if (arg === "--scheme") scheme = args[++i] ?? "";
+  if (arg === "--no-color-scheme") colorScheme = false;
+  else if (arg === "--scheme") scheme = args[++i] ?? "";
   else if (arg.startsWith("--scheme=")) scheme = arg.slice("--scheme=".length);
   else rest.push(arg);
 }
@@ -29,6 +31,7 @@ Options:
                                 both   dark on :root + light under [data-scheme="light"] (for <ThemeProvider>)
                                 dark   only the dark tokens on :root
                                 light  only the light tokens on :root
+  --no-color-scheme           Leave out \`color-scheme\` (FiveM NUI: keeps the transparent iframe transparent)
 `);
 }
 
@@ -49,7 +52,7 @@ if (existsSync(file) && !flags.has("--force")) {
 }
 
 const { tokensToCss } = await import("../dist/tailwind.js");
-const css = tokensToCss({ header: true, scheme });
+const css = tokensToCss({ header: true, scheme, colorScheme });
 
 mkdirSync(dirname(file), { recursive: true });
 writeFileSync(file, css);

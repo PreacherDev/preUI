@@ -16,4 +16,11 @@ export type {
   ThemeToggleProps,
 } from "./Theme";
 export { getThemeScript } from "./theme-script";
-export type { ResolvedScheme, SchemePreference, ThemeOptions, ThemeSupport } from "./theme-script";
+export type {
+  ResolvedScheme,
+  SchemePreference,
+  ThemeOptions,
+  ThemeStorage,
+  ThemeStorageValue,
+  ThemeSupport,
+} from "./theme-script";

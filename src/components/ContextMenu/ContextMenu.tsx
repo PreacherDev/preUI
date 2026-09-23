@@ -37,7 +37,7 @@ export const ContextMenu = BaseContextMenu.Root;
 export type ContextMenuTriggerProps = ComponentPropsWithoutRef<typeof BaseContextMenu.Trigger>;
 
 /** The area that opens the menu on right click / long press. Renders a `<div>`. */
-export const ContextMenuTrigger = forwardRef<ComponentRef<typeof BaseContextMenu.Trigger>, ContextMenuTriggerProps>(
+export const ContextMenuTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseContextMenu.Trigger>, ContextMenuTriggerProps>(
   function ContextMenuTrigger(props, ref) {
     return <BaseContextMenu.Trigger ref={ref} data-slot="context-menu-trigger" {...props} />;
   },
@@ -68,17 +68,19 @@ export interface ContextMenuContentProps extends ComponentPropsWithoutRef<typeof
   alignOffset?: PositionerProps["alignOffset"];
   /** Props for the positioner element (e.g. `anchor`, `collisionPadding`, `className`). */
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
+  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  container?: BaseContextMenu.Portal.Props["container"];
 }
 
 /** Portal + Positioner + Popup in one. Opens at the pointer, styled like `DropdownMenuContent`. */
-export const ContextMenuContent = forwardRef<ComponentRef<typeof BaseContextMenu.Popup>, ContextMenuContentProps>(
+export const ContextMenuContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseContextMenu.Popup>, ContextMenuContentProps>(
   function ContextMenuContent(
-    { className, side = "bottom", align = "start", sideOffset = 2, alignOffset = 2, positionerProps, children, ...props },
+    { className, side = "bottom", align = "start", sideOffset = 2, alignOffset = 2, positionerProps, container, children, ...props },
     ref,
   ) {
     return (
       <MenuSlotContext.Provider value="context-menu">
-        <BaseContextMenu.Portal>
+        <BaseContextMenu.Portal container={container}>
           <BaseContextMenu.Positioner
             side={side}
             align={align}

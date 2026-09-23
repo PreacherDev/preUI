@@ -79,7 +79,7 @@ interface FormFieldContextValue {
   name: string;
 }
 
-const FormFieldContext = createContext<FormFieldContextValue | null>(null);
+const FormFieldContext = /* @__PURE__ */ createContext<FormFieldContextValue | null>(null);
 
 export type FormFieldProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -114,7 +114,7 @@ interface FormItemContextValue {
   setPart: (part: FormItemPart, present: boolean) => void;
 }
 
-const FormItemContext = createContext<FormItemContextValue | null>(null);
+const FormItemContext = /* @__PURE__ */ createContext<FormItemContextValue | null>(null);
 
 /** Tells the item whether a description / message is rendered, so `aria-describedby` only lists real ids. */
 function useRegisterPart(part: FormItemPart, present: boolean) {
@@ -161,7 +161,7 @@ export interface FormItemProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /** Layout wrapper for one field (label, control, description, message); provides the ids that link them. */
-export const FormItem = forwardRef<HTMLDivElement, FormItemProps>(function FormItem(
+export const FormItem = /* @__PURE__ */ forwardRef<HTMLDivElement, FormItemProps>(function FormItem(
   { className, orientation = "vertical", ...props },
   ref,
 ) {
@@ -192,7 +192,7 @@ export const FormItem = forwardRef<HTMLDivElement, FormItemProps>(function FormI
 export type FormLabelProps = ComponentPropsWithoutRef<typeof Label>;
 
 /** Field label linked to the `FormControl`; turns negative while the field has an error. */
-export const FormLabel = forwardRef<ComponentRef<typeof Label>, FormLabelProps>(function FormLabel(
+export const FormLabel = /* @__PURE__ */ forwardRef<ComponentRef<typeof Label>, FormLabelProps>(function FormLabel(
   { className, ...props },
   ref,
 ) {
@@ -249,7 +249,7 @@ export interface FormControlProps extends HTMLAttributes<HTMLElement> {
  * slot sets it itself. Works with Input, Textarea, SelectTrigger, Checkbox, Switch, RadioGroup and
  * NumberField (for NumberField the ARIA attributes go to its inner `<input>` via `inputProps`).
  */
-export const FormControl = forwardRef<HTMLElement, FormControlProps>(function FormControl(
+export const FormControl = /* @__PURE__ */ forwardRef<HTMLElement, FormControlProps>(function FormControl(
   { children, render, ...slotProps },
   ref,
 ) {
@@ -297,7 +297,7 @@ export const FormControl = forwardRef<HTMLElement, FormControlProps>(function Fo
 export type FormDescriptionProps = HTMLAttributes<HTMLParagraphElement>;
 
 /** Muted hint below the control; referenced by the control's `aria-describedby`. */
-export const FormDescription = forwardRef<HTMLParagraphElement, FormDescriptionProps>(function FormDescription(
+export const FormDescription = /* @__PURE__ */ forwardRef<HTMLParagraphElement, FormDescriptionProps>(function FormDescription(
   { className, ...props },
   ref,
 ) {
@@ -317,7 +317,7 @@ export const FormDescription = forwardRef<HTMLParagraphElement, FormDescriptionP
 export type FormMessageProps = HTMLAttributes<HTMLParagraphElement>;
 
 /** The field's error message (or `children` when there is no error); renders nothing when both are empty. */
-export const FormMessage = forwardRef<HTMLParagraphElement, FormMessageProps>(function FormMessage(
+export const FormMessage = /* @__PURE__ */ forwardRef<HTMLParagraphElement, FormMessageProps>(function FormMessage(
   { className, children, ...props },
   ref,
 ) {
