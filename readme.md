@@ -104,7 +104,7 @@ Besides the components, the main package exports:
 
 | Export | Purpose |
 |---|---|
-| `buttonVariants`, `badgeVariants`, `alertVariants`, `avatarVariants`, `buttonGroupVariants`, `toggleVariants`, `toggleGroupVariants`, `toolbarVariants`, `inputVariants`, `inputGroupAddonVariants`, `inputGroupButtonVariants`, `numberFieldVariants`, `itemVariants`, `itemMediaVariants`, `emptyMediaVariants`, `progressIndicatorVariants`, `meterIndicatorVariants`, `navigationMenuTriggerStyle`, `sidebarMenuButtonVariants`, `progressCircleIndicatorVariants`, `keybindHintBarVariants`, `keybindHintVariants`, `hudStatusGroupVariants`, `listMenuItemVariants`, `listMenuItemIconVariants` | Style helpers (cva), e.g. to style a plain `<a>` like a button |
+| `buttonVariants`, `badgeVariants`, `alertVariants`, `avatarVariants`, `buttonGroupVariants`, `toggleVariants`, `toggleGroupVariants`, `toolbarVariants`, `inputVariants`, `inputGroupAddonVariants`, `inputGroupButtonVariants`, `numberFieldVariants`, `itemVariants`, `itemMediaVariants`, `emptyMediaVariants`, `progressIndicatorVariants`, `meterIndicatorVariants`, `navigationMenuTriggerStyle`, `sidebarMenuButtonVariants`, `progressCircleIndicatorVariants`, `keybindHintBarVariants`, `keybindHintVariants`, `hudStatusGroupVariants`, `listMenuItemVariants`, `listMenuItemIconVariants`, `sidebarMenuBadgeVariants` | Style helpers (cva), e.g. to style a plain `<a>` like a button |
 | `cn`, `mergeClassName` | Class merging (tailwind-merge); `mergeClassName` also accepts Base UI's function-form `className` |
 | `IconProvider`, `useIcon`, `defaultIcons` | Icon slots (see [Icons](#icons)) |
 | `ThemeProvider`, `useTheme`, `ThemeScript`, `getThemeScript`, `ThemeToggle`, `ThemeSelect` | Light/dark scheme + your named themes (see [Theming: scheme & themes](#theming-scheme--themes)); types `ThemeStorage`, `ThemeStorageValue` |
@@ -210,6 +210,51 @@ while dragging, `onValueCommit` at the end of a drag, per key press, on Enter/bl
 receive the exact HSV state. The hue stays put when the colour becomes grey or black. Accessible names are English by
 default — pass `labels={{ area: "…", hue: "…", … }}` and `getAreaValueText` for other languages. `useColorPicker()`
 gives own parts (e.g. HSL fields) access to the state.
+
+### DatePicker in a Field
+
+`DatePicker` and `DateRangePicker` (`@pre_scripts/preui/calendar`) work inside `Field` like `Input` or `Select`: the
+`FieldLabel` labels the trigger (clicking it opens the calendar; the accessible name is label + current value),
+`FieldDescription` / `FieldError` describe it, and `<Field disabled>` / `<Field invalid>` disable it or mark it invalid
+(`aria-invalid`, `data-invalid`, negative border). Outside a Field, pass `invalid` directly.
+
+```tsx
+<Field invalid={!date}>
+  <FieldLabel>Due date</FieldLabel>
+  <DatePicker value={date ?? null} onValueChange={setDate} placeholder="Pick a date" />
+  <FieldError match>Pick a due date.</FieldError>
+</Field>
+<DatePicker invalid aria-label="Cut-off date" />
+```
+
+A Field's `invalid` prop does not fill Base UI's validity state, so render the error with `match` (or conditionally).
+Field `validate` / `validationMode` do not run for the pickers; validate the value yourself.
+
+### DataTable: opening rows
+
+`onRowActivate(row, event)` makes body rows activatable, e.g. to open a detail sheet: a click or Enter / Space on a
+focused row calls it. Activatable rows are focusable (`tabIndex=0`), show a pointer cursor and carry `data-activatable`.
+Clicks on interactive elements inside a row (buttons, links, inputs, checkboxes, menus, anything with
+`data-row-activation="ignore"`) and in columns with `meta: { rowActivation: false }` don't activate it; the selection
+checkbox column already has that set. `onRowClick(row, event)` is the mouse-only variant with no tab stop.
+`getRowProps(row)` adds classes, `data-*` / `aria-*` attributes or handlers per row; its `onClick` / `onKeyDown` run
+first and can stop the activation with `event.preventDefault()`.
+
+```tsx
+<DataTable
+  columns={columns}
+  data={people}
+  onRowActivate={(row) => openPerson(row.original.id)}
+  getRowProps={(row) => ({ className: row.original.wanted ? "text-pui-negative" : undefined })}
+/>
+```
+
+### Sidebar badges
+
+`SidebarMenuBadge` takes a `variant` named like `Badge`'s: `default` (primary), `secondary`, `positive`, `warning`,
+`destructive`, `info`. They are solid fills, readable at counter size, e.g.
+`<SidebarMenuBadge variant="destructive">3</SidebarMenuBadge>` for urgent items. For counts inside tabs, put a `Badge`
+in the `TabsTrigger`.
 
 ### Code, Markdown & rich text
 

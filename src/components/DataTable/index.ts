@@ -1,5 +1,5 @@
 export { DataTable } from "./DataTable";
-export type { DataTableProps } from "./DataTable";
+export type { DataTableProps, DataTableRowProps } from "./DataTable";
 export { DataTableColumnHeader } from "./DataTableColumnHeader";
 export type { DataTableColumnHeaderProps } from "./DataTableColumnHeader";
 export { DataTablePagination } from "./DataTablePagination";

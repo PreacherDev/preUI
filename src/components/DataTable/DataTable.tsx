@@ -9,15 +9,72 @@ import {
   type SortingState,
   type TableOptions,
 } from "@tanstack/react-table";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ComponentPropsWithoutRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { cn } from "../../utils/cn";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../Table/Table";
 import { createSelectColumn } from "./createSelectColumn";
 import { DataTablePagination, type DataTablePaginationProps } from "./DataTablePagination";
 import { DataTableToolbar } from "./DataTableToolbar";
 import type { DataTableViewOptionsProps } from "./DataTableViewOptions";
-import { dataTableFeatures, type DataTableColumnDef, type DataTableFeatures } from "./features";
+import { dataTableFeatures, type DataTableColumnDef, type DataTableFeatures, type DataTableRow } from "./features";
 import { getAlignClass } from "./utils";
+
+/** Extra attributes for a body row (`getRowProps`); `data-*` attributes are allowed. */
+export type DataTableRowProps = ComponentPropsWithoutRef<"tr"> & {
+  [key: `data-${string}`]: string | number | boolean | undefined;
+};
+
+/**
+ * Elements inside a row that handle clicks themselves — a click on (or in) one never activates the row. Also
+ * matches `[data-row-activation="ignore"]`, which you can put on any custom element.
+ */
+const INTERACTIVE_SELECTOR = [
+  "a[href]",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "label",
+  "summary",
+  "[contenteditable]:not([contenteditable=false])",
+  '[role="button"]',
+  '[role="link"]',
+  '[role="checkbox"]',
+  '[role="radio"]',
+  '[role="switch"]',
+  '[role="menuitem"]',
+  '[role="menuitemcheckbox"]',
+  '[role="menuitemradio"]',
+  '[role="option"]',
+  '[role="combobox"]',
+  '[role="slider"]',
+  '[role="spinbutton"]',
+  '[role="tab"]',
+  '[role="textbox"]',
+  '[data-row-activation="ignore"]',
+].join(",");
+
+/**
+ * Whether a click at `target` should activate `row`: it must be a DOM descendant of the row (React also bubbles
+ * clicks from portaled menus / dialogs opened inside a cell), not inside an interactive element, and not the end
+ * of a text selection within the row.
+ */
+function isRowActivationTarget(row: HTMLElement, target: EventTarget | null) {
+  if (!(target instanceof Element) || !row.contains(target)) return false;
+  const interactive = target.closest(INTERACTIVE_SELECTOR);
+  if (interactive && interactive !== row && row.contains(interactive)) return false;
+  const selection = row.ownerDocument.defaultView?.getSelection?.();
+  if (selection && !selection.isCollapsed && selection.anchorNode && row.contains(selection.anchorNode)) return false;
+  return true;
+}
 
 export interface DataTableProps<TData extends RowData> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- columns carry different value types
@@ -63,6 +120,23 @@ export interface DataTableProps<TData extends RowData> {
   layout?: "fixed" | "auto";
   /** Classes for the table's bordered, scrolling container. */
   containerClassName?: string;
+  /**
+   * Makes body rows activatable (e.g. open a detail sheet): called on a click on the row and on Enter / Space while
+   * the row has focus. Activatable rows are focusable (`tabIndex={0}`), show a pointer cursor and carry
+   * `data-activatable`. Clicks on interactive elements inside the row (buttons, links, inputs, checkboxes, menus,
+   * `[data-row-activation="ignore"]`) and in columns with `meta.rowActivation: false` don't activate it.
+   */
+  onRowActivate?: (row: DataTableRow<TData>, event: MouseEvent<HTMLTableRowElement> | KeyboardEvent<HTMLTableRowElement>) => void;
+  /**
+   * Mouse-only row click with the same filtering as `onRowActivate` (interactive elements are ignored). Rows get a
+   * pointer cursor but no tab stop — prefer `onRowActivate` so keyboard users can open rows too.
+   */
+  onRowClick?: (row: DataTableRow<TData>, event: MouseEvent<HTMLTableRowElement>) => void;
+  /**
+   * Extra props per body row (classes, `data-*`, `aria-*`, handlers). `className` is merged; `onClick` /
+   * `onKeyDown` run before the row activation and can stop it with `event.preventDefault()`.
+   */
+  getRowProps?: (row: DataTableRow<TData>) => DataTableRowProps;
 }
 
 /** Smallest width of a column without `meta.width` in the fixed layout (`meta.minWidth` overrides it). */
@@ -94,6 +168,9 @@ export function DataTable<TData extends RowData>({
   tableClassName,
   layout = "fixed",
   containerClassName,
+  onRowActivate,
+  onRowClick,
+  getRowProps,
 }: DataTableProps<TData>) {
   const selectable = enableRowSelection !== false;
 
@@ -146,6 +223,61 @@ export function DataTable<TData extends RowData>({
   const rows = table.getRowModel().rows;
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const showToolbar = filterColumn != null || enableColumnVisibility || toolbar != null;
+  const activatable = onRowActivate != null;
+  const clickable = activatable || onRowClick != null;
+
+  const renderRow = (row: DataTableRow<TData>) => {
+    const { className: rowClassName, onClick, onKeyDown, ...rowProps } = getRowProps?.(row) ?? {};
+    const cellActivates = (target: EventTarget | null) => {
+      const cell = target instanceof Element ? target.closest("td") : null;
+      const cellId = cell?.getAttribute("data-column-id");
+      if (!cellId) return true;
+      return table.getColumn(cellId)?.columnDef.meta?.rowActivation !== false;
+    };
+    return (
+      <TableRow
+        key={row.id}
+        data-state={row.getIsSelected() ? "selected" : undefined}
+        data-activatable={activatable ? "" : undefined}
+        tabIndex={activatable ? 0 : undefined}
+        {...rowProps}
+        className={cn(
+          clickable && "cursor-pointer",
+          activatable &&
+            "focus-visible:bg-pui-accent/40 focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-pui-ring",
+          rowClassName,
+        )}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!clickable || event.defaultPrevented) return;
+          if (!isRowActivationTarget(event.currentTarget, event.target) || !cellActivates(event.target)) return;
+          onRowClick?.(row, event);
+          onRowActivate?.(row, event);
+        }}
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          if (!activatable || event.defaultPrevented || event.target !== event.currentTarget) return;
+          if (event.key !== "Enter" && event.key !== " ") return;
+          if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
+          event.preventDefault(); // Space would scroll the page
+          onRowActivate(row, event);
+        }}
+      >
+        {row.getVisibleCells().map((cell) => {
+          const meta = cell.column.columnDef.meta;
+          return (
+            <TableCell
+              key={cell.id}
+              data-column-id={clickable ? cell.column.id : undefined}
+              className={cn(getAlignClass(meta?.align), clickable && meta?.rowActivation === false && "cursor-auto", meta?.cellClassName)}
+            >
+              <table.FlexRender cell={cell} />
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    );
+  };
 
   // table-layout: fixed ignores min-width on cells, so the table itself gets the sum of the column widths
   // (unsized columns count with their minimum) as min-width.
@@ -199,18 +331,7 @@ export function DataTable<TData extends RowData>({
           </TableHeader>
           <TableBody>
             {rows.length > 0 ? (
-              rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta;
-                    return (
-                      <TableCell key={cell.id} className={cn(getAlignClass(meta?.align), meta?.cellClassName)}>
-                        <table.FlexRender cell={cell} />
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))
+              rows.map(renderRow)
             ) : (
               <TableRow>
                 <TableCell

@@ -4,6 +4,7 @@ import { createRef, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { de } from "react-day-picker/locale";
 import { Calendar, DatePicker, DateRangePicker } from ".";
+import { Field, FieldDescription, FieldError, FieldLabel } from "../Field";
 
 const JAN_2025 = new Date(2025, 0, 1);
 
@@ -161,6 +162,95 @@ describe("DatePicker", () => {
   it("can be disabled", () => {
     render(<DatePicker placeholder="Datum" disabled />);
     expect(screen.getByRole("button", { name: "Datum" })).toBeDisabled();
+  });
+});
+
+describe("DatePicker in a Field", () => {
+  it("takes its name from the FieldLabel and its description from FieldDescription", async () => {
+    const user = userEvent.setup();
+    render(
+      <Field>
+        <FieldLabel>Geburtsdatum</FieldLabel>
+        <DatePicker placeholder="Datum wählen" />
+        <FieldDescription>Wie im Ausweis</FieldDescription>
+      </Field>,
+    );
+    const trigger = screen.getByRole("button", { name: "Geburtsdatum Datum wählen" });
+    const label = screen.getByText("Geburtsdatum");
+    expect(label).toHaveAttribute("for", trigger.id);
+    expect(trigger).toHaveAccessibleDescription("Wie im Ausweis");
+    expect(trigger).not.toHaveAttribute("aria-invalid");
+    expect(trigger).not.toHaveAttribute("data-invalid");
+    await user.click(label);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("follows Field invalid: aria-invalid, data-invalid, error as description", () => {
+    render(
+      <Field invalid>
+        <FieldLabel>Einreisedatum</FieldLabel>
+        <DatePicker placeholder="Datum wählen" />
+        <FieldError match>Bitte wähle ein Datum</FieldError>
+      </Field>,
+    );
+    const trigger = screen.getByRole("button", { name: /Einreisedatum/ });
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(trigger).toHaveAttribute("data-invalid");
+    expect(trigger).toHaveClass("data-[invalid]:border-pui-negative");
+    expect(trigger).toHaveAccessibleDescription("Bitte wähle ein Datum");
+  });
+
+  it("is disabled by a disabled Field", () => {
+    render(
+      <Field disabled>
+        <FieldLabel>Zeitraum</FieldLabel>
+        <DateRangePicker placeholder="Von – bis" />
+      </Field>,
+    );
+    expect(screen.getByRole("button", { name: /Zeitraum/ })).toBeDisabled();
+  });
+
+  it("DateRangePicker gets label, value and invalid from the Field", () => {
+    render(
+      <Field invalid>
+        <FieldLabel>Urlaub</FieldLabel>
+        <DateRangePicker
+          value={{ from: new Date(2025, 0, 3), to: new Date(2025, 0, 9) }}
+          formatDate={(d) => String(d.getDate())}
+        />
+      </Field>,
+    );
+    const trigger = screen.getByRole("button", { name: "Urlaub 3 – 9" });
+    expect(trigger).toHaveAttribute("data-invalid");
+    expect(trigger).toHaveAttribute("data-filled");
+  });
+
+  it("supports an explicit invalid prop without a Field and keeps an own aria-label", () => {
+    render(<DatePicker invalid aria-label="Stichtag" />);
+    const trigger = screen.getByRole("button", { name: "Stichtag" });
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(trigger).toHaveAttribute("data-invalid");
+    expect(trigger).not.toHaveAttribute("aria-labelledby");
+  });
+
+  it("keeps a user id and forwards onFocus / onBlur", async () => {
+    const user = userEvent.setup();
+    const onFocus = vi.fn();
+    const onBlur = vi.fn();
+    render(
+      <Field>
+        <FieldLabel>Datum</FieldLabel>
+        <DatePicker id="stichtag" onFocus={onFocus} onBlur={onBlur} />
+      </Field>,
+    );
+    const trigger = screen.getByRole("button", { name: /Datum/ });
+    expect(trigger).toHaveAttribute("id", "stichtag");
+    expect(screen.getByText("Datum")).toHaveAttribute("for", "stichtag");
+    await user.tab();
+    expect(onFocus).toHaveBeenCalled();
+    await user.tab();
+    expect(onBlur).toHaveBeenCalled();
+    expect(trigger).toHaveAttribute("data-touched");
   });
 });
 

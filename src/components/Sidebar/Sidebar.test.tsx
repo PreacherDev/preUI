@@ -429,3 +429,31 @@ describe("Sidebar cookie + options", () => {
     expect(await screen.findByText("Lager", { selector: '[data-slot="tooltip-content"]' })).toBeInTheDocument();
   });
 });
+
+describe("SidebarMenuBadge variants", () => {
+  it("defaults to the primary fill and colours by variant like Badge", () => {
+    render(
+      <>
+        <SidebarMenuBadge>3</SidebarMenuBadge>
+        <SidebarMenuBadge variant="destructive">2</SidebarMenuBadge>
+        <SidebarMenuBadge variant="secondary">12</SidebarMenuBadge>
+        <SidebarMenuBadge variant="positive">1</SidebarMenuBadge>
+        <SidebarMenuBadge variant="warning">4</SidebarMenuBadge>
+        <SidebarMenuBadge variant="info" className="px-2">5</SidebarMenuBadge>
+      </>,
+    );
+    const def = screen.getByText("3");
+    expect(def).toHaveAttribute("data-variant", "default");
+    expect(def).toHaveClass("bg-pui-primary", "text-pui-primary-foreground", "text-pui-2xs");
+    const wanted = screen.getByText("2");
+    expect(wanted).toHaveAttribute("data-variant", "destructive");
+    expect(wanted).toHaveClass("bg-pui-negative", "text-pui-negative-foreground", "text-pui-2xs");
+    expect(wanted).not.toHaveClass("bg-pui-primary");
+    expect(screen.getByText("12")).toHaveClass("bg-pui-muted", "text-pui-muted-foreground");
+    expect(screen.getByText("1")).toHaveClass("bg-pui-positive", "text-pui-positive-foreground");
+    expect(screen.getByText("4")).toHaveClass("bg-pui-warning", "text-pui-warning-foreground");
+    const info = screen.getByText("5");
+    expect(info).toHaveClass("bg-pui-info", "text-pui-info-foreground", "px-2");
+    expect(info).not.toHaveClass("px-1");
+  });
+});

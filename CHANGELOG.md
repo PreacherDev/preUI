@@ -75,6 +75,10 @@ changes; a patch version never does. The NUI helpers have their own section at t
   Select, Combobox, Autocomplete, DropdownMenu, ContextMenu and NavigationMenu contents; new parts `DialogPopup`,
   `AlertDialogPopup`, `SheetPopup`, `DrawerPopup`.
 - **KeybindHint**: `render` (clickable hints), `size="sm"`, `interactive`; `KeybindHintBar` takes `render`.
+- **DatePicker / DateRangePicker** work as `Field` controls (label, description / error, `Field disabled` / `invalid`)
+  and take an `invalid` prop. **DataTable**: `onRowActivate` (click + Enter / Space, focusable rows), `onRowClick`,
+  `getRowProps`, `meta.rowActivation: false`; clicks on controls inside a row are ignored. **SidebarMenuBadge**:
+  `variant` (`default | secondary | positive | warning | destructive | info`) and `sidebarMenuBadgeVariants`.
 - **Game UI components**: `ProgressCircle`, `KeybindHint` + `KeybindHintBar`, `HudContainer` (nine anchors + offset,
   changeable at runtime).
 - Types `PreuiTokens`, `PreuiTokenName`, `PreuiScheme` are now also exported from the main entry.
