@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PreacherDev/preUI-0.0.1/main/assets/logo.png" width="96" height="96" alt="">
+  <img src="https://raw.githubusercontent.com/PreacherDev/preUI/main/assets/logo.png" width="96" height="96" alt="">
 </p>
 
 # preUI

@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PreacherDev/preUI-0.0.1.git",
+    "url": "git+https://github.com/PreacherDev/preUI.git",
     "directory": "packages/preui-nui"
   },
   "type": "module",
