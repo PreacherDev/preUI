@@ -11,6 +11,8 @@ changes; a patch version never does. The NUI helpers have their own section at t
   contrast check in both schemes), default scheme, base colours per scheme, radius, font, contrast always visible for
   both schemes (status, pair list, inline badges), reset, save, CSS/JSON export, live preview. It edits a
   `ThemeConfig` (theme protocol v1), so FiveM saves it to `GlobalState.theme` without conversion.
+  `layout="split"` makes it a large editor: controls on the left, a preview pane on the right with sample content
+  (`ThemeEditorPreview`, texts in `labels.sample`) or your `previewSlot`, always in the edited colours.
 - `ThemeConfig`, `ThemePreset`, `resolveThemeConfig`, `resolveThemePalette`, `resolveThemeConfigTokens`,
   `checkThemeConfigContrast` (also from `/tailwind`).
 

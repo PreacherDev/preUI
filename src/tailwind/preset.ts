@@ -12,7 +12,13 @@ export type { ContrastLevel, TokenContrastResult } from "../theming/contrast";
 export { deriveTokens } from "../theming/derive";
 export type { DeriveTokensBase } from "../theming/derive";
 export type { PreuiTokenKey, TokenInput, TokenOverrides } from "../theming/token-css";
-export { defaultThemePresets, resolveThemeConfig } from "../theming/theme-config";
+export {
+  checkThemeConfigContrast,
+  defaultThemePresets,
+  resolveThemeConfig,
+  resolveThemeConfigTokens,
+  resolveThemePalette,
+} from "../theming/theme-config";
 export type { ThemeConfig, ThemePalette, ThemePreset } from "../theming/theme-config";
 
 /** Explanatory comment placed at the top of generated token files (`tokens.css`, `npx preui init`). */

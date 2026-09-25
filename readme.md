@@ -1289,9 +1289,12 @@ server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or y
 - **Contrast, always visible**: a status for both schemes, the pair list of the scheme being edited, and a badge
   on every colour that takes part in a failing pair
 - **Reset all**, **Save** (`onSave`, may return a promise), optional **export** of CSS overrides and JSON (`exportable`)
+- **Large layout with preview** (`layout="split"`): the controls on the left, a big preview pane on the right with
+  sample buttons, form controls, a card, badges, alerts and a table (`ThemeEditorPreview`), always in the edited colours
+  of the scheme picked at its top. `previewSlot` replaces the sample with your own content. Below `lg` the two stack.
 - **Live preview** (`preview`, default on): applies the edited theme to the whole page in its own `<style>` while
-  mounted and removes it on unmount. It doesn't change `data-scheme`. `previewSlot` renders your own sample content in
-  the scheme of the active tab.
+  mounted and removes it on unmount. It doesn't change `data-scheme`. The preview pane / `previewSlot` show the edited
+  colours with or without it (scoped CSS variables).
 
 All texts come from `labels` (English defaults), numbers use `locale`. SSR-safe and Chromium 103 / CEF-safe
 (everything is drawn in the DOM).
@@ -1305,7 +1308,8 @@ function ThemeSettings() {
   const [theme, setTheme] = useState<ThemeConfig>(() => JSON.parse(localStorage.getItem("theme") ?? "{}"));
   return (
     <ThemeEditor
-      className="h-[40rem] w-[28rem]"
+      layout="split"
+      className="h-[46rem]"
       value={theme}
       onChange={setTheme}
       onSave={(config) => localStorage.setItem("theme", JSON.stringify(config))}
@@ -1333,9 +1337,10 @@ export function App() {
       <ThemeEditor
         key={JSON.stringify(serverTheme)}
         variant="inline"
+        layout="split"
         defaultValue={serverTheme}
         onSave={(config) => fetchNui("saveTheme", config)} // Lua: GlobalState.theme = config
-        labels={{ save: "Für alle speichern", schemes: { dark: "Dunkel", light: "Hell" } }}
+        labels={{ save: "Für alle speichern", schemes: { dark: "Dunkel", light: "Hell" }, sample: { loading: "Lädt" } }}
         locale="de-DE"
       />
     </ThemeProvider>
