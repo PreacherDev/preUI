@@ -314,4 +314,12 @@ describe("resolveThemeTokens", () => {
     expect(resolved.light).toBeUndefined();
     expect(resolved.shared).toEqual({ radius: "0px" });
   });
+
+  it("takes ThemeEditor output as is: palettes without primary, only changed tokens", () => {
+    const resolved = resolveThemeTokens({ palette: { light: { background: "#f8fafc" } } });
+    expect(resolved.light?.["--pui-background"]).toBe("210 40% 98%");
+    expect(resolved.light).not.toHaveProperty("--pui-primary");
+    expect(resolved.light).not.toHaveProperty("--pui-radius");
+    expect(resolved.dark).toBeUndefined();
+  });
 });

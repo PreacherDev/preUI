@@ -1,211 +1,178 @@
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Badge,
   Button,
   Card,
-  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-  ColorPicker,
-  ContrastBadge,
   Input,
   KeybindHint,
   KeybindHintBar,
   Progress,
-  Slider,
-  SliderLabel,
-  SliderValue,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  ToggleGroup,
-  ToggleGroupItem,
-  applyTokens,
-  checkTokenContrast,
-  deriveTokens,
-  hslToHex,
+  ThemeEditor as PreuiThemeEditor,
+  defaultThemePresets,
   useTheme,
-  type DeriveTokensBase,
-  type SchemePreference,
+  type ThemeConfig,
+  type ThemeEditorProps,
 } from "@pre_scripts/preui";
-import { fetchNui, resolveThemeTokens, type NuiThemePayload } from "@pre_scripts/preui-nui";
-import { lightTokens, tokens } from "@pre_scripts/preui/tailwind";
-import { useEffect, useMemo, useState } from "react";
+import { fetchNui } from "@pre_scripts/preui-nui";
 
-type Scheme = "dark" | "light";
+/** German texts of the editor (the component ships English defaults). */
+const labels: ThemeEditorProps["labels"] = {
+  status: "Lesbarkeit",
+  statusScheme: (scheme, summary) => `${scheme}: ${summary}`,
+  allReadable: "alles lesbar",
+  problems: (count) => (count === 1 ? "1 Problem" : `${count} Probleme`),
+  presets: "Vorlagen",
+  presetReadable: "In beiden Schemata lesbar",
+  presetProblems: (count) => `${count} Kontrastprobleme`,
+  scheme: "Standard-Schema",
+  schemes: { dark: "Dunkel", light: "Hell", system: "System" },
+  colors: "Farben",
+  fields: {
+    primary: "Akzent",
+    background: "Hintergrund",
+    foreground: "Text",
+    positive: "Positiv",
+    negative: "Negativ",
+    destructive: "Destruktiv",
+    warning: "Warnung",
+    info: "Info",
+  },
+  changed: "geändert",
+  inherited: "Standard",
+  resetField: (field) => `${field} zurücksetzen`,
+  contrast: (scheme) => `Kontrast (${scheme})`,
+  pairs: {
+    "foreground/background": "Text",
+    "card-foreground/card": "Text auf Karte",
+    "popover-foreground/popover": "Text in Menüs",
+    "tooltip-foreground/tooltip": "Tooltip",
+    "primary-foreground/primary": "Text auf Akzent",
+    "secondary-foreground/secondary": "Text auf Sekundär",
+    "accent-foreground/accent": "Text auf Hover-Fläche",
+    "muted-foreground/background": "Sekundärtext",
+    "muted-foreground/card": "Sekundärtext auf Karte",
+    "muted-foreground/muted": "Sekundärtext auf Fläche",
+    "positive-foreground/positive": "Text auf Positiv",
+    "negative-foreground/negative": "Text auf Negativ",
+    "destructive-foreground/destructive": "Text auf Destruktiv",
+    "warning-foreground/warning": "Text auf Warnung",
+    "info-foreground/info": "Text auf Info",
+    "primary/background": "Akzent als Text",
+    "positive/background": "Positiv als Text",
+    "negative/background": "Negativ als Text",
+    "warning/background": "Warnung als Text",
+    "info/background": "Info als Text",
+  },
+  shared: "Form & Schrift",
+  radius: "Eckenradius",
+  radiusValue: (value) => `${value} rem`,
+  font: "Schrift",
+  fontDefault: "Standard (Inter)",
+  fontCustom: "Eigene",
+  preview: "Vorschau",
+  reset: "Alles zurücksetzen",
+  save: "Für alle speichern",
+  contrastBadge: {
+    levels: { AAA: "AAA", AA: "AA", "AA-large": "AA groß", fail: "zu schwach" },
+    description: (ratio, level) => `Kontrast ${ratio} zu 1, ${level}`,
+  },
+  colorPicker: {
+    area: "Sättigung und Helligkeit",
+    hue: "Farbton",
+    alpha: "Deckkraft",
+    input: "Hex",
+    eyeDropper: "Farbe vom Bildschirm",
+    swatches: "Vorlagen",
+  },
+};
 
-/** A default token ("217 91% 60%") as hex, for the colour pickers. */
-function defaultHex(scheme: Scheme, key: keyof DeriveTokensBase) {
-  const value = (scheme === "dark" ? tokens : lightTokens)[`--pui-${key}`];
-  const [h, s, l] = value.replace(/%/g, "").split(" ").map(Number);
-  return hslToHex({ h, s, l });
-}
+/** The built-in presets with German names. A server could send its own list instead. */
+const presetNames: Record<string, [string, string]> = {
+  default: ["preUI", "Das Standard-Blau"],
+  emerald: ["Smaragd", "Grüner Akzent"],
+  police: ["Polizei", "Blau auf Marine"],
+  crimson: ["Karmin", "Roter Akzent"],
+  amber: ["Bernstein", "Warmes Gelb"],
+  violet: ["Violett", "Lila Akzent"],
+  mono: ["Mono", "Nur Grautöne"],
+};
+const presets = defaultThemePresets.map((preset) => ({
+  ...preset,
+  label: presetNames[preset.id]?.[0] ?? preset.label,
+  description: presetNames[preset.id]?.[1] ?? preset.description,
+}));
 
-const colorFields: { key: keyof DeriveTokensBase; label: string }[] = [
-  { key: "primary", label: "Akzent" },
-  { key: "background", label: "Hintergrund" },
-  { key: "positive", label: "Positiv" },
-  { key: "destructive", label: "Destruktiv" },
-  { key: "warning", label: "Warnung" },
+const fonts = [
+  { label: "Inter", value: '"Inter Variable", Inter, system-ui, sans-serif' },
+  { label: "System", value: 'system-ui, "Segoe UI", Roboto, sans-serif' },
+  { label: "JetBrains Mono", value: '"JetBrains Mono", ui-monospace, monospace' },
 ];
 
-/** Readable names for the pairs of checkTokenContrast (key: "fg|bg"). */
-const pairLabels: Record<string, string> = {
-  "--pui-foreground|--pui-background": "Text",
-  "--pui-muted-foreground|--pui-background": "Sekundärtext",
-  "--pui-muted-foreground|--pui-card": "Sekundärtext auf Karte",
-  "--pui-muted-foreground|--pui-muted": "Sekundärtext auf Fläche",
-  "--pui-primary-foreground|--pui-primary": "Text auf Akzent",
-  "--pui-primary|--pui-background": "Akzent als Text",
-  "--pui-positive|--pui-background": "Positiv als Text",
-  "--pui-warning|--pui-background": "Warnung als Text",
-  "--pui-negative|--pui-background": "Negativ als Text",
-  "--pui-info|--pui-background": "Info als Text",
-};
-const pairKey = (result: { fg: string; bg: string }) => `${result.fg}|${result.bg}`;
-
-interface ThemeEditorProps {
-  initial: NuiThemePayload;
+interface InGameThemeEditorProps {
+  /** The theme the server currently has (GlobalState.theme) — the editor starts from it. */
+  initial: ThemeConfig;
   onClose: () => void;
 }
 
-export function ThemeEditor({ initial, onClose }: ThemeEditorProps) {
+/**
+ * The in-game window around preUI's `<ThemeEditor>`: the same component a website uses, here wired to the
+ * `saveTheme` NUI callback (→ server → GlobalState.theme → every client's NuiThemeBridge).
+ */
+export function ThemeEditor({ initial, onClose }: InGameThemeEditorProps) {
   const { resolvedScheme } = useTheme();
-  const [scheme, setScheme] = useState<SchemePreference>(initial.scheme ?? "dark");
-  const [editing, setEditing] = useState<Scheme>(resolvedScheme);
-  const [palette, setPalette] = useState<Record<Scheme, DeriveTokensBase>>({
-    dark: { primary: defaultHex("dark", "primary"), ...initial.palette?.dark },
-    light: { primary: defaultHex("light", "primary"), ...initial.palette?.light },
-  });
-  const [radius, setRadius] = useState(() => parseFloat(String(initial.tokens?.shared?.radius ?? "0.5")) || 0.5);
-  const [saving, setSaving] = useState(false);
 
-  const payload = useMemo<NuiThemePayload>(
-    () => ({ v: 1, scheme, theme: "", palette, tokens: { shared: { radius: `${radius}rem` } } }),
-    [scheme, palette, radius],
-  );
-
-  // Live preview while editing, in its own <style> (later in <head> than the bridge's, so it wins); removed on close.
-  useEffect(() => applyTokens(resolveThemeTokens(payload), { id: "theme-editor-preview" }), [payload]);
-
-  const contrast = useMemo(
-    () => checkTokenContrast(deriveTokens(palette[editing], editing)).filter((result) => pairLabels[pairKey(result)]),
-    [palette, editing],
-  );
-  const problems = contrast.filter((result) => result.ratio < 4.5).length;
-
-  const setColor = (key: keyof DeriveTokensBase, value: string) =>
-    setPalette((current) => ({ ...current, [editing]: { ...current[editing], [key]: value } }));
-
-  async function save() {
-    setSaving(true);
-    await fetchNui("saveTheme", payload, { ok: true });
-    setSaving(false);
+  async function save(config: ThemeConfig) {
+    // The saved value is already the bridge's message format (protocol v1): no conversion.
+    await fetchNui("saveTheme", config, { ok: true });
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-6">
-      <Card className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-pui-window bg-pui-shell shadow-pui-window">
-        <CardHeader>
+    <div className="fixed inset-0 flex items-center justify-end p-6">
+      <Card className="flex max-h-full w-full max-w-[30rem] flex-col overflow-hidden rounded-pui-window bg-pui-shell shadow-pui-window">
+        <CardHeader className="shrink-0">
           <CardTitle>Server-Theme</CardTitle>
           <CardDescription>Änderungen gelten nach dem Speichern für alle Spieler und alle Scripts.</CardDescription>
         </CardHeader>
-        <CardContent className="grid min-h-0 gap-6 overflow-y-auto md:grid-cols-[1fr_16rem]">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-pui-muted-foreground">Standard-Schema</span>
-              <ToggleGroup
-                value={[scheme]}
-                onValueChange={(value) => value[0] && setScheme(value[0] as SchemePreference)}
-                aria-label="Standard-Schema"
-              >
-                <ToggleGroupItem value="dark">Dunkel</ToggleGroupItem>
-                <ToggleGroupItem value="light">Hell</ToggleGroupItem>
-                <ToggleGroupItem value="system">System</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            <Tabs value={editing} onValueChange={(value) => setEditing(value as Scheme)}>
-              <TabsList>
-                <TabsTrigger value="dark">Farben dunkel</TabsTrigger>
-                <TabsTrigger value="light">Farben hell</TabsTrigger>
-              </TabsList>
-              {(["dark", "light"] as const).map((name) => (
-                <TabsContent key={name} value={name} className="grid grid-cols-2 gap-3 pt-4">
-                  {colorFields.map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-2.5 text-sm">
-                      <ColorPicker
-                        value={palette[name][key] ?? defaultHex(name, key)}
-                        onValueChange={(value) => setColor(key, value)}
-                        labels={{ trigger: label }}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </TabsContent>
-              ))}
-            </Tabs>
-
-            <Slider value={radius} onValueChange={(value) => setRadius(value as number)} min={0} max={1} step={0.05}>
-              <SliderLabel>Eckenradius</SliderLabel>
-              <SliderValue />
-            </Slider>
-
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-medium text-pui-muted-foreground">
-                Lesbarkeit ({editing === "dark" ? "dunkel" : "hell"}) · {problems === 0 ? "alles lesbar" : `${problems} Probleme`}
-              </span>
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                {contrast.map((result) => (
-                  <li key={pairKey(result)} className="flex items-center justify-between gap-2">
-                    <span className="truncate text-pui-muted-foreground">{pairLabels[pairKey(result)]}</span>
-                    <ContrastBadge ratio={result.ratio} locale="de-DE" />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-pui border border-pui-border bg-pui-background p-4">
-            <span className="text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground">Vorschau</span>
-            <div className="flex flex-wrap gap-2">
-              <Button>Kaufen</Button>
-              <Button variant="solid">Bestätigen</Button>
-              <Button variant="ghost">Abbrechen</Button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Badge>Neu</Badge>
-              <Badge variant="positive">Aktiv</Badge>
-              <Badge variant="warning">Knapp</Badge>
-              <Badge variant="destructive">Gesperrt</Badge>
-            </div>
-            <Input placeholder="Kennzeichen" />
-            <Progress value={64} aria-label="Tank" />
-            <Alert variant="warning">
-              <AlertTitle>Lager fast voll</AlertTitle>
-              <AlertDescription>Noch 12 von 200 Plätzen frei.</AlertDescription>
-            </Alert>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-between border-t border-pui-border pt-4">
-          <KeybindHintBar>
-            <KeybindHint keys="Esc" label="Schließen" />
-          </KeybindHintBar>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={onClose}>
-              Verwerfen
-            </Button>
-            <Button variant="solid" loading={saving} onClick={save}>
-              Für alle speichern
-            </Button>
-          </div>
-        </CardFooter>
+        <PreuiThemeEditor
+          variant="inline"
+          className="min-h-0 flex-1 px-6 pb-5"
+          defaultValue={initial}
+          defaultEditingScheme={resolvedScheme}
+          onSave={save}
+          presets={presets}
+          fonts={fonts}
+          labels={labels}
+          locale="de-DE"
+          actionsSlot={
+            <KeybindHintBar>
+              <KeybindHint keys="Esc" label="Schließen" />
+            </KeybindHintBar>
+          }
+          previewSlot={
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm">Kaufen</Button>
+                <Button size="sm" variant="solid">
+                  Bestätigen
+                </Button>
+                <Button size="sm" variant="ghost">
+                  Abbrechen
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge>Neu</Badge>
+                <Badge variant="positive">Aktiv</Badge>
+                <Badge variant="warning">Knapp</Badge>
+                <Badge variant="destructive">Gesperrt</Badge>
+              </div>
+              <Input placeholder="Kennzeichen" aria-label="Kennzeichen" />
+              <Progress value={64} aria-label="Tank" />
+            </>
+          }
+        />
       </Card>
     </div>
   );

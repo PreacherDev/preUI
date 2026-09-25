@@ -83,6 +83,7 @@ export * from "./components/SkillCheck";
 // Theming (scheme + named themes, runtime tokens, palettes, contrast)
 export * from "./components/Theme";
 export * from "./components/ContrastBadge";
+export * from "./components/ThemeEditor";
 export * from "./theming";
 export type { PreuiScheme, PreuiTokenName, PreuiTokens } from "./tailwind/tokens";
 

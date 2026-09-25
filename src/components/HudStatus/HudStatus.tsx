@@ -520,10 +520,22 @@ export const HudStatusGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, HudStat
 
 export type HudSpeedometerSize = "sm" | "default" | "lg";
 
-const speedometerSizes: Record<HudSpeedometerSize, { dial: string; speed: string; unit: string; gear: string }> = {
-  sm: { dial: "size-24", speed: "text-2xl", unit: "text-pui-2xs", gear: "min-w-5 h-5 text-xs" },
-  default: { dial: "size-32", speed: "text-4xl", unit: "text-pui-eyebrow", gear: "min-w-6 h-6 text-sm" },
-  lg: { dial: "size-40", speed: "text-5xl", unit: "text-xs", gear: "min-w-7 h-7 text-base" },
+// `fuel` / `fuelTrack`: with the arc, the fuel bar moves up into the arc's opening (the lowest ~19 % of the dial are
+// empty) and is only as wide as that opening (~62 % of the dial), so it reads as part of the gauge.
+const speedometerSizes: Record<
+  HudSpeedometerSize,
+  { dial: string; speed: string; unit: string; gear: string; fuel: string; fuelTrack: string }
+> = {
+  sm: { dial: "size-24", speed: "text-2xl", unit: "text-pui-2xs", gear: "min-w-5 h-5 text-xs", fuel: "-mt-6", fuelTrack: "w-8" },
+  default: {
+    dial: "size-32",
+    speed: "text-4xl",
+    unit: "text-pui-eyebrow",
+    gear: "min-w-6 h-6 text-sm",
+    fuel: "-mt-6",
+    fuelTrack: "w-12",
+  },
+  lg: { dial: "size-40", speed: "text-5xl", unit: "text-xs", gear: "min-w-7 h-7 text-base", fuel: "-mt-8", fuelTrack: "w-16" },
 };
 
 // Arc geometry in a 100×100 viewBox: a 270° arc open at the bottom, drawn with a dash on a full circle.
@@ -655,39 +667,39 @@ const HudSpeedometerImpl = /* @__PURE__ */ forwardRef<HTMLDivElement, HudSpeedom
   const inRedline = hasRedline && shown >= redlineFrom;
   const tickCount = ticks != null && Number.isFinite(ticks) ? Math.min(200, Math.floor(ticks)) : 0;
 
-  const readout = (
-    <>
-      <span
-        data-slot="hud-speedometer-speed"
-        className={cn("font-semibold leading-none tabular-nums text-pui-foreground", sizes.speed, classNames?.speed)}
-      >
-        {renderSpeed ? renderSpeed({ speed: shown, maxSpeed, fraction, speedText, redline: inRedline }) : speedText}
-      </span>
-      <span
-        data-slot="hud-speedometer-unit"
-        className={cn(
-          "font-semibold uppercase leading-none tracking-wider text-pui-muted-foreground",
-          sizes.unit,
-          classNames?.unit,
-        )}
-      >
-        {unit}
-      </span>
-      {hasGear && (
-        <span
-          data-slot="hud-speedometer-gear"
-          className={cn(
-            "inline-flex items-center justify-center rounded-pui-sm border border-pui-border bg-pui-background px-1 font-mono font-semibold leading-none text-pui-foreground",
-            sizes.gear,
-            classNames?.gear,
-          )}
-        >
-          <span className="sr-only">{gearLabel} </span>
-          {gear}
-        </span>
-      )}
-    </>
+  const speedNode = (
+    <span
+      data-slot="hud-speedometer-speed"
+      className={cn("font-semibold leading-none tabular-nums text-pui-foreground", sizes.speed, classNames?.speed)}
+    >
+      {renderSpeed ? renderSpeed({ speed: shown, maxSpeed, fraction, speedText, redline: inRedline }) : speedText}
+    </span>
   );
+  const unitNode = (
+    <span
+      data-slot="hud-speedometer-unit"
+      className={cn(
+        "font-semibold uppercase leading-none tracking-wider text-pui-muted-foreground",
+        sizes.unit,
+        classNames?.unit,
+      )}
+    >
+      {unit}
+    </span>
+  );
+  const gearNode = hasGear ? (
+    <span
+      data-slot="hud-speedometer-gear"
+      className={cn(
+        "inline-flex items-center justify-center rounded-pui-sm border border-pui-border bg-pui-background px-1 font-mono font-semibold leading-none text-pui-foreground",
+        sizes.gear,
+        classNames?.gear,
+      )}
+    >
+      <span className="sr-only">{gearLabel} </span>
+      {gear}
+    </span>
+  ) : null;
 
   const tickMarks: ReactNode[] = [];
   for (let i = 0; tickCount >= 2 && i < tickCount; i += 1) {
@@ -777,11 +789,23 @@ const HudSpeedometerImpl = /* @__PURE__ */ forwardRef<HTMLDivElement, HudSpeedom
             />
             {tickMarks}
           </svg>
-          <div className={cn("relative flex flex-col items-center gap-1", classNames?.readout)}>{readout}</div>
+          {/* Speed on top, unit and gear in one row below: the number stays centred in the arc. */}
+          <div
+            data-slot="hud-speedometer-readout"
+            className={cn("relative flex flex-col items-center gap-1.5", classNames?.readout)}
+          >
+            {speedNode}
+            <div className="flex items-center gap-1.5">
+              {unitNode}
+              {gearNode}
+            </div>
+          </div>
         </div>
       ) : (
         <div data-slot="hud-speedometer-readout" className={cn("flex items-end gap-1.5", classNames?.readout)}>
-          {readout}
+          {speedNode}
+          {unitNode}
+          {gearNode}
         </div>
       )}
       {fuel !== undefined && (
@@ -795,7 +819,8 @@ const HudSpeedometerImpl = /* @__PURE__ */ forwardRef<HTMLDivElement, HudSpeedom
           warnBelow={fuelWarnBelow}
           criticalBelow={fuelCriticalBelow}
           locale={locale}
-          className={classNames?.fuel}
+          className={cn(showArc && ["relative", sizes.fuel], classNames?.fuel)}
+          classNames={showArc ? { track: sizes.fuelTrack } : undefined}
         />
       )}
     </div>

@@ -11,3 +11,12 @@ export { deriveTokens } from "./derive";
 export type { DeriveTokensBase } from "./derive";
 export { runtimeTokenSelectors, toHslChannels } from "./token-css";
 export type { PreuiTokenKey, TokenInput, TokenOverrides } from "./token-css";
+export {
+  checkThemeConfigContrast,
+  defaultThemePresets,
+  resolveThemeConfig,
+  resolveThemeConfigTokens,
+  resolveThemePalette,
+  THEME_CONFIG_VERSION,
+} from "./theme-config";
+export type { ThemeConfig, ThemePalette, ThemePreset } from "./theme-config";

@@ -7,7 +7,7 @@ fxmanifest.lua   resource manifest (ui_page web/dist/index.html)
 server.lua       GlobalState.theme, saved in KVP; only players with the ACE `preui.theme` may change it
 bridge.lua       the client part every UI resource includes: answers getTheme, forwards changes as setTheme
 client.lua       /themeeditor command, close + saveTheme callbacks of the editor
-web/             Vite + React + preUI: the in-game theme editor (NuiThemeBridge, deriveTokens, contrast badges)
+web/             Vite + React + preUI: the in-game window around preUI's <ThemeEditor> (+ NuiThemeBridge)
 ```
 
 ## Setup
