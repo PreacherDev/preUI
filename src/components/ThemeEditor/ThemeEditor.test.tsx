@@ -255,6 +255,60 @@ describe("ThemeEditor", () => {
     expect(slot).toHaveAttribute("data-scheme", "light");
   });
 
+  it("previewSlot shows the edited tokens as scoped variables, also with preview={false}", async () => {
+    const user = userEvent.setup();
+    const config: ThemeConfig = {
+      v: 1,
+      palette: { dark: { primary: "#f97316" } },
+      tokens: { shared: { radius: "2px" }, light: { primary: "#16a34a" } },
+    };
+    const { container } = render(
+      <ThemeEditor preview={false} defaultValue={config} previewSlot={<span>Sample</span>} presets={[]} />,
+    );
+    expect(previewStyle()).toBeNull();
+    const slot = container.querySelector<HTMLElement>('[data-slot="theme-editor-preview"] [data-scheme]')!;
+    const dark = slot.style.getPropertyValue("--pui-primary");
+    expect(dark).not.toBe("");
+    expect(slot.style.getPropertyValue("--pui-radius")).toBe("2px");
+    await user.click(screen.getByRole("tab", { name: "Light" }));
+    expect(slot.style.getPropertyValue("--pui-primary")).not.toBe(dark);
+    expect(slot.style.getPropertyValue("--pui-radius")).toBe("2px");
+  });
+
+  it('layout="split" shows a preview pane with the built-in sample in the edited theme', async () => {
+    const user = userEvent.setup();
+    const config: ThemeConfig = { v: 1, palette: { dark: { primary: "#f97316" }, light: { primary: "#16a34a" } } };
+    const { container } = render(
+      <ThemeEditor layout="split" preview={false} defaultValue={config} presets={[]} labels={{ sample: { loading: "Lädt" } }} />,
+    );
+    const body = container.querySelector('[data-slot="theme-editor-body"]')!;
+    expect(body).toHaveAttribute("data-layout", "split");
+    const pane = container.querySelector<HTMLElement>('[data-slot="theme-editor-preview"]')!;
+    const sample = within(pane).getByText("Lädt").closest('[data-slot="theme-editor-sample"]')!;
+    expect(sample).not.toBeNull();
+    expect(within(pane).getByRole("table")).toBeInTheDocument();
+    const scoped = pane.querySelector<HTMLElement>("[data-scheme]")!;
+    expect(scoped).toHaveAttribute("data-scheme", "dark");
+    const dark = scoped.style.getPropertyValue("--pui-primary");
+    expect(dark).not.toBe("");
+    // The pane's own scheme switch follows and drives the tab.
+    await user.click(within(pane).getByRole("button", { name: "Light" }));
+    expect(scoped).toHaveAttribute("data-scheme", "light");
+    expect(scoped.style.getPropertyValue("--pui-primary")).not.toBe(dark);
+    expect(screen.getByRole("tab", { name: "Light" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it('layout="split" renders previewSlot instead of the sample; "stacked" has no pane without a slot', () => {
+    const first = render(<ThemeEditor layout="split" previewSlot={<p>My sample</p>} presets={[]} />);
+    const pane = first.container.querySelector('[data-slot="theme-editor-preview"]')!;
+    expect(within(pane as HTMLElement).getByText("My sample")).toBeInTheDocument();
+    expect(pane.querySelector('[data-slot="theme-editor-sample"]')).toBeNull();
+    first.unmount();
+    const second = render(<ThemeEditor presets={[]} />);
+    expect(second.container.querySelector('[data-slot="theme-editor-preview"]')).toBeNull();
+    expect(second.container.querySelector('[data-slot="theme-editor-body"]')).toHaveAttribute("data-layout", "stacked");
+  });
+
   it("contrast: the status shows both schemes and reacts, failing fields are marked", async () => {
     const user = userEvent.setup();
     const { container } = render(<ThemeEditor presets={[]} />);
@@ -406,8 +460,15 @@ describe("ThemeEditor", () => {
   it("renders on the server and hydrates without errors; the preview only starts on the client", async () => {
     const config: ThemeConfig = { scheme: "light", palette: { light: { primary: "#047857" } } };
     const result = await renderToStringAndHydrate(
-      <ThemeEditor defaultValue={config} exportable onSave={() => {}} fonts={[{ label: "Mono", value: "monospace" }]} />,
+      <ThemeEditor
+        layout="split"
+        defaultValue={config}
+        exportable
+        onSave={() => {}}
+        fonts={[{ label: "Mono", value: "monospace" }]}
+      />,
     );
+    expect(result.html).toContain('data-slot="theme-editor-sample"');
     expect(result.html).toContain('data-slot="theme-editor"');
     expect(result.html).toContain('data-slot="theme-editor-preset"');
     expect(result.errors).toEqual([]);

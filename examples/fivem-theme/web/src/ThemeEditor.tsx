@@ -1,14 +1,10 @@
 import {
-  Badge,
-  Button,
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
-  Input,
   KeybindHint,
   KeybindHintBar,
-  Progress,
   ThemeEditor as PreuiThemeEditor,
   defaultThemePresets,
   useTheme,
@@ -86,6 +82,62 @@ const labels: ThemeEditorProps["labels"] = {
     eyeDropper: "Farbe vom Bildschirm",
     swatches: "Vorlagen",
   },
+  // Texts of the sample content in the preview pane (layout="split").
+  sample: {
+    groups: { buttons: "Buttons", form: "Formular", card: "Karte", feedback: "Badges & Hinweise", table: "Tabelle" },
+    buttons: {
+      default: "Standard",
+      solid: "Gefüllt",
+      secondary: "Sekundär",
+      outline: "Umriss",
+      ghost: "Ghost",
+      positive: "Positiv",
+      destructive: "Löschen",
+      link: "Link",
+    },
+    loading: "Lädt",
+    field: { label: "Kennzeichen", placeholder: "LS 4711", description: "Steht auf dem Fahrzeugbrief." },
+    checkbox: "Versichert",
+    switchOn: "Motor an",
+    switchOff: "Licht",
+    slider: "Tank",
+    progress: "Reparatur",
+    card: {
+      title: "Garage Pillbox",
+      description: "Deine Fahrzeuge",
+      badge: "3 frei",
+      value: "$48.200",
+      valueHint: "Fahrzeugwert",
+      tabs: [
+        { label: "Autos", content: "5 Fahrzeuge geparkt." },
+        { label: "Boote", content: "Keine Boote." },
+        { label: "Beschlagnahmt", content: "1 Fahrzeug beim Abschlepphof." },
+      ],
+    },
+    badges: {
+      default: "Neu",
+      secondary: "Sekundär",
+      outline: "Umriss",
+      positive: "Aktiv",
+      warning: "Knapp",
+      info: "Info",
+      destructive: "Gesperrt",
+    },
+    alerts: [
+      { variant: "positive", title: "Gekauft", description: "Das Fahrzeug steht in deiner Garage." },
+      { variant: "warning", title: "Tank fast leer", description: "Noch 8 % Benzin." },
+      { variant: "info", title: "Serverneustart", description: "In 15 Minuten." },
+      { variant: "destructive", title: "Zu wenig Geld", description: "Dir fehlen $1.200." },
+    ],
+    table: {
+      columns: ["Kennzeichen", "Modell", "Status", "Wert"],
+      rows: [
+        { id: "LS 4711", item: "Karin Sultan", status: "Geparkt", tone: "positive", amount: "$32.000" },
+        { id: "LS 0815", item: "Declasse Vigero", status: "Unterwegs", tone: "info", amount: "$18.500" },
+        { id: "LS 1337", item: "Pegassi Zentorno", status: "Beschlagnahmt", tone: "warning", amount: "$725.000" },
+      ],
+    },
+  },
 };
 
 /** The built-in presets with German names. A server could send its own list instead. */
@@ -130,14 +182,16 @@ export function ThemeEditor({ initial, onClose }: InGameThemeEditorProps) {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-end p-6">
-      <Card className="flex max-h-full w-full max-w-[30rem] flex-col overflow-hidden rounded-pui-window bg-pui-shell shadow-pui-window">
+    <div className="fixed inset-0 flex items-center justify-center p-8">
+      {/* Large window: the controls on the left, a preview of the colours on the right. */}
+      <Card className="flex h-full max-h-[56rem] w-full max-w-[80rem] flex-col overflow-hidden rounded-pui-window bg-pui-shell shadow-pui-window">
         <CardHeader className="shrink-0">
           <CardTitle>Server-Theme</CardTitle>
           <CardDescription>Änderungen gelten nach dem Speichern für alle Spieler und alle Scripts.</CardDescription>
         </CardHeader>
         <PreuiThemeEditor
           variant="inline"
+          layout="split"
           className="min-h-0 flex-1 px-6 pb-5"
           defaultValue={initial}
           defaultEditingScheme={resolvedScheme}
@@ -150,27 +204,6 @@ export function ThemeEditor({ initial, onClose }: InGameThemeEditorProps) {
             <KeybindHintBar>
               <KeybindHint keys="Esc" label="Schließen" />
             </KeybindHintBar>
-          }
-          previewSlot={
-            <>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm">Kaufen</Button>
-                <Button size="sm" variant="solid">
-                  Bestätigen
-                </Button>
-                <Button size="sm" variant="ghost">
-                  Abbrechen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <Badge>Neu</Badge>
-                <Badge variant="positive">Aktiv</Badge>
-                <Badge variant="warning">Knapp</Badge>
-                <Badge variant="destructive">Gesperrt</Badge>
-              </div>
-              <Input placeholder="Kennzeichen" aria-label="Kennzeichen" />
-              <Progress value={64} aria-label="Tank" />
-            </>
           }
         />
       </Card>

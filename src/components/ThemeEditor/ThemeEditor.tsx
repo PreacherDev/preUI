@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
 } from "react";
@@ -49,6 +50,7 @@ import {
   toHex,
   type ThemeEditorColorKey,
 } from "./theme-editor-config";
+import { ThemeEditorPreview, type ThemeEditorPreviewLabels } from "./ThemeEditorPreview";
 
 // ------------------------------------------------------------------------------------------------
 // Labels
@@ -99,6 +101,8 @@ export interface ThemeEditorLabels {
   contrastBadge?: Partial<ContrastBadgeLabels>;
   /** Passed to every `ColorPicker` (the trigger's name is the field label). */
   colorPicker?: Partial<Omit<ColorPickerLabels, "trigger">>;
+  /** Texts of the built-in sample content of `layout="split"` (`ThemeEditorPreview`). */
+  sample?: Partial<ThemeEditorPreviewLabels>;
 }
 
 export const defaultThemeEditorLabels: ThemeEditorLabels = {
@@ -213,8 +217,9 @@ export interface ThemeEditorProps
   /** `<style>` id of the preview. @default "preui-theme-editor-preview" */
   previewId?: string;
   /**
-   * Your own preview content, rendered in a box that always shows the scheme being edited (`data-scheme` of the
-   * active tab) — so the light colours can be checked on a dark page and vice versa.
+   * Your own preview content, shown with the edited theme in the scheme of the active tab (scoped CSS variables, also
+   * with `preview={false}`) — so the light colours can be checked on a dark page and vice versa. With
+   * `layout="split"` it replaces the built-in sample content of the preview pane.
    */
   previewSlot?: ReactNode;
   /** Extra content at the start of the action bar, e.g. a Cancel button or keybind hints of your window. */
@@ -234,6 +239,13 @@ export interface ThemeEditorProps
   minContrast?: number;
   /** `"panel"`: framed card surface. `"inline"`: no frame, for your own window or sidebar. @default "panel" */
   variant?: "panel" | "inline";
+  /**
+   * `"stacked"`: one column (`previewSlot` inside it). `"split"`: the controls on the left and a large preview pane on
+   * the right — `previewSlot`, or the built-in sample content (`ThemeEditorPreview`) when there is none — themed with
+   * the edited tokens of the active tab. Below the `lg` breakpoint the two stack. Give it room: e.g. `h-[48rem]`.
+   * @default "stacked"
+   */
+  layout?: "stacked" | "split";
   labels?: ThemeEditorLabelsInput;
   /** Number formatting (contrast ratios, radius). @default "en-US" */
   locale?: string;
@@ -309,6 +321,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     fallbackScheme = "dark",
     minContrast = 4.5,
     variant = "panel",
+    layout = "stacked",
     labels: labelsProp,
     locale = "en-US",
     className,
@@ -417,6 +430,8 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
   const Warning = useIcon("warning");
   const id = useId();
 
+  const split = layout === "split";
+
   const schemeSummary = (scheme: PreuiScheme) => {
     const count = problemCount(scheme);
     return labels.statusScheme(labels.schemes[scheme], count === 0 ? labels.allReadable : labels.problems(count));
@@ -471,96 +486,148 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
         })}
       </div>
 
-      <ScrollArea className="min-h-0 flex-1" contentClassName={cn("flex flex-col gap-6", variant === "panel" ? "p-4" : "py-4")}>
-        {presets.length > 0 && (
-          <PresetPicker
-            presets={presets}
-            config={config}
-            labels={labels}
-            minContrast={minContrast}
-            onPick={(preset) => update((current) => applyPreset(current, preset))}
-          />
-        )}
+      <div
+        data-slot="theme-editor-body"
+        data-layout={layout}
+        className={cn("flex min-h-0 flex-1 flex-col", split && ["lg:flex-row", variant === "inline" && "gap-4 lg:gap-6"])}
+      >
+        <ScrollArea
+          className={cn("min-h-0 flex-1", split && "lg:w-[26rem] lg:flex-none")}
+          contentClassName={cn("flex flex-col gap-6", variant === "panel" ? "p-4" : "py-4")}
+        >
+          {presets.length > 0 && (
+            <PresetPicker
+              presets={presets}
+              config={config}
+              labels={labels}
+              minContrast={minContrast}
+              onPick={(preset) => update((current) => applyPreset(current, preset))}
+            />
+          )}
 
-        <section data-slot="theme-editor-scheme" className="flex flex-col gap-2">
-          <span id={`${id}-scheme`} className={eyebrow}>
-            {labels.scheme}
-          </span>
-          <ToggleGroup
-            aria-labelledby={`${id}-scheme`}
-            value={[config.scheme ?? fallbackScheme]}
-            onValueChange={(next) => {
-              const scheme = next[0] as SchemePreference | undefined;
-              if (scheme) update((current) => ({ ...current, scheme }));
-            }}
-            className="self-start"
-          >
-            {(["dark", "light", "system"] as const).map((scheme) => (
-              <ToggleGroupItem key={scheme} value={scheme}>
-                {labels.schemes[scheme]}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </section>
-
-        <section data-slot="theme-editor-colors" className="flex flex-col gap-2">
-          <span className={eyebrow}>{labels.colors}</span>
-          <Tabs value={editing} onValueChange={(next) => setEditing(next as PreuiScheme)} className="gap-3">
-            <TabsList>
-              {schemeList.map((scheme) => (
-                <TabsTrigger key={scheme} value={scheme} data-problems={problemCount(scheme)}>
-                  {labels.schemes[scheme]}
-                  {problemCount(scheme) > 0 && <Warning className="size-3.5 text-pui-warning" aria-hidden="true" />}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {schemeList.map((scheme) => (
-              <TabsContent key={scheme} value={scheme} className="flex flex-col gap-5">
-                <ul className="flex flex-col gap-1" data-slot="theme-editor-color-list">
-                  {themeEditorColorKeys.map((key) => (
-                    <ColorField
-                      key={key}
-                      fieldKey={key}
-                      scheme={scheme}
-                      set={config.palette?.[scheme]?.[key]}
-                      effective={effective[scheme][`--pui-${key}` as PreuiTokenName]}
-                      problems={fieldProblems(key, contrast[scheme], minContrast)}
-                      labels={labels}
-                      locale={locale}
-                      onValue={(next) => update((current) => setPaletteColor(current, scheme, key, next))}
-                    />
-                  ))}
-                </ul>
-                <ContrastDetails
-                  scheme={scheme}
-                  results={contrast[scheme]}
-                  labels={labels}
-                  locale={locale}
-                  minContrast={minContrast}
-                />
-              </TabsContent>
-            ))}
-          </Tabs>
-        </section>
-
-        {previewSlot != null && (
-          <section data-slot="theme-editor-preview" className="flex flex-col gap-2">
-            <span className={eyebrow}>
-              {labels.preview} · {labels.schemes[editing]}
+          <section data-slot="theme-editor-scheme" className="flex flex-col gap-2">
+            <span id={`${id}-scheme`} className={eyebrow}>
+              {labels.scheme}
             </span>
-            <div
-              data-scheme={editing}
-              className="flex flex-col gap-3 rounded-pui border border-pui-border bg-pui-background p-3 text-pui-foreground"
+            <ToggleGroup
+              aria-labelledby={`${id}-scheme`}
+              value={[config.scheme ?? fallbackScheme]}
+              onValueChange={(next) => {
+                const scheme = next[0] as SchemePreference | undefined;
+                if (scheme) update((current) => ({ ...current, scheme }));
+              }}
+              className="self-start"
             >
-              {previewSlot}
+              {(["dark", "light", "system"] as const).map((scheme) => (
+                <ToggleGroupItem key={scheme} value={scheme}>
+                  {labels.schemes[scheme]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </section>
+
+          <section data-slot="theme-editor-colors" className="flex flex-col gap-2">
+            <span className={eyebrow}>{labels.colors}</span>
+            <Tabs value={editing} onValueChange={(next) => setEditing(next as PreuiScheme)} className="gap-3">
+              <TabsList>
+                {schemeList.map((scheme) => (
+                  <TabsTrigger key={scheme} value={scheme} data-problems={problemCount(scheme)}>
+                    {labels.schemes[scheme]}
+                    {problemCount(scheme) > 0 && <Warning className="size-3.5 text-pui-warning" aria-hidden="true" />}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {schemeList.map((scheme) => (
+                <TabsContent key={scheme} value={scheme} className="flex flex-col gap-5">
+                  <ul className="flex flex-col gap-1" data-slot="theme-editor-color-list">
+                    {themeEditorColorKeys.map((key) => (
+                      <ColorField
+                        key={key}
+                        fieldKey={key}
+                        scheme={scheme}
+                        set={config.palette?.[scheme]?.[key]}
+                        effective={effective[scheme][`--pui-${key}` as PreuiTokenName]}
+                        problems={fieldProblems(key, contrast[scheme], minContrast)}
+                        labels={labels}
+                        locale={locale}
+                        onValue={(next) => update((current) => setPaletteColor(current, scheme, key, next))}
+                      />
+                    ))}
+                  </ul>
+                  <ContrastDetails
+                    scheme={scheme}
+                    results={contrast[scheme]}
+                    labels={labels}
+                    locale={locale}
+                    minContrast={minContrast}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </section>
+
+          {!split && previewSlot != null && (
+            <section data-slot="theme-editor-preview" className="flex flex-col gap-2">
+              <span className={eyebrow}>
+                {labels.preview} · {labels.schemes[editing]}
+              </span>
+              <div
+                data-scheme={editing}
+                // The edited tokens as scoped CSS variables, so the slot shows them even with preview={false}.
+                style={effective[editing] as CSSProperties}
+                className="flex flex-col gap-3 rounded-pui border border-pui-border bg-pui-background p-3 font-sans text-pui-foreground"
+              >
+                {previewSlot}
+              </div>
+            </section>
+          )}
+
+          <SharedSection config={config} fonts={fonts} labels={labels} locale={locale} update={update} idBase={id} />
+
+          {exportable && <ExportSection config={config} resolvedCss={resolved} labels={labels} onExport={onExport} />}
+        </ScrollArea>
+
+        {split && (
+          <section
+            data-slot="theme-editor-preview"
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-hidden",
+              variant === "panel"
+                ? "border-t border-pui-border lg:border-l lg:border-t-0"
+                : "mb-4 rounded-pui border border-pui-border lg:my-4",
+            )}
+          >
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-pui-border px-4 py-2">
+              <span id={`${id}-preview`} className={eyebrow}>
+                {labels.preview}
+              </span>
+              <ToggleGroup
+                aria-labelledby={`${id}-preview`}
+                value={[editing]}
+                onValueChange={(next) => {
+                  const scheme = next[0] as PreuiScheme | undefined;
+                  if (scheme) setEditing(scheme);
+                }}
+              >
+                {schemeList.map((scheme) => (
+                  <ToggleGroupItem key={scheme} value={scheme}>
+                    {labels.schemes[scheme]}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
             </div>
+            {/* The edited tokens of the active tab as scoped CSS variables — independent of the page and of `preview`. */}
+            <ScrollArea
+              data-scheme={editing}
+              style={effective[editing] as CSSProperties}
+              className="min-h-0 flex-1 bg-pui-background font-sans text-pui-foreground"
+              contentClassName="p-4 lg:p-6"
+            >
+              {previewSlot ?? <ThemeEditorPreview labels={labels.sample} />}
+            </ScrollArea>
           </section>
         )}
-
-        <SharedSection config={config} fonts={fonts} labels={labels} locale={locale} update={update} idBase={id} />
-
-        {exportable && <ExportSection config={config} resolvedCss={resolved} labels={labels} onExport={onExport} />}
-      </ScrollArea>
+      </div>
 
       <div
         data-slot="theme-editor-actions"
