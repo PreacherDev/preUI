@@ -24,11 +24,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PreacherDev/preUI-0.0.1.git"
+    "url": "git+https://github.com/PreacherDev/preUI.git"
   },
-  "homepage": "https://github.com/PreacherDev/preUI-0.0.1#readme",
+  "homepage": "https://github.com/PreacherDev/preUI#readme",
   "bugs": {
-    "url": "https://github.com/PreacherDev/preUI-0.0.1/issues"
+    "url": "https://github.com/PreacherDev/preUI/issues"
   },
   "engines": {
     "node": ">=18"
