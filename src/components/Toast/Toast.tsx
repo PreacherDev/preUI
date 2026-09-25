@@ -172,12 +172,13 @@ function getToastClassName(position: ToasterPosition) {
 
 interface ToastItemProps {
   toast: ToastObject;
+  closeButton: boolean;
   closeLabel: string;
   toastClassName: ToasterProps["toastClassName"];
   position: ToasterPosition;
 }
 
-function ToastItem({ toast, closeLabel, toastClassName: className, position }: ToastItemProps) {
+function ToastItem({ toast, closeButton, closeLabel, toastClassName: className, position }: ToastItemProps) {
   const CloseIcon = useIcon("close");
   return (
     <BaseToast.Root
@@ -203,22 +204,24 @@ function ToastItem({ toast, closeLabel, toastClassName: className, position }: T
           "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
         )}
       />
-      <BaseToast.Close
-        data-slot="toast-close"
-        aria-label={closeLabel}
-        className={cn(
-          "mt-0.5 inline-flex shrink-0 items-center justify-center rounded-pui-sm text-pui-muted-foreground",
-          "transition-colors duration-pui-fast ease-pui hover:text-pui-foreground",
-          "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
-        )}
-      >
-        <CloseIcon className="size-4" aria-hidden="true" />
-      </BaseToast.Close>
+      {closeButton && (
+        <BaseToast.Close
+          data-slot="toast-close"
+          aria-label={closeLabel}
+          className={cn(
+            "mt-0.5 inline-flex shrink-0 items-center justify-center rounded-pui-sm text-pui-muted-foreground",
+            "transition-colors duration-pui-fast ease-pui hover:text-pui-foreground",
+            "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
+          )}
+        >
+          <CloseIcon className="size-4" aria-hidden="true" />
+        </BaseToast.Close>
+      )}
     </BaseToast.Root>
   );
 }
 
-function ToastList({ closeLabel, toastClassName, position }: Omit<ToastItemProps, "toast">) {
+function ToastList({ closeButton, closeLabel, toastClassName, position }: Omit<ToastItemProps, "toast">) {
   const { toasts } = BaseToast.useToastManager();
   return (
     <>
@@ -226,6 +229,7 @@ function ToastList({ closeLabel, toastClassName, position }: Omit<ToastItemProps
         <ToastItem
           key={toast.id}
           toast={toast}
+          closeButton={closeButton}
           closeLabel={closeLabel}
           toastClassName={toastClassName}
           position={position}
@@ -240,6 +244,11 @@ export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.
   timeout?: number;
   /** Maximum number of toasts shown at once. */
   limit?: number;
+  /**
+   * Show the × button on every toast. `false` hides it — toasts still close on their timeout, by swipe, with an
+   * action or `toast.dismiss(id)` (keep a timeout, or one of those, when you hide it). @default true
+   */
+  closeButton?: boolean;
   /** Accessible label of each toast's close button. */
   closeLabel?: string;
   /** Extra classes for every toast (string or function of the toast state). */
@@ -263,6 +272,7 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
     className,
     timeout = 3200,
     limit,
+    closeButton = true,
     closeLabel = "Close",
     toastClassName,
     container,
@@ -291,7 +301,12 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
           )}
           {...props}
         >
-          <ToastList closeLabel={closeLabel} toastClassName={toastClassName} position={position} />
+          <ToastList
+            closeButton={closeButton}
+            closeLabel={closeLabel}
+            toastClassName={toastClassName}
+            position={position}
+          />
         </BaseToast.Viewport>
       </BaseToast.Portal>
     </BaseToast.Provider>

@@ -70,6 +70,17 @@ describe("Toast", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
+  it("closeButton={false} renders no close button", async () => {
+    render(<Toaster closeButton={false} />);
+    act(() => {
+      toast.success("Gespeichert.");
+    });
+    const item = await screen.findByRole("dialog");
+    expect(item.querySelector("[data-slot=toast-close]")).toBeNull();
+    // Only the type icon is left.
+    expect(item.querySelectorAll("svg")).toHaveLength(1);
+  });
+
   it("dismisses a toast by id", async () => {
     render(<Toaster />);
     let id = "";
