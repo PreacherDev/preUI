@@ -164,6 +164,9 @@ toast.promise(save(), { loading: "Saving…", success: "Saved", error: "Failed" 
 (e.g. a HUD setting); at the top the newest toast is on top and toasts slide in downwards. The viewport carries
 `data-position`.
 
+`<Toaster closeButton={false} />` hides the × button on every toast (default `true`). Toasts still close on their
+timeout, by swipe, with an action or `toast.dismiss(id)`, so keep a timeout when you hide it.
+
 ### Button
 
 | Prop | Type | Default |

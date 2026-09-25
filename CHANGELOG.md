@@ -3,6 +3,11 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.6.1 — 2026-09-25
+
+- **Toaster** `closeButton` (default `true`): `<Toaster closeButton={false} />` hides the × button on every toast.
+  Toasts still close on their timeout, by swipe, with an action or `toast.dismiss(id)`.
+
 ## 0.6.0 — 2026-09-25
 
 ### Added

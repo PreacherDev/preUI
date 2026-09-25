@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/preui",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "React UI components built on Base UI and Tailwind CSS v3",
   "keywords": [
     "react",
