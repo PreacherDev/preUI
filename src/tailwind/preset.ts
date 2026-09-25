@@ -2,7 +2,7 @@ import type { Config, PluginAPI } from "tailwindcss/types/config";
 
 /** Colors are stored as HSL channels so Tailwind opacity modifiers work (e.g. `bg-pui-primary/15`). */
 const color = (name: string) => `hsl(var(--pui-${name}) / <alpha-value>)`;
-import { renderTokenOverrides, type TokenOverrides } from "../theming/token-css";
+import { renderTokenOverrides, tokenOverridesHeader, type TokenOverrides } from "../theming/token-css";
 import { schemeSelectors, schemes, schemeTokens, tokens, type PreuiScheme } from "./tokens";
 
 export * from "./tokens";
@@ -12,6 +12,8 @@ export type { ContrastLevel, TokenContrastResult } from "../theming/contrast";
 export { deriveTokens } from "../theming/derive";
 export type { DeriveTokensBase } from "../theming/derive";
 export type { PreuiTokenKey, TokenInput, TokenOverrides } from "../theming/token-css";
+export { defaultThemePresets, resolveThemeConfig } from "../theming/theme-config";
+export type { ThemeConfig, ThemePalette, ThemePreset } from "../theming/theme-config";
 
 /** Explanatory comment placed at the top of generated token files (`tokens.css`, `npx preui init`). */
 export const tokensHeader = `/*
@@ -31,12 +33,6 @@ export const tokensHeader = `/*
  */
 `;
 
-/** Header comment for override files (`tokensToCss({ tokens, header: true })`). */
-const tokenOverridesHeader = `/*
- * preUI token overrides — load after the preUI tokens. Only the tokens listed here change; everything else keeps
- * coming from the active scheme and theme. The doubled :root makes these rules win over [data-theme] rules.
- */
-`;
 
 export interface TokensToCssOptions {
   /** Prepend the explanatory header comment. @default false */

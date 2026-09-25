@@ -1,10 +1,9 @@
 import {
   applyTokens,
-  deriveTokens,
+  resolveThemeConfig,
+  THEME_CONFIG_VERSION,
   useTheme,
-  type DeriveTokensBase,
-  type SchemePreference,
-  type TokenInput,
+  type ThemeConfig,
   type TokenOverrides,
 } from "@pre_scripts/preui";
 import { useCallback, useEffect, useRef } from "react";
@@ -12,36 +11,21 @@ import { useNuiEvent } from "./hooks";
 import { fetchNui } from "./nui";
 
 /**
- * The theme message (protocol version 1). Lua sends it as `SendNUIMessage({ action = "setTheme", data = payload })`
- * and returns it from the `getTheme` NUI callback. It is the **complete** theme state (e.g. `GlobalState.theme`):
+ * The theme message (protocol version 1) — the same object as preUI's `ThemeConfig`, so a value saved by
+ * `<ThemeEditor>` goes straight into `GlobalState.theme`. Lua sends it as
+ * `SendNUIMessage({ action = "setTheme", data = payload })` and returns it from the `getTheme` NUI callback. It is the
+ * **complete** theme state:
  * - `palette` / `tokens` left out → the runtime overrides are removed (back to the defaults / `data-theme`)
  * - `scheme` / `theme` left out → the current value stays (`theme: ""` or `null` removes the theme; Lua tables
  *   can't hold `nil`, so send `""` from Lua)
  */
-export interface NuiThemePayload {
-  /** Protocol version. @default 1 */
-  v?: 1;
-  /** `"dark"`, `"light"` or `"system"`. */
-  scheme?: SchemePreference;
-  /** Named theme (`data-theme`); `""` or `null` removes it. */
-  theme?: string | null;
-  /** Base colours per scheme, expanded with `deriveTokens` (the small form a theme editor stores). */
-  palette?: { dark?: DeriveTokensBase; light?: DeriveTokensBase };
-  /** Explicit token overrides (`applyTokens` format); win over `palette`. */
-  tokens?: TokenOverrides;
-}
+export type NuiThemePayload = ThemeConfig;
 
-export const NUI_THEME_PROTOCOL_VERSION = 1;
+export const NUI_THEME_PROTOCOL_VERSION = THEME_CONFIG_VERSION;
 
-/** Turns a payload's `palette` + `tokens` into one `applyTokens` input. */
+/** Turns a payload's `palette` + `tokens` into one `applyTokens` input (preUI's `resolveThemeConfig`). */
 export function resolveThemeTokens(payload: Pick<NuiThemePayload, "palette" | "tokens">): TokenOverrides {
-  const scheme = (name: "dark" | "light"): TokenInput | undefined => {
-    const base = payload.palette?.[name];
-    const derived = base?.primary ? (deriveTokens(base, name) as TokenInput) : undefined;
-    const explicit = payload.tokens?.[name];
-    return derived || explicit ? { ...derived, ...explicit } : undefined;
-  };
-  return { shared: payload.tokens?.shared, dark: scheme("dark"), light: scheme("light") };
+  return resolveThemeConfig(payload);
 }
 
 export interface NuiThemeBridgeProps {

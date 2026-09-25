@@ -3,6 +3,25 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.6.0 — 2026-09-25
+
+### Added
+
+- **ThemeEditor**: one theme editor for websites and FiveM NUI — presets (`defaultThemePresets`, all passing the
+  contrast check in both schemes), default scheme, base colours per scheme, radius, font, contrast always visible for
+  both schemes (status, pair list, inline badges), reset, save, CSS/JSON export, live preview. It edits a
+  `ThemeConfig` (theme protocol v1), so FiveM saves it to `GlobalState.theme` without conversion.
+- `ThemeConfig`, `ThemePreset`, `resolveThemeConfig`, `resolveThemePalette`, `resolveThemeConfigTokens`,
+  `checkThemeConfigContrast` (also from `/tailwind`).
+
+### Changed
+
+- Palettes no longer need `primary`, only emit tokens that differ from the defaults, and no longer override
+  `tokens.shared` (radius / fonts were silently replaced by the derived scheme block). With a `data-theme` active,
+  tokens the palette doesn't change now keep coming from the theme.
+- **HudSpeedometer** (visible): unit and gear share one row under the speed, and the fuel bar sits in the arc's
+  opening, as wide as the opening — the gauge reads as one instrument.
+
 ## 0.5.1 — 2026-09-23
 
 - **RadialMenu**: the centre text no longer runs past the centre circle. The centre content is the square inscribed
@@ -144,7 +163,12 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ## @pre_scripts/preui-nui
 
-### 0.1.0 — unreleased
+### 0.2.0 — 2026-09-25
+
+- `NuiThemePayload` is now `ThemeConfig` from `@pre_scripts/preui`; `resolveThemeTokens` uses `resolveThemeConfig`
+  (palettes without `primary` work). Peer `@pre_scripts/preui >=0.6.0`.
+
+### 0.1.0 — 2026-09-23
 
 - `fetchNui`, `useNuiEvent`, `useNuiVisibility` (Escape closes only after popups inside the page, via preUI's
   `isOverlayOpen` — a shown tooltip no longer swallows it; `toggleKeys` for browser development), `isEnvBrowser`, `getResourceName`, `debugData`, `useNuiLocale`

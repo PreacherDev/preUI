@@ -177,6 +177,13 @@ function block(selector: string, values: Record<string, string>) {
   return `${selector} {\n${entries.map(([name, value]) => `  ${name}: ${value};`).join("\n")}\n}\n`;
 }
 
+/** Header comment for override files (`tokensToCss({ tokens, header: true })`, the ThemeEditor's CSS export). */
+export const tokenOverridesHeader = `/*
+ * preUI token overrides — load after the preUI tokens. Only the tokens listed here change; everything else keeps
+ * coming from the active scheme and theme. The doubled :root makes these rules win over [data-theme] rules.
+ */
+`;
+
 /** The CSS for runtime overrides (see `runtimeTokenSelectors`) plus everything that was dropped. */
 export function renderTokenOverrides(overrides: TokenOverrides): { css: string; issues: NormalizedTokens["issues"] } {
   const shared = normalizeTokens(overrides.shared);

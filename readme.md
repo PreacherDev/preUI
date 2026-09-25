@@ -80,7 +80,7 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
-| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, Empty, Item, Kanban, Kbd, ListMenu, Meter, Progress, ScrollArea, Separator, Skeleton, Spinner, Table |
+| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, Empty, Item, Kanban, Kbd, ListMenu, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, Spinner, Table |
 | Game UI | HudContainer, HudStatus, HudStatusGroup, HudSpeedometer, KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle, RadialMenu, SkillCheck (see [Game UI](#game-ui)) |
 
 Components that build on another library have their own entry point, so you only install what you use:
@@ -1273,6 +1273,78 @@ The playground has a **theme builder** (`?page=theme`) with controls for every t
 that follows the edited scheme and a copy/download button for the resulting CSS (global or as `[data-theme="…"]` blocks).
 Its **Live-Editor** (`?page=editor`) shows the runtime API below: a few base colours per scheme, contrast badges and the
 CSS export.
+
+### ThemeEditor
+
+One theme editor for websites and FiveM NUI. It edits a `ThemeConfig` (theme protocol v1): the exact object
+`NuiThemeBridge` / `GlobalState.theme` use, so a saved value needs no conversion. The component never talks to a
+server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or your API.
+
+- **Presets** (`defaultThemePresets`, or your own `ThemePreset[]`; `presets={[]}` hides them), each marked when it
+  passes the contrast check
+- **Default scheme** (dark / light / system) and **base colours per scheme** (primary, background, text, positive,
+  negative, destructive, warning, info), expanded with `deriveTokens`. Unset fields show the effective colour, changed
+  fields are marked and can be reset one by one
+- **Radius** and optional **font** (`fonts`)
+- **Contrast, always visible**: a status for both schemes, the pair list of the scheme being edited, and a badge
+  on every colour that takes part in a failing pair
+- **Reset all**, **Save** (`onSave`, may return a promise), optional **export** of CSS overrides and JSON (`exportable`)
+- **Live preview** (`preview`, default on): applies the edited theme to the whole page in its own `<style>` while
+  mounted and removes it on unmount. It doesn't change `data-scheme`. `previewSlot` renders your own sample content in
+  the scheme of the active tab.
+
+All texts come from `labels` (English defaults), numbers use `locale`. SSR-safe and Chromium 103 / CEF-safe
+(everything is drawn in the DOM).
+
+Website (persistence by the page):
+
+```tsx
+import { ThemeEditor, ThemeProvider, resolveThemeConfig, type ThemeConfig } from "@pre_scripts/preui";
+
+function ThemeSettings() {
+  const [theme, setTheme] = useState<ThemeConfig>(() => JSON.parse(localStorage.getItem("theme") ?? "{}"));
+  return (
+    <ThemeEditor
+      className="h-[40rem] w-[28rem]"
+      value={theme}
+      onChange={setTheme}
+      onSave={(config) => localStorage.setItem("theme", JSON.stringify(config))}
+      fonts={[{ label: "Inter", value: '"Inter Variable", system-ui, sans-serif' }, { label: "System", value: "system-ui, sans-serif" }]}
+      exportable
+    />
+  );
+}
+
+// Apply a saved theme everywhere else:
+<ThemeProvider defaultScheme={saved.scheme} tokens={resolveThemeConfig(saved)}>…</ThemeProvider>
+```
+
+FiveM NUI (server-wide theme, see `examples/fivem-theme`):
+
+```tsx
+import { ThemeEditor, ThemeProvider, type ThemeConfig } from "@pre_scripts/preui";
+import { NuiThemeBridge, fetchNui } from "@pre_scripts/preui-nui";
+
+export function App() {
+  const [serverTheme, setServerTheme] = useState<ThemeConfig>({});
+  return (
+    <ThemeProvider storage={false} colorScheme={false}>
+      <NuiThemeBridge onThemeChange={setServerTheme} />
+      <ThemeEditor
+        key={JSON.stringify(serverTheme)}
+        variant="inline"
+        defaultValue={serverTheme}
+        onSave={(config) => fetchNui("saveTheme", config)} // Lua: GlobalState.theme = config
+        labels={{ save: "Für alle speichern", schemes: { dark: "Dunkel", light: "Hell" } }}
+        locale="de-DE"
+      />
+    </ThemeProvider>
+  );
+}
+```
+
+Helpers: `resolveThemeConfig(config)` (→ `applyTokens` / `tokensToCss({ tokens })` input),
+`resolveThemeConfigTokens(config, scheme)`, `checkThemeConfigContrast(config, scheme)`, `defaultThemePresets`.
 
 ### Runtime theming
 
