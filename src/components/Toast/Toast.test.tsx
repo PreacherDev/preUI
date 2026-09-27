@@ -81,6 +81,18 @@ describe("Toast", () => {
     expect(item.querySelectorAll("svg")).toHaveLength(1);
   });
 
+  it("a toast's closeButton option overrides the Toaster", async () => {
+    render(<Toaster closeButton={false} />);
+    act(() => {
+      toast("Mit X", { closeButton: true });
+      toast("Ohne X");
+    });
+    const withClose = (await screen.findByText("Mit X")).closest("[data-slot=toast]")!;
+    const without = screen.getByText("Ohne X").closest("[data-slot=toast]")!;
+    expect(withClose.querySelector("[data-slot=toast-close]")).not.toBeNull();
+    expect(without.querySelector("[data-slot=toast-close]")).toBeNull();
+  });
+
   it("dismisses a toast by id", async () => {
     render(<Toaster />);
     let id = "";
@@ -116,6 +128,44 @@ describe("Toast", () => {
     });
     await screen.findByRole("dialog");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), { timeout: 2000 });
+  });
+
+  // jsdom doesn't report window blur the way Base UI checks it (composedPath), so the pause comes from hovering the
+  // stack here — the other case FiveM hits: the cursor was over a toast when the UI closed and never "leaves" it.
+  async function showPausedToast(title: string) {
+    const user = userEvent.setup();
+    act(() => {
+      toast(title);
+    });
+    await user.hover(await screen.findByRole("dialog"));
+    act(() => {
+      window.dispatchEvent(new FocusEvent("blur"));
+    });
+  }
+
+  it("keeps a paused toast while the window is unfocused by default", async () => {
+    render(<Toaster timeout={100} />);
+    await showPausedToast("Wartet");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("pauseWhenUnfocused={false} closes toasts although the window has no focus (FiveM: UI closed)", async () => {
+    render(<Toaster timeout={100} pauseWhenUnfocused={false} />);
+    await showPausedToast("Schließt trotzdem");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), { timeout: 2000 });
+  });
+
+  it("keeps counting while unfocused by default in FiveM NUI", async () => {
+    const nui = window as { GetParentResourceName?: () => string };
+    nui.GetParentResourceName = () => "my-resource";
+    try {
+      render(<Toaster timeout={100} />);
+      await showPausedToast("NUI");
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), { timeout: 2000 });
+    } finally {
+      delete nui.GetParentResourceName;
+    }
   });
 
   it("follows a promise from loading to success", async () => {

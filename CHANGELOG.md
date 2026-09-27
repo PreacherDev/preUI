@@ -3,6 +3,15 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.6.2 — 2026-09-27
+
+- **Toaster**: toasts close on their timeout again after a FiveM UI closes. Base UI pauses every toast timer while the
+  window has no focus and resumes only on the next focus; NUI loses focus with `SetNuiFocus(false)` and doesn't get it
+  back while playing, so a toast that was open stayed forever (also when the cursor was over it). New
+  `pauseWhenUnfocused` — default `false` in FiveM NUI (detected by `GetParentResourceName`), `true` elsewhere (a toast
+  shown while you are in another tab still waits for you). Nothing to change in your resources.
+- `toast(…, { closeButton })`: show or hide the × on one toast, over the `Toaster`'s `closeButton`.
+
 ## 0.6.1 — 2026-09-25
 
 - **Toaster** `closeButton` (default `true`): `<Toaster closeButton={false} />` hides the × button on every toast.
@@ -185,7 +194,12 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ## @pre_scripts/create-preui-nui
 
-### 0.1.0 — unreleased
+### 0.1.1 — 2026-09-27
+
+- New resources depend on `@pre_scripts/preui` `^0.6.2` and `@pre_scripts/preui-nui` `^0.2.0` (were `^0.5.0` /
+  `^0.1.0`). A test keeps the template on the current versions from now on.
+
+### 0.1.0 — 2026-09-23
 
 - `npm create @pre_scripts/preui-nui@latest <name> -- [--lang de|en] [--no-theme] [--force]`: scaffolds a FiveM NUI
   resource (fxmanifest, client.lua, Vite + React + preUI for Chromium 103, theme bridge, browser mocks).
