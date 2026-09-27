@@ -164,8 +164,14 @@ toast.promise(save(), { loading: "Saving…", success: "Saved", error: "Failed" 
 (e.g. a HUD setting); at the top the newest toast is on top and toasts slide in downwards. The viewport carries
 `data-position`.
 
-`<Toaster closeButton={false} />` hides the × button on every toast (default `true`). Toasts still close on their
+`<Toaster closeButton={false} />` hides the × button on every toast (default `true`); `toast("…", { closeButton })`
+overrides it for one toast. Toasts still close on their
 timeout, by swipe, with an action or `toast.dismiss(id)`, so keep a timeout when you hide it.
+
+While the window has no focus the auto-dismiss pauses (a toast shown while you are in another tab waits for you).
+In FiveM NUI that would keep toasts open forever once the UI closes (`SetNuiFocus(false)` takes the focus and it
+doesn't come back while playing), so there the Toaster keeps counting — detected automatically; set
+`pauseWhenUnfocused` to override.
 
 ### Button
 

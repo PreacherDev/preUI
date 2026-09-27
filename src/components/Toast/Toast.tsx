@@ -4,6 +4,8 @@ import {
   isValidElement,
   type ComponentPropsWithoutRef,
   type ComponentRef,
+  useEffect,
+  useState,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -25,6 +27,8 @@ export interface ToastOptions extends Omit<BaseAddOptions, "type" | "title"> {
   type?: ToastType | (string & {});
   /** Sonner-style action button, e.g. `{ label: "Undo", onClick: () => … }`. The toast closes after the click. */
   action?: { label: ReactNode; onClick: (event: MouseEvent<HTMLButtonElement>) => void };
+  /** Show the × button on this toast; overrides the `Toaster`'s `closeButton`. */
+  closeButton?: boolean;
 }
 
 type ToastMessage = string | ToastOptions;
@@ -170,16 +174,68 @@ function getToastClassName(position: ToasterPosition) {
   ];
 }
 
+/**
+ * Base UI pauses every toast timer while the window has no focus and resumes only on the next window focus. In FiveM
+ * NUI the page loses focus whenever the UI closes (`SetNuiFocus(false)`) and doesn't get it back while playing — the
+ * toasts would stay forever. This runs a second timer only while the window is unfocused, so a toast closes at the
+ * latest `timeout` ms after the blur (hover / keyboard pauses don't apply then; nobody can reach the toast).
+ */
+function useUnfocusedTimeout(toast: ToastObject, timeout: number, enabled: boolean) {
+  const { id, type, transitionStatus, updateKey } = toast;
+  const duration = toast.timeout ?? timeout;
+  useEffect(() => {
+    if (!enabled || type === "loading" || !(duration > 0) || transitionStatus === "ending") return;
+    let remaining = duration;
+    let startedAt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = (event?: Event) => {
+      if (timer !== undefined || (event && event.target !== window)) return;
+      startedAt = Date.now();
+      timer = setTimeout(() => toastManager.close(id), remaining);
+    };
+    const stop = (event?: Event) => {
+      if (timer === undefined || (event && event.target !== window)) return;
+      clearTimeout(timer);
+      timer = undefined;
+      remaining = Math.max(remaining - (Date.now() - startedAt), 0);
+    };
+    if (!document.hasFocus()) start();
+    window.addEventListener("blur", start);
+    window.addEventListener("focus", stop);
+    return () => {
+      stop();
+      window.removeEventListener("blur", start);
+      window.removeEventListener("focus", stop);
+    };
+  }, [enabled, id, type, duration, transitionStatus, updateKey]);
+}
+
+/** FiveM NUI (CEF) exposes `GetParentResourceName`; read in an effect only (SSR). */
+function isFiveMNui() {
+  return typeof (window as { GetParentResourceName?: unknown }).GetParentResourceName === "function";
+}
+
 interface ToastItemProps {
   toast: ToastObject;
+  timeout: number;
+  closeUnfocused: boolean;
   closeButton: boolean;
   closeLabel: string;
   toastClassName: ToasterProps["toastClassName"];
   position: ToasterPosition;
 }
 
-function ToastItem({ toast, closeButton, closeLabel, toastClassName: className, position }: ToastItemProps) {
+function ToastItem({
+  toast,
+  timeout,
+  closeUnfocused,
+  closeButton,
+  closeLabel,
+  toastClassName: className,
+  position,
+}: ToastItemProps) {
   const CloseIcon = useIcon("close");
+  useUnfocusedTimeout(toast, timeout, closeUnfocused);
   return (
     <BaseToast.Root
       toast={toast}
@@ -204,7 +260,7 @@ function ToastItem({ toast, closeButton, closeLabel, toastClassName: className, 
           "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
         )}
       />
-      {closeButton && (
+      {((toast as ToastObject & { closeButton?: boolean }).closeButton ?? closeButton) && (
         <BaseToast.Close
           data-slot="toast-close"
           aria-label={closeLabel}
@@ -221,7 +277,14 @@ function ToastItem({ toast, closeButton, closeLabel, toastClassName: className, 
   );
 }
 
-function ToastList({ closeButton, closeLabel, toastClassName, position }: Omit<ToastItemProps, "toast">) {
+function ToastList({
+  timeout,
+  closeUnfocused,
+  closeButton,
+  closeLabel,
+  toastClassName,
+  position,
+}: Omit<ToastItemProps, "toast">) {
   const { toasts } = BaseToast.useToastManager();
   return (
     <>
@@ -229,6 +292,8 @@ function ToastList({ closeButton, closeLabel, toastClassName, position }: Omit<T
         <ToastItem
           key={toast.id}
           toast={toast}
+          timeout={timeout}
+          closeUnfocused={closeUnfocused}
           closeButton={closeButton}
           closeLabel={closeLabel}
           toastClassName={toastClassName}
@@ -245,7 +310,14 @@ export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.
   /** Maximum number of toasts shown at once. */
   limit?: number;
   /**
-   * Show the × button on every toast. `false` hides it — toasts still close on their timeout, by swipe, with an
+   * Pause the auto-dismiss while the window has no focus (Base UI's behaviour: a toast shown while you are in another
+   * tab waits for you). `false` keeps counting — needed in FiveM NUI, where the page loses focus whenever the UI closes
+   * (`SetNuiFocus(false)`) and never gets it back while playing. Default: `false` in FiveM NUI (detected by
+   * `GetParentResourceName`), `true` elsewhere.
+   */
+  pauseWhenUnfocused?: boolean;
+  /**
+   * Show the × button on every toast (a toast's own `closeButton` option wins). `false` hides it — toasts still close on their timeout, by swipe, with an
    * action or `toast.dismiss(id)` (keep a timeout, or one of those, when you hide it). @default true
    */
   closeButton?: boolean;
@@ -272,6 +344,7 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
     className,
     timeout = 3200,
     limit,
+    pauseWhenUnfocused,
     closeButton = true,
     closeLabel = "Close",
     toastClassName,
@@ -281,6 +354,10 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
   },
   ref,
 ) {
+  // Detected after mounting (never during render, SSR); an explicit prop wins.
+  const [inNui, setInNui] = useState(false);
+  useEffect(() => setInNui(isFiveMNui()), []);
+  const closeUnfocused = pauseWhenUnfocused === undefined ? inNui : !pauseWhenUnfocused;
   return (
     <BaseToast.Provider toastManager={toastManager} timeout={timeout} limit={limit}>
       <BaseToast.Portal data-slot="toaster-portal" container={container}>
@@ -302,6 +379,8 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
           {...props}
         >
           <ToastList
+            timeout={timeout}
+            closeUnfocused={closeUnfocused}
             closeButton={closeButton}
             closeLabel={closeLabel}
             toastClassName={toastClassName}

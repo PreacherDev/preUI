@@ -143,6 +143,21 @@ describe("create-preui-nui", () => {
   });
 });
 
+describe("template versions", () => {
+  // The starter must not fall behind: a new resource starts on the current preUI / preui-nui minor. Below 1.0 the
+  // caret keeps it on that minor (^0.6.2 = 0.6.x from 0.6.2), so patches still arrive.
+  const version = (path: string) =>
+    (JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8")) as { version: string }).version;
+  const template = JSON.parse(readFileSync(fileURLToPath(new URL("../template/web/package.json", import.meta.url)), "utf8")) as {
+    dependencies: Record<string, string>;
+  };
+
+  it("depends on the current @pre_scripts/preui and @pre_scripts/preui-nui", () => {
+    expect(template.dependencies["@pre_scripts/preui"]).toBe(`^${version("../../../package.json")}`);
+    expect(template.dependencies["@pre_scripts/preui-nui"]).toBe(`^${version("../../preui-nui/package.json")}`);
+  });
+});
+
 describe("helpers", () => {
   it("validateName", () => {
     expect(validateName("my-shop")).toBeUndefined();
