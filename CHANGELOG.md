@@ -3,6 +3,24 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.7.0 — 2026-09-29
+
+### Added
+
+- **Badge** `surface="solid"`: an opaque badge for pictures, videos and the game world. The variant's tint is laid
+  over `background` as a flat colour (Chromium 103 has no `color-mix()`); `secondary` and `outline` become plain
+  `background`.
+  Text contrast stays ≥ 4.5:1 on the default tokens (tested). `data-surface` on the element.
+
+- The npm package now ships this `CHANGELOG.md` (`node_modules/@pre_scripts/preui/CHANGELOG.md`), so tools and AI
+  assistants in your project can read what changed without the repo.
+
+### Changed
+
+- **TabsContent** (visible in some layouts): `flex-auto` instead of `flex-1`. It still fills a taller `Tabs`, but an
+  explicit height like `h-96` on the panel now applies — `flex-1`'s zero basis ignored it. If you worked around that
+  with `flex-none`, you can drop it.
+
 ## 0.6.2 — 2026-09-27
 
 - **Toaster**: toasts close on their timeout again after a FiveM UI closes. Base UI pauses every toast timer while the
@@ -179,6 +197,15 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ## @pre_scripts/preui-nui
 
+### 0.3.0 — 2026-09-29
+
+- `NuiTextsProvider` / `useNuiTexts()`: the server's texts from a `getTexts` callback (flat or nested Lua tables),
+  live updates via `setTexts`, merged over a `fallback`. `t(key, values)` fills `{name}` placeholders, `t.plural(key,
+  count)` picks `key_one` / `key_other` / … by `Intl.PluralRules` (optional `key_zero`). Also `createNuiTexts`,
+  `flattenTexts`, `formatText`.
+- `useNuiMoney()` / `formatMoney()`: the currency format asked once from a `getCurrency` callback (`{ format =
+  '${amount}', decimals }`, live via `setCurrency`), then every amount is formatted in the UI.
+
 ### 0.2.0 — 2026-09-25
 
 - `NuiThemePayload` is now `ThemeConfig` from `@pre_scripts/preui`; `resolveThemeTokens` uses `resolveThemeConfig`
@@ -193,6 +220,13 @@ changes; a patch version never does. The NUI helpers have their own section at t
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.1.2 — 2026-09-29
+
+- New resources depend on `@pre_scripts/preui` `^0.7.0` and `@pre_scripts/preui-nui` `^0.3.0`.
+- `vite.config.ts` marks Base UI's `fastComponent` / `fastComponentRef` as pure
+  (`treeshake.manualPureFunctions`): with Vite 8 (Rolldown) unused Dialog / Menu / Popover / PreviewCard / Tooltip
+  code no longer ends up in the bundle (the starter's app: 122 → 108 kB gzip). Vite 7 (Rollup) already dropped it.
 
 ### 0.1.1 — 2026-09-27
 

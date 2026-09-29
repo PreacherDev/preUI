@@ -6,3 +6,7 @@ export { NUI_THEME_PROTOCOL_VERSION, NuiThemeBridge, resolveThemeTokens } from "
 export type { NuiThemeBridgeProps, NuiThemePayload } from "./NuiThemeBridge";
 export { normalizeLocale, useNuiLocale } from "./locale";
 export type { NuiLocale, UseNuiLocaleOptions } from "./locale";
+export { NuiTextsProvider, createNuiTexts, flattenTexts, formatText, useNuiTexts } from "./texts";
+export type { NuiTexts, NuiTextsInput, NuiTextsProviderProps, NuiTextValues } from "./texts";
+export { formatMoney, useNuiMoney } from "./money";
+export type { FormatMoneyOptions, MoneyFormat, NuiMoney, UseNuiMoneyOptions } from "./money";

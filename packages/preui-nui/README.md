@@ -23,6 +23,10 @@ No dependencies besides `react` and `@pre_scripts/preui` (peer dependencies). Co
 | `resolveThemeTokens(payload)` | Turns a payload's `palette` + `tokens` into one `applyTokens` input. |
 | `useNuiLocale({ event, action, fallback, mock })` | `{ locale, language, ready }` — the server language from the `getLocale` NUI callback, updated by `setLocale` messages. Use it for preUI's `locale` props and to pick your texts / `labels`. |
 | `normalizeLocale(value)` | `"de_DE"` → `"de-DE"`; `null` for anything that isn't a locale. |
+| `<NuiTextsProvider event fallback locale>` / `useNuiTexts()` | The server's texts: asks `getTexts` once, follows `setTexts`, merges over `fallback` (e.g. an exported `dev-texts.json`). `t(key, values)` fills `{name}` placeholders, `t.plural(key, count)` picks `key_one` / `key_other` / … by `Intl.PluralRules`. Nested Lua tables become dot keys. |
+| `createNuiTexts(texts, { locale })`, `flattenTexts`, `formatText` | The same `t` without React (tests, notifications). |
+| `useNuiMoney({ event, fallback, locale })` | `{ format(amount), currency, ready }`: asks `getCurrency` once (`{ format = '${amount}', decimals = 0 }`), follows `setCurrency`, then formats every amount locally — no round trip per amount. |
+| `formatMoney(amount, { format, decimals, locale })` | `1234.5` → `"$1,235"`; the sign goes in front of the template (`-$500`). |
 
 ```tsx
 // main.tsx
@@ -47,6 +51,36 @@ function App() {
   );
 }
 ```
+
+Texts and money, with the Lua side:
+
+```tsx
+const { locale } = useNuiLocale();
+
+<NuiTextsProvider fallback={devTexts} locale={locale}>
+  <Cart />
+</NuiTextsProvider>
+
+function Cart({ items, cash }: { items: Item[]; cash: number }) {
+  const t = useNuiTexts();
+  const money = useNuiMoney({ locale });
+  const total = items.reduce((sum, item) => sum + item.price * item.amount, 0);
+  return (
+    <p>
+      {t.plural("cart.items", items.length)} · {money.format(total)}
+      {total > cash && t("shop.not_enough", { amount: money.format(total - cash) })}
+    </p>
+  );
+}
+```
+
+```lua
+RegisterNUICallback('getTexts', function(_, cb) cb(texts) end)          -- flat or nested table
+RegisterNUICallback('getCurrency', function(_, cb) cb({ format = '${amount}', decimals = 0 }) end)
+```
+
+Plural keys follow the locale: `cart.items_one` / `cart.items_other` in English and German, plus `_few` / `_many` in
+Polish or Russian; an optional `_zero` is used for 0. `{count}` is filled in with the formatted count.
 
 `NuiThemeBridge` must sit inside a `ThemeProvider` (it uses `useTheme`). Props: `action` (default `"setTheme"`),
 `getThemeEvent` (default `"getTheme"`, `false` to skip), `mock` (what `getTheme` returns in a browser), `tokensId`
