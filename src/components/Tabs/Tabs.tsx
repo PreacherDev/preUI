@@ -93,7 +93,9 @@ export const TabsContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTa
       ref={ref}
       data-slot="tabs-content"
       className={mergeClassName(
-        "flex-1 text-sm outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
+        // flex-auto, not flex-1: still fills a taller Tabs, but its basis is the content / an explicit height, so
+        // `h-96` on the panel works (flex-1's basis 0 ignored it).
+        "flex-auto text-sm outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
         className,
       )}
       {...props}

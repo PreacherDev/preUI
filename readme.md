@@ -265,6 +265,27 @@ first and can stop the activation with `event.preventDefault()`.
 `<SidebarMenuBadge variant="destructive">3</SidebarMenuBadge>` for urgent items. For counts inside tabs, put a `Badge`
 in the `TabsTrigger`.
 
+### Badges on pictures
+
+`Badge` variants are see-through tints by default. On item pictures, videos or the game world the background shows
+through, so use `surface="solid"`: the same tint laid over the page `background`, opaque and flat. `secondary` and
+`outline` become plain `background` (not `muted`, which is the usual background of picture areas).
+
+```tsx
+<div className="relative">
+  <img src={item.image} alt="" className="rounded-pui bg-pui-muted" />
+  <Badge surface="solid" variant="warning" className="absolute right-2 top-2">
+    License needed
+  </Badge>
+</div>
+```
+
+### Tabs with a fixed height
+
+`TabsContent` fills the free space of a taller `Tabs` (`flex-auto`), and since 0.7 an explicit height on the panel
+works too: `<TabsContent className="h-96 overflow-auto">`. Before 0.7 it was `flex-1`, whose zero basis ignored `h-*`
+unless you added `flex-none`.
+
 ### Code, Markdown & rich text
 
 ```tsx
@@ -961,9 +982,19 @@ Build your NUI for the engine, so your bundler lowers syntax and CSS for it:
 ```ts
 // vite.config.ts
 export default defineConfig({
-  build: { target: "chrome103" }, // also lowers the CSS (cssTarget defaults to target)
+  build: {
+    target: "chrome103", // also lowers the CSS (cssTarget defaults to target)
+    // Base UI creates some parts with fastComponent() / fastComponentRef() without a /* @__PURE__ */ mark; Vite 8
+    // (Rolldown) then keeps unused Dialog / Menu / Popover / PreviewCard / Tooltip code. Vite 7 (Rollup) drops it
+    // anyway, the line does no harm there.
+    rollupOptions: { treeshake: { manualPureFunctions: ["fastComponent", "fastComponentRef"] } },
+  },
 });
 ```
+
+Measured with Vite 8 (minified, gzip): a HUD with four status bars, a speedometer and the `Toaster` is 102 kB of
+JavaScript with that line and 114 kB without (React alone: 68 kB); the starter's app 108 instead of 122 kB. In Chromium 103 it costs about 0.2 ms of main-thread time per
+second when idle and about 33 ms per second with an update every 100 ms — send HUD values only when they change.
 
 - Tested: the whole playground built with `build.target: "chrome103"` renders in Chromium 103.0.5058 without console
   errors and matches current Chrome (overlays, menus, selects, calendar, sidebar, editors).
