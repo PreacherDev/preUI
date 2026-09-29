@@ -199,6 +199,7 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ### 0.3.0 — 2026-09-29
 
+- Ships the MIT `LICENSE` in the package (it was missing, so license checks warned).
 - `NuiTextsProvider` / `useNuiTexts()`: the server's texts from a `getTexts` callback (flat or nested Lua tables),
   live updates via `setTexts`, merged over a `fallback`. `t(key, values)` fills `{name}` placeholders, `t.plural(key,
   count)` picks `key_one` / `key_other` / … by `Intl.PluralRules` (optional `key_zero`). Also `createNuiTexts`,
@@ -223,6 +224,7 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ### 0.1.2 — 2026-09-29
 
+- Ships the MIT `LICENSE` in the package (it was missing, so license checks warned).
 - New resources depend on `@pre_scripts/preui` `^0.7.0` and `@pre_scripts/preui-nui` `^0.3.0`.
 - `vite.config.ts` marks Base UI's `fastComponent` / `fastComponentRef` as pure
   (`treeshake.manualPureFunctions`): with Vite 8 (Rolldown) unused Dialog / Menu / Popover / PreviewCard / Tooltip
