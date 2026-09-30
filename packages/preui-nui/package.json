@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/preui-nui",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "FiveM NUI helpers for preUI: fetchNui, NUI message hooks, browser mocks and a live theme bridge",
   "keywords": ["fivem", "nui", "cfx", "react", "preui", "theme"],
   "author": "PRE_SCRIPTS",
