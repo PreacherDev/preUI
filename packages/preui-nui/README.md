@@ -27,6 +27,7 @@ No dependencies besides `react` and `@pre_scripts/preui` (peer dependencies). Co
 | `createNuiTexts(texts, { locale })`, `flattenTexts`, `formatText` | The same `t` without React (tests, notifications). |
 | `useNuiMoney({ event, fallback, locale })` | `{ format(amount), currency, ready }`: asks `getCurrency` once (`{ format = '${amount}', decimals = 0 }`), follows `setCurrency`, then formats every amount locally — no round trip per amount. |
 | `formatMoney(amount, { format, decimals, locale })` | `1234.5` → `"$1,235"`; the sign goes in front of the template (`-$500`). |
+| `thirdPartyLicenses()` from `@pre_scripts/preui-nui/vite` | Vite plugin (build time): writes `dist/THIRD_PARTY_LICENSES.txt` with name, version, license and license text of every npm package in the bundle, fonts included. |
 
 ```tsx
 // main.tsx
@@ -81,6 +82,24 @@ RegisterNUICallback('getCurrency', function(_, cb) cb({ format = '${amount}', de
 
 Plural keys follow the locale: `cart.items_one` / `cart.items_other` in English and German, plus `_few` / `_many` in
 Polish or Russian; an optional `_zero` is used for 0. `{count}` is filled in with the formatted count.
+
+### Licenses of the bundled code
+
+React, Base UI, preUI and the rest are MIT / ISC / Apache-2.0, the fonts OFL-1.1. All of them allow almost
+anything, but ask that their license text travels with the code — and a NUI's `web/dist` is sent to every player. The
+plugin writes that file at build time, only for what actually is in the bundle:
+
+```ts
+// web/vite.config.ts
+import { thirdPartyLicenses } from "@pre_scripts/preui-nui/vite";
+
+export default defineConfig({
+  plugins: [react(), thirdPartyLicenses()], // → dist/THIRD_PARTY_LICENSES.txt
+});
+```
+
+Options: `fileName` (default `"THIRD_PARTY_LICENSES.txt"`), `header` (first lines, e.g. your resource name),
+`exclude` (package names to leave out). Works with Vite 7 (Rollup) and 8 (Rolldown).
 
 `NuiThemeBridge` must sit inside a `ThemeProvider` (it uses `useTheme`). Props: `action` (default `"setTheme"`),
 `getThemeEvent` (default `"getTheme"`, `false` to skip), `mock` (what `getTheme` returns in a browser), `tokensId`
