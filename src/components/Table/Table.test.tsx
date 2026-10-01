@@ -84,6 +84,34 @@ describe("Table", () => {
     expect(container).not.toHaveClass("rounded-pui");
     expect(screen.getByRole("row")).toHaveClass("border-0");
   });
+
+  it("starts the vertical scrollbar below the header (--pui-table-header-height), 0 without a header", () => {
+    const height = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+      return this.tagName === "THEAD" ? 40 : 0;
+    });
+    try {
+      const { unmount } = renderTable();
+      const container = screen.getByRole("table").closest<HTMLElement>("[data-slot=table-container]")!;
+      expect(container.style.getPropertyValue("--pui-table-header-height")).toBe("40px");
+      expect(container.querySelector("[data-slot=scroll-area]")).toHaveClass(
+        "[&>[data-slot=scroll-area-scrollbar][data-orientation=vertical]]:!top-[var(--pui-table-header-height,0px)]",
+      );
+      unmount();
+      render(
+        <Table>
+          <TableBody>
+            <TableRow>
+              <TableCell>Ohne Kopf</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>,
+      );
+      const plain = screen.getByRole("table").closest<HTMLElement>("[data-slot=table-container]")!;
+      expect(plain.style.getPropertyValue("--pui-table-header-height")).toBe("0px");
+    } finally {
+      height.mockRestore();
+    }
+  });
 });
 
 describe("Table tokens + slots", () => {
