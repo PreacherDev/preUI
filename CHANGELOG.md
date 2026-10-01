@@ -3,6 +3,16 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.7.1 — 2026-10-01
+
+- **CodeEditor / MarkdownEditor**: AltGr characters type again. Windows reports AltGr as Ctrl + Alt, so on German
+  (and similar) keyboards `[`, `]` and `\` ran CodeMirror shortcuts instead (Ctrl+Alt+[ / ] fold all / unfold all,
+  Ctrl+Alt+\ re-indent). AltGr input now always types; brackets still auto-close. All other preUI inputs were
+  already fine (checked with every German special character in every playground field in Chromium 103).
+- **Table** (also DataTable): the vertical scrollbar starts below the sticky header instead of running beside it.
+  The header height is measured into `--pui-table-header-height` on the container (0 without a header); the
+  horizontal scrollbar is unchanged.
+
 ## 0.7.0 — 2026-09-29
 
 ### Added
@@ -227,6 +237,10 @@ changes; a patch version never does. The NUI helpers have their own section at t
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.1.4 — 2026-10-01
+
+- New resources depend on `@pre_scripts/preui` `^0.7.1`.
 
 ### 0.1.3 — 2026-09-30
 

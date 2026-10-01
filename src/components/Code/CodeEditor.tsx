@@ -40,6 +40,7 @@ import {
 import { cn } from "../../utils/cn";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { defaultEditorPhrases, preuiEditorTheme, preuiHighlightStyle } from "./editor-theme";
+import { altGrGuard } from "./altgr-guard";
 import { outsideClickGuard } from "./outside-click-guard";
 
 export interface CodeEditorHandle {
@@ -351,6 +352,8 @@ export const CodeEditor = /* @__PURE__ */ forwardRef<CodeEditorHandle, CodeEdito
         panels({ topContainer, bottomContainer }),
         tooltips({ parent: root }),
         offscreenCursorGuard(viewport, root),
+        // AltGr characters ({ [ ] } \ @ … on German layouts arrive as Ctrl+Alt) must type, not run a shortcut.
+        altGrGuard,
         keymap.of([
           ...closeBracketsKeymap,
           ...defaultKeymap,

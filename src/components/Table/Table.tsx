@@ -1,5 +1,7 @@
 import {
   forwardRef,
+  useEffect,
+  useRef,
   type HTMLAttributes,
   type TableHTMLAttributes,
   type TdHTMLAttributes,
@@ -29,8 +31,11 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
 ) {
   const tabStop = useScrollTabStop();
   const tableRef = useHasFallbackRef(ref, tableHasRules);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useHeaderHeight(containerRef);
   return (
     <div
+      ref={containerRef}
       data-slot="table-container"
       className={cn(
         "relative flex w-full flex-col overflow-hidden rounded-pui border border-pui-border bg-pui-card",
@@ -42,6 +47,8 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
         reserveTrack={false}
         viewportRef={tabStop.viewportRef}
         viewportProps={tabStop.viewportProps}
+        // The vertical scrollbar starts below the sticky header (Base UI sets `top: 0` inline, hence `!`).
+        className="[&>[data-slot=scroll-area-scrollbar][data-orientation=vertical]]:!top-[var(--pui-table-header-height,0px)]"
       >
         <table
           ref={tableRef}
@@ -53,6 +60,35 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
     </div>
   );
 });
+
+/**
+ * Keeps `--pui-table-header-height` on the container at the height of the table's `<thead>` (0 without one), so
+ * the vertical scrollbar can start below the sticky header. Measured after mount (SSR-safe) and on every resize of
+ * the table or the header.
+ */
+function useHeaderHeight(containerRef: { current: HTMLDivElement | null }) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const table = container.querySelector<HTMLTableElement>("[data-slot=table]");
+    let observed: Element | null = null;
+    const update = () => {
+      const head = table?.tHead ?? null;
+      if (head && head !== observed) {
+        observed = head;
+        observer?.observe(head);
+      }
+      container.style.setProperty("--pui-table-header-height", `${head?.offsetHeight ?? 0}px`);
+    };
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    if (table) observer?.observe(table);
+    update();
+    return () => {
+      observer?.disconnect();
+      container.style.removeProperty("--pui-table-header-height");
+    };
+  }, [containerRef]);
+}
 
 export type TableHeaderProps = HTMLAttributes<HTMLTableSectionElement>;
 
