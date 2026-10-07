@@ -166,4 +166,12 @@ describe("KeybindHintBar", () => {
     expect(bar).toHaveClass("gap-x-8", "p-2");
     expect(bar).not.toHaveClass("gap-x-4");
   });
+  it('KeybindHintBar variant="panel" looks like a HUD panel, the radius stays overridable', () => {
+    const { container, rerender } = render(<KeybindHintBar variant="panel" />);
+    const bar = container.querySelector("[data-slot=keybind-hint-bar]")!;
+    expect(bar).toHaveClass("bg-pui-shell", "shadow-pui-window", "rounded-pui-md", "px-4");
+    rerender(<KeybindHintBar variant="panel" className="rounded-pui-window" />);
+    expect(bar).toHaveClass("rounded-pui-window");
+    expect(bar).not.toHaveClass("rounded-pui-md");
+  });
 });

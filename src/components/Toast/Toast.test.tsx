@@ -267,4 +267,12 @@ describe("Toast", () => {
     expect(viewport).toHaveClass("top-12", "right-6");
     expect(viewport).not.toHaveClass("top-6");
   });
+  it("actions={false} hides the action buttons", async () => {
+    render(<Toaster actions={false} />);
+    act(() => {
+      toast("Gespeichert.", { action: { label: "Rückgängig", onClick: () => {} } });
+    });
+    const item = await screen.findByRole("dialog");
+    expect(item.querySelector("[data-slot=toast-action]")).toBeNull();
+  });
 });

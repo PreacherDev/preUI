@@ -19,4 +19,5 @@ export {
   resolveThemePalette,
   THEME_CONFIG_VERSION,
 } from "./theme-config";
-export type { ThemeConfig, ThemePalette, ThemePreset } from "./theme-config";
+export type { ThemeConfig, ThemeFontSource, ThemePalette, ThemePreset } from "./theme-config";
+export { loadThemeFont, loadThemeFonts } from "./theme-fonts";

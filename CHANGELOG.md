@@ -3,6 +3,56 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.9.0 — 2026-10-07
+
+### ThemeEditor
+
+- **Style section** with sliders for corner radius, **panel opacity** (see-through panels, e.g. over the game),
+  **accent strength**, **borders** and **shadows**. Each is one new shared token (below), each resets on its own.
+- **Presets are the whole look:** a preset sets every style value (radius, opacity, accent, borders, shadows — the
+  default where it sets none), so picking "preUI" also resets the radius. The other shared tokens you set (a font)
+  stay. New preset **Glass** (see-through panels). Police, Amber and Mono now have their own radius.
+- **Undo / redo** (buttons and Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z; a slider or colour drag is one step),
+  **"Unsaved changes"** and **"Discard changes"** (back to `savedValue`, or what the editor opened with, then the
+  last `onSave`).
+- **Fix** next to a field with a contrast problem: nudges its lightness until all its pairs are readable.
+- **From dark** in the Light tab: takes the accent and status colours of the dark scheme and makes them readable on
+  light.
+- **Import** (`importable`, `onImport`): paste a theme as JSON; size, shape and version are checked, unknown tokens
+  and invalid colours are left out and listed; applied as one undoable change.
+- **Save as preset** (`onSavePreset`): the current theme with a name, for you to store and pass back in `presets`.
+- **All colours** (collapsed): every colour token of the edited scheme, each with a colour picker and reset.
+- **Game sample** in the split preview (switch "Interface" / "Game"): HUD rings and bars, progress, a list menu, a
+  notification, key hints. `ThemeEditorPreview` takes `sample="game"`; texts in `labels.sample.game`.
+- **`sections`** shows only the parts you list (`"presets" | "scheme" | "colors" | "contrast" | "style" | "font" |
+  "advanced" | "import" | "export"`).
+- **Fonts with files:** `fonts={[{ label, value, src: "fonts/x.woff2", weight? }]}` — no import in code; the file is
+  loaded when the font is picked and stored in the theme's new `fonts.sans`, so every UI that receives the theme
+  loads it too.
+- The section "Shape & font" is split into "Style" and "Font" (`labels.shared` is now the font heading). New labels
+  for all of the above (English defaults).
+
+### Theme
+
+- `ThemeConfig.fonts` (optional, protocol still v1): `{ sans?, mono? }` with `{ family, src, weight?, style? }`.
+  `loadThemeFonts(config)` / `loadThemeFont(font)` load them with the FontFace API (Chromium 103 included).
+- New shared tokens, all `1` by default (no visible change): `--pui-surface-opacity` (multiplied into the page,
+  window, card and popover colours), `--pui-tint-scale` (into every tint), `--pui-border-opacity` (into the border
+  colour), `--pui-shadow-scale` (into the shadow alphas).
+
+### Components
+
+- **Badge**: `icon`, and `reveal="hover"` — only the icon shows, the text slides open after `revealDelay` (500 ms)
+  while the badge or, with `revealGroup`, its `group` parent is hovered or focused; closes at once. Measured width
+  (also after the fonts load), Chromium 103 safe.
+- **Table / DataTable** `reserveTrack` (`"horizontal" | "vertical" | "both" | boolean`): room for a scrollbar
+  instead of letting it float over the last row / column. **ScrollArea** `reserveTrack` takes the same values.
+- **Toaster** `actions={false}` hides the action buttons (overlays nothing can be clicked on).
+- **KeybindHintBar** `variant="panel"`: looks like a HUD panel (window surface and shadow, theme radius).
+- **Separator** (vertical) stretches to the height of a flex row whose height comes from its content (it was 0 px).
+- `npx preui check-version`: stops a build when an installed `@pre_scripts/*` package doesn't match `package.json`
+  (exact pins equal, `^` / `~` satisfied) — `"prebuild": "preui check-version"`.
+
 ## 0.8.0 — 2026-10-07
 
 ### Visible changes
@@ -223,6 +273,17 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 
 ## @pre_scripts/preui-nui
 
+### 0.4.0 — 2026-10-07
+
+- `NuiToastRelay`: shows notifications Lua hands to this NUI (`readyEvent` called once, then `action` messages with
+  `{ title?, description, type, duration, position }`); its own `Toaster`, close button and actions off by default.
+- `installAltGrFix()`: types AltGr characters (`{ } [ ] \ @ € ~ |`) the NUI dropped; does nothing where the
+  browser typed them itself, and leaves fields alone that handled the key (the CodeEditor).
+- `thirdPartyLicenses({ dir })`: also keeps a licenses folder (e.g. `"../LICENSES"`): one `<scope>-<name>-LICENSE.txt`
+  per package plus `THIRD_PARTY.md`; stale files removed, `*-LICENSE.manual.txt` kept. `fileName: false` skips the
+  file in `dist`.
+- `NuiThemeBridge` loads the theme's font files (`fonts`). Peer `@pre_scripts/preui >=0.9.0`.
+
 ### 0.3.1 — 2026-09-30
 
 - `@pre_scripts/preui-nui/vite`: `thirdPartyLicenses()` Vite plugin writes `dist/THIRD_PARTY_LICENSES.txt` — name,
@@ -253,6 +314,13 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.2.0 — 2026-10-07
+
+- `--exact`: pins the `@pre_scripts` packages to exact versions.
+- `"prebuild": "preui check-version"` in every new resource.
+- The licenses also go to `LICENSES/` in the resource (`thirdPartyLicenses({ dir: "../LICENSES" })`).
+- New resources depend on `@pre_scripts/preui` `^0.9.0` and `@pre_scripts/preui-nui` `^0.4.0`.
 
 ### 0.1.5 — 2026-10-07
 

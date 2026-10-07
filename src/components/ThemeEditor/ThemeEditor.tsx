@@ -8,6 +8,7 @@ import {
   useState,
   type CSSProperties,
   type HTMLAttributes,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useIcon } from "../../icons";
@@ -28,28 +29,27 @@ import type { ColorPickerLabels } from "../ColorPicker/ColorPicker";
 import { ColorPicker } from "../ColorPicker/ColorPicker";
 import { ContrastBadge, type ContrastBadgeLabels } from "../ContrastBadge/ContrastBadge";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Select/Select";
-import { Slider, SliderLabel, SliderValue } from "../Slider/Slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../Tabs/Tabs";
 import { Textarea } from "../Textarea/Textarea";
 import type { SchemePreference } from "../Theme/theme-script";
 import { ToggleGroup, ToggleGroupItem } from "../ToggleGroup/ToggleGroup";
 import {
   applyPreset,
+  deriveLightFromDark,
   fieldProblems,
-  getSharedToken,
+  fixFieldContrast,
   hasOverrides,
   importantPairs,
   matchesPreset,
   normalizeThemeConfig,
   pairKey,
-  parseRem,
   setPaletteColor,
-  setSharedToken,
+  styleTokenKeys,
   themeEditorColorKeys,
   toHex,
   type ThemeEditorColorKey,
 } from "./theme-editor-config";
+import { AdvancedSection, FontSection, ImportSection, SavePresetForm, StyleSection } from "./theme-editor-sections";
 import { ThemeEditorPreview, type ThemeEditorPreviewLabels } from "./ThemeEditorPreview";
 
 // ------------------------------------------------------------------------------------------------
@@ -97,6 +97,45 @@ export interface ThemeEditorLabels {
   copyFailed: string;
   reset: string;
   save: string;
+  /** Style section (radius, transparency, accent, borders, shadows). */
+  style: string;
+  surfaceOpacity: string;
+  tintScale: string;
+  borderOpacity: string;
+  shadowScale: string;
+  /** Slider value in percent, e.g. `"85 %"`. */
+  percentValue: (value: string) => string;
+  /** Shown while panels are see-through: the contrast check assumes opaque panels. */
+  transparencyHint: string;
+  /** Contrast repair button of a field ("Fix"). */
+  fixContrast: string;
+  /** Accessible name of the repair button, e.g. `"Make Primary readable"`. */
+  fixContrastField: (field: string) => string;
+  /** Light tab: derive the light accents from the dark ones. */
+  deriveLight: string;
+  deriveLightHint: string;
+  undo: string;
+  redo: string;
+  /** Back to the last saved state (or the state the editor opened with). */
+  discard: string;
+  /** Marker while the theme differs from the saved state. */
+  unsaved: string;
+  importTitle: string;
+  importPlaceholder: string;
+  importApply: string;
+  importErrors: Record<"json" | "shape" | "version" | "size", string>;
+  /** After an import that dropped some entries. */
+  importWarnings: (count: number, list: string) => string;
+  importDone: string;
+  savePreset: string;
+  presetName: string;
+  savePresetConfirm: string;
+  cancel: string;
+  advanced: string;
+  advancedHint: string;
+  /** Preview pane: the built-in sample sets. */
+  sampleWeb: string;
+  sampleGame: string;
   /** Passed to every `ContrastBadge`. */
   contrastBadge?: Partial<ContrastBadgeLabels>;
   /** Passed to every `ColorPicker` (the trigger's name is the field label). */
@@ -152,7 +191,7 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
     "warning/background": "Warning as text",
     "info/background": "Info as text",
   },
-  shared: "Shape & font",
+  shared: "Font",
   radius: "Corner radius",
   radiusValue: (value) => `${value} rem`,
   font: "Font",
@@ -168,6 +207,40 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
   copyFailed: "Copy failed",
   reset: "Reset all",
   save: "Save",
+  style: "Style",
+  surfaceOpacity: "Panel opacity",
+  tintScale: "Accent strength",
+  borderOpacity: "Borders",
+  shadowScale: "Shadows",
+  percentValue: (value) => `${value} %`,
+  transparencyHint: "See-through panels: readability also depends on what is behind them (the contrast check assumes opaque panels).",
+  fixContrast: "Fix",
+  fixContrastField: (field) => `Make ${field} readable`,
+  deriveLight: "From dark",
+  deriveLightHint: "Take the accent and status colours of the dark scheme and make them readable on light.",
+  undo: "Undo",
+  redo: "Redo",
+  discard: "Discard changes",
+  unsaved: "Unsaved changes",
+  importTitle: "Import",
+  importPlaceholder: "Paste a theme (JSON)",
+  importApply: "Apply",
+  importErrors: {
+    json: "That is not valid JSON.",
+    shape: "That is not a theme (expected a JSON object).",
+    version: "Unknown theme version (expected v: 1).",
+    size: "The text is too long for a theme.",
+  },
+  importWarnings: (count, list) => `Applied. ${count === 1 ? "1 entry was" : `${count} entries were`} left out: ${list}`,
+  importDone: "Applied.",
+  savePreset: "Save as preset",
+  presetName: "Preset name",
+  savePresetConfirm: "Save preset",
+  cancel: "Cancel",
+  advanced: "All colours",
+  advancedHint: "Every colour token of this scheme. Values set here win over the base colours above.",
+  sampleWeb: "Interface",
+  sampleGame: "Game",
 };
 
 type ThemeEditorLabelsInput = Partial<Omit<ThemeEditorLabels, "fields" | "pairs" | "schemes">> & {
@@ -184,7 +257,29 @@ export interface ThemeEditorFont {
   label: string;
   /** A `font-family` value, e.g. `'"Rajdhani", system-ui, sans-serif'`. */
   value: string;
+  /**
+   * Font file(s) to load on demand instead of importing the font in code (`.woff2` path or URL, e.g.
+   * `"https://cfx-nui-my_lib/fonts/rajdhani.woff2"`). Picking the font also stores it in the theme's `fonts.sans`, so
+   * every UI that receives the theme can load it (`loadThemeFonts`, `NuiThemeBridge`).
+   */
+  src?: string | string[];
+  /** Family name the file registers as. @default the first family of `value` */
+  family?: string;
+  /** `font-weight` range of the file, e.g. `"400 700"` for a variable font. */
+  weight?: string;
 }
+
+/** Sections of the editor, for `sections`. */
+export type ThemeEditorSection =
+  | "presets"
+  | "scheme"
+  | "colors"
+  | "contrast"
+  | "style"
+  | "font"
+  | "advanced"
+  | "import"
+  | "export";
 
 export type ThemeEditorExportFormat = "css" | "json";
 
@@ -226,6 +321,27 @@ export interface ThemeEditorProps
   actionsSlot?: ReactNode;
   /** Show the export section (copy the CSS for `tokensToCss`-style files and the config as JSON). @default false */
   exportable?: boolean;
+  /** Show the import section (paste a theme as JSON; checked, applied as one undoable change). @default false */
+  importable?: boolean;
+  /** Called after an import was applied, with the entries it left out (unknown tokens, invalid colours …). */
+  onImport?: (config: ThemeConfig, droppedEntries: string[]) => void;
+  /**
+   * Shows "Save as preset" under the presets: the current theme with a name the user types. Store it and pass it back
+   * in `presets` (e.g. a server's `presets.lua`).
+   */
+  onSavePreset?: (preset: ThemePreset) => void;
+  /**
+   * The saved theme, for "unsaved changes" and "Discard changes". Default: the value the editor opened with, then
+   * whatever was last saved through `onSave`.
+   */
+  savedValue?: ThemeConfig | null;
+  /**
+   * Which sections to show, in their fixed order. Default: all of presets, scheme, colors, contrast, style, font (with
+   * `fonts`), advanced, plus import / export when `importable` / `exportable`.
+   */
+  sections?: readonly ThemeEditorSection[];
+  /** Built-in sample of the split preview to start with. @default "web" */
+  defaultSample?: "web" | "game";
   /** Called when the user copies an export (e.g. to also log it in a game console). */
   onExport?: (format: ThemeEditorExportFormat, text: string) => void;
   /** Controlled tab (the scheme whose colours are edited). */
@@ -251,9 +367,11 @@ export interface ThemeEditorProps
   locale?: string;
 }
 
-const DEFAULT_FONT = "__preui-default-font__";
-const RADIUS_DEFAULT = parseRem((tokens as Record<string, string>)["--pui-radius"]) ?? 0.5;
 const schemeList: PreuiScheme[] = ["dark", "light"];
+
+/** Whether the dark palette sets an accent or status colour (something "From dark" can carry over). */
+const hasDarkAccents = (config: ThemeConfig) =>
+  Object.keys(config.palette?.dark ?? {}).some((key) => key !== "background" && key !== "foreground");
 
 const eyebrow = "text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground";
 
@@ -314,6 +432,12 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     previewSlot,
     actionsSlot,
     exportable = false,
+    importable = false,
+    onImport,
+    onSavePreset,
+    savedValue,
+    sections: sectionsProp,
+    defaultSample = "web",
     onExport,
     editingScheme: editingProp,
     defaultEditingScheme,
@@ -348,17 +472,76 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
   const configRef = useLatest(config);
   const onChangeRef = useLatest(onChange);
 
+  // Undo / redo: every change pushes the previous config; changes ≤ 400 ms apart (a slider or colour drag) are one step.
+  const history = useRef<{ past: ThemeConfig[]; future: ThemeConfig[]; last: number }>({ past: [], future: [], last: 0 });
+  const [, setHistoryVersion] = useState(0);
+
   const commit = useCallback(
-    (next: ThemeConfig) => {
+    (next: ThemeConfig, record = true) => {
+      const previous = configRef.current;
       const normalized = normalizeThemeConfig(next, fallbackScheme);
+      if (JSON.stringify(normalized) === JSON.stringify(previous)) return previous;
+      if (record) {
+        const steps = history.current;
+        const now = Date.now();
+        if (steps.past.length === 0 || now - steps.last > 400) steps.past.push(previous);
+        if (steps.past.length > 100) steps.past.shift();
+        steps.last = now;
+        steps.future = [];
+      }
       configRef.current = normalized;
       if (!controlled) setInner(normalized);
       onChangeRef.current?.(normalized);
+      setHistoryVersion((version) => version + 1);
       return normalized;
     },
     [controlled, fallbackScheme, configRef, onChangeRef],
   );
   const update = useCallback((recipe: (current: ThemeConfig) => ThemeConfig) => commit(recipe(configRef.current)), [commit, configRef]);
+  const undo = useCallback(() => {
+    const steps = history.current;
+    const previous = steps.past.pop();
+    if (!previous) return;
+    steps.future.push(configRef.current);
+    steps.last = 0;
+    commit(previous, false);
+  }, [commit, configRef]);
+  const redo = useCallback(() => {
+    const steps = history.current;
+    const next = steps.future.pop();
+    if (!next) return;
+    steps.past.push(configRef.current);
+    steps.last = 0;
+    commit(next, false);
+  }, [commit, configRef]);
+
+  // Saved state: `savedValue`, else what the editor opened with, then the last `onSave`.
+  const [baseline, setBaseline] = useState(() => JSON.stringify(normalizeThemeConfig(savedValue ?? raw, fallbackScheme)));
+  useEffect(() => {
+    if (savedValue !== undefined) setBaseline(JSON.stringify(normalizeThemeConfig(savedValue, fallbackScheme)));
+  }, [savedValue, fallbackScheme]);
+  const dirty = JSON.stringify(config) !== baseline;
+  const discard = () => commit(JSON.parse(baseline) as ThemeConfig);
+
+  const sections = useMemo(
+    () =>
+      new Set<ThemeEditorSection>(
+        sectionsProp ?? [
+          "presets",
+          "scheme",
+          "colors",
+          "contrast",
+          "style",
+          "font",
+          "advanced",
+          ...(importable ? (["import"] as const) : []),
+          ...(exportable ? (["export"] as const) : []),
+        ],
+      ),
+    [sectionsProp, importable, exportable],
+  );
+  const show = (section: ThemeEditorSection) => sections.has(section);
+  const [sample, setSample] = useState<"web" | "game">(defaultSample);
 
   // ---- tab --------------------------------------------------------------------------------------
   const [innerEditing, setInnerEditing] = useState<PreuiScheme>(
@@ -384,9 +567,11 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
 
   // ---- live preview -----------------------------------------------------------------------------
   const previewCss = useMemo(() => {
+    const all = effective.dark as Record<string, string>;
     const shared: Record<string, string> = {
-      "--pui-radius": effective.dark["--pui-radius"],
-      "--pui-font-sans": effective.dark["--pui-font-sans"],
+      ...Object.fromEntries(
+        ["radius", "font-sans", ...styleTokenKeys.filter((key) => key !== "radius")].map((key) => [`--pui-${key}`, all[`--pui-${key}`]]),
+      ),
       ...(resolved.shared as Record<string, string> | undefined),
     };
     const scheme = (name: PreuiScheme) => {
@@ -412,14 +597,34 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     };
   }, []);
   const save = () => {
-    const result = onSave?.(configRef.current);
+    const saved = configRef.current;
+    const result = onSave?.(saved);
+    const markSaved = () => {
+      if (mounted.current && savedValue === undefined) setBaseline(JSON.stringify(saved));
+    };
     if (result && typeof (result as Promise<unknown>).then === "function") {
       setSaving(true);
       (result as Promise<unknown>).then(
-        () => mounted.current && setSaving(false),
+        () => {
+          if (mounted.current) setSaving(false);
+          markSaved();
+        },
         () => mounted.current && setSaving(false),
       );
+    } else {
+      markSaved();
     }
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    props.onKeyDown?.(event);
+    if (event.defaultPrevented || !(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("input, textarea, [contenteditable]:not([contenteditable='false'])")) return;
+    const key = event.key.toLowerCase();
+    if (key === "z" && !event.shiftKey) undo();
+    else if ((key === "z" && event.shiftKey) || key === "y") redo();
+    else return;
+    event.preventDefault();
   };
   const reset = () => {
     const next = commit({ ...configRef.current, palette: {}, tokens: undefined });
@@ -428,6 +633,8 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
 
   const Check = useIcon("check");
   const Warning = useIcon("warning");
+  const UndoIcon = useIcon("undo");
+  const RedoIcon = useIcon("redo");
   const id = useId();
 
   const split = layout === "split";
@@ -448,6 +655,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
         className,
       )}
       {...props}
+      onKeyDown={onKeyDown}
     >
       {/* Contrast status of both schemes — always visible, outside the scrolling body. */}
       <div
@@ -495,16 +703,22 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
           className={cn("min-h-0 flex-1", split && "lg:w-[26rem] lg:flex-none")}
           contentClassName={cn("flex flex-col gap-6", variant === "panel" ? "p-4" : "py-4")}
         >
-          {presets.length > 0 && (
-            <PresetPicker
-              presets={presets}
-              config={config}
-              labels={labels}
-              minContrast={minContrast}
-              onPick={(preset) => update((current) => applyPreset(current, preset))}
-            />
+          {show("presets") && (presets.length > 0 || onSavePreset) && (
+            <div className="flex flex-col gap-2">
+              {presets.length > 0 && (
+                <PresetPicker
+                  presets={presets}
+                  config={config}
+                  labels={labels}
+                  minContrast={minContrast}
+                  onPick={(preset) => update((current) => applyPreset(current, preset))}
+                />
+              )}
+              {onSavePreset && <SavePresetForm config={config} labels={labels} onSave={onSavePreset} />}
+            </div>
           )}
 
+          {show("scheme") && (
           <section data-slot="theme-editor-scheme" className="flex flex-col gap-2">
             <span id={`${id}-scheme`} className={eyebrow}>
               {labels.scheme}
@@ -525,7 +739,9 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               ))}
             </ToggleGroup>
           </section>
+          )}
 
+          {show("colors") && (
           <section data-slot="theme-editor-colors" className="flex flex-col gap-2">
             <span className={eyebrow}>{labels.colors}</span>
             <Tabs value={editing} onValueChange={(next) => setEditing(next as PreuiScheme)} className="gap-3">
@@ -539,6 +755,19 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               </TabsList>
               {schemeList.map((scheme) => (
                 <TabsContent key={scheme} value={scheme} className="flex flex-col gap-5">
+                  {scheme === "light" && hasDarkAccents(config) && (
+                    <div data-slot="theme-editor-derive-light" className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title={labels.deriveLightHint}
+                        onClick={() => update((current) => deriveLightFromDark(current, minContrast))}
+                      >
+                        {labels.deriveLight}
+                      </Button>
+                      <span className="min-w-0 text-xs text-pui-muted-foreground">{labels.deriveLightHint}</span>
+                    </div>
+                  )}
                   <ul className="flex flex-col gap-1" data-slot="theme-editor-color-list">
                     {themeEditorColorKeys.map((key) => (
                       <ColorField
@@ -551,20 +780,28 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
                         labels={labels}
                         locale={locale}
                         onValue={(next) => update((current) => setPaletteColor(current, scheme, key, next))}
+                        onFix={() => update((current) => fixFieldContrast(current, scheme, key, minContrast) ?? current)}
                       />
                     ))}
                   </ul>
-                  <ContrastDetails
-                    scheme={scheme}
-                    results={contrast[scheme]}
-                    labels={labels}
-                    locale={locale}
-                    minContrast={minContrast}
-                  />
+                  {show("contrast") && (
+                    <ContrastDetails
+                      scheme={scheme}
+                      results={contrast[scheme]}
+                      labels={labels}
+                      locale={locale}
+                      minContrast={minContrast}
+                    />
+                  )}
                 </TabsContent>
               ))}
             </Tabs>
           </section>
+          )}
+
+          {show("advanced") && (
+            <AdvancedSection config={config} scheme={editing} effective={effective[editing]} labels={labels} update={update} />
+          )}
 
           {!split && previewSlot != null && (
             <section data-slot="theme-editor-preview" className="flex flex-col gap-2">
@@ -582,9 +819,22 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
             </section>
           )}
 
-          <SharedSection config={config} fonts={fonts} labels={labels} locale={locale} update={update} idBase={id} />
+          {show("style") && <StyleSection config={config} labels={labels} locale={locale} update={update} />}
 
-          {exportable && <ExportSection config={config} resolvedCss={resolved} labels={labels} onExport={onExport} />}
+          {show("font") && fonts && fonts.length > 0 && <FontSection config={config} fonts={fonts} labels={labels} update={update} />}
+
+          {show("import") && (
+            <ImportSection
+              fallbackScheme={fallbackScheme}
+              labels={labels}
+              onApply={(imported, dropped) => {
+                commit(imported);
+                onImport?.(imported, dropped);
+              }}
+            />
+          )}
+
+          {show("export") && <ExportSection config={config} resolvedCss={resolved} labels={labels} onExport={onExport} />}
         </ScrollArea>
 
         {split && (
@@ -597,10 +847,22 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
                 : "mb-4 rounded-pui border border-pui-border lg:my-4",
             )}
           >
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-pui-border px-4 py-2">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-pui-border px-4 py-2">
               <span id={`${id}-preview`} className={eyebrow}>
                 {labels.preview}
               </span>
+              {previewSlot == null && (
+                <ToggleGroup
+                  aria-label={labels.preview}
+                  value={[sample]}
+                  onValueChange={(next) => next[0] && setSample(next[0] as "web" | "game")}
+                  data-slot="theme-editor-sample-switch"
+                  className="ml-auto"
+                >
+                  <ToggleGroupItem value="web">{labels.sampleWeb}</ToggleGroupItem>
+                  <ToggleGroupItem value="game">{labels.sampleGame}</ToggleGroupItem>
+                </ToggleGroup>
+              )}
               <ToggleGroup
                 aria-labelledby={`${id}-preview`}
                 value={[editing]}
@@ -623,7 +885,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               className="min-h-0 flex-1 bg-pui-background font-sans text-pui-foreground"
               contentClassName="p-4 lg:p-6"
             >
-              {previewSlot ?? <ThemeEditorPreview labels={labels.sample} />}
+              {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
             </ScrollArea>
           </section>
         )}
@@ -636,7 +898,42 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
           variant === "panel" ? "px-4 py-3" : "pt-3",
         )}
       >
-        {actionsSlot != null && <div className="mr-auto flex items-center gap-2">{actionsSlot}</div>}
+        {actionsSlot != null && <div className="flex items-center gap-2">{actionsSlot}</div>}
+        <div className="mr-auto flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={labels.undo}
+            title={labels.undo}
+            disabled={history.current.past.length === 0}
+            onClick={undo}
+            data-slot="theme-editor-undo"
+          >
+            <UndoIcon aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={labels.redo}
+            title={labels.redo}
+            disabled={history.current.future.length === 0}
+            onClick={redo}
+            data-slot="theme-editor-redo"
+          >
+            <RedoIcon aria-hidden="true" />
+          </Button>
+          {/* Always in the layout (invisible when saved), so nothing shifts when it appears. */}
+          <span
+            data-slot="theme-editor-unsaved"
+            aria-hidden={!dirty}
+            className={cn("ml-1 text-xs text-pui-muted-foreground", !dirty && "invisible")}
+          >
+            {labels.unsaved}
+          </span>
+        </div>
+        <Button variant="ghost" onClick={discard} disabled={!dirty} data-slot="theme-editor-discard">
+          {labels.discard}
+        </Button>
         <Button variant="ghost" onClick={reset} disabled={!hasOverrides(config)} data-slot="theme-editor-reset">
           {labels.reset}
         </Button>
@@ -760,6 +1057,7 @@ function ColorField({
   labels,
   locale,
   onValue,
+  onFix,
 }: {
   fieldKey: ThemeEditorColorKey;
   scheme: PreuiScheme;
@@ -769,6 +1067,8 @@ function ColorField({
   labels: ThemeEditorLabels;
   locale: string;
   onValue: (value: string | undefined) => void;
+  /** Nudges the colour's lightness until its pairs are readable. */
+  onFix: () => void;
 }) {
   const Undo = useIcon("undo");
   const label = labels.fields[fieldKey];
@@ -807,6 +1107,19 @@ function ColorField({
           title={labels.pairs[pairKey(worst)]}
           className="shrink-0"
         />
+      )}
+      {worst && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onFix}
+          aria-label={labels.fixContrastField(label)}
+          title={labels.fixContrastField(label)}
+          data-slot="theme-editor-field-fix"
+          className="h-7 shrink-0 px-2 text-xs"
+        >
+          {labels.fixContrast}
+        </Button>
       )}
       <span className="w-16 shrink-0 font-mono text-xs uppercase text-pui-muted-foreground">{hex}</span>
       <Button
@@ -869,100 +1182,6 @@ function ContrastDetails({
         })}
       </ul>
     </div>
-  );
-}
-
-// ------------------------------------------------------------------------------------------------
-// Radius + font
-// ------------------------------------------------------------------------------------------------
-
-function SharedSection({
-  config,
-  fonts,
-  labels,
-  locale,
-  update,
-  idBase,
-}: {
-  config: ThemeConfig;
-  fonts: readonly ThemeEditorFont[] | undefined;
-  labels: ThemeEditorLabels;
-  locale: string;
-  update: (recipe: (current: ThemeConfig) => ThemeConfig) => void;
-  idBase: string;
-}) {
-  const Undo = useIcon("undo");
-  const radiusRaw = getSharedToken(config, "radius");
-  const radius = parseRem(radiusRaw) ?? RADIUS_DEFAULT;
-  const font = getSharedToken(config, "font-sans");
-  const fontItems = useMemo(() => {
-    if (!fonts || fonts.length === 0) return null;
-    const items = [{ value: DEFAULT_FONT, label: labels.fontDefault }, ...fonts];
-    if (font && !fonts.some((item) => item.value === font)) items.push({ value: font, label: labels.fontCustom });
-    return items;
-  }, [fonts, font, labels.fontDefault, labels.fontCustom]);
-  const formatter = useMemo(
-    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 3 }),
-    [locale],
-  );
-
-  return (
-    <section data-slot="theme-editor-shared" className="flex flex-col gap-3">
-      <span className={eyebrow}>{labels.shared}</span>
-      <div data-slot="theme-editor-radius" data-changed={radiusRaw !== undefined ? "" : undefined} className="flex items-end gap-2">
-        <Slider
-          value={radius}
-          min={0}
-          max={1.25}
-          step={0.025}
-          locale={locale}
-          onValueChange={(next) => update((current) => setSharedToken(current, "radius", `${next as number}rem`))}
-          className="flex-1"
-        >
-          <div className="flex items-center justify-between">
-            <SliderLabel>{labels.radius}</SliderLabel>
-            <SliderValue>{() => labels.radiusValue(formatter.format(radius))}</SliderValue>
-          </div>
-        </Slider>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={labels.resetField(labels.radius)}
-          disabled={radiusRaw === undefined}
-          onClick={() => update((current) => setSharedToken(current, "radius", undefined))}
-          className="shrink-0"
-        >
-          <Undo aria-hidden="true" />
-        </Button>
-      </div>
-      {fontItems && (
-        <div data-slot="theme-editor-font" className="flex flex-col gap-1.5">
-          <span id={`${idBase}-font`} className="text-xs font-medium text-pui-muted-foreground">
-            {labels.font}
-          </span>
-          <Select
-            items={fontItems}
-            value={font ?? DEFAULT_FONT}
-            onValueChange={(next) =>
-              update((current) =>
-                setSharedToken(current, "font-sans", !next || next === DEFAULT_FONT ? undefined : (next as string)),
-              )
-            }
-          >
-            <SelectTrigger aria-labelledby={`${idBase}-font`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {fontItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  <span style={item.value === DEFAULT_FONT ? undefined : { fontFamily: item.value }}>{item.label}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-    </section>
   );
 }
 

@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "../../utils/cn";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../Table/Table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type TableProps } from "../Table/Table";
 import { createSelectColumn } from "./createSelectColumn";
 import { DataTablePagination, type DataTablePaginationProps } from "./DataTablePagination";
 import { DataTableToolbar } from "./DataTableToolbar";
@@ -120,6 +120,8 @@ export interface DataTableProps<TData extends RowData> {
   layout?: "fixed" | "auto";
   /** Classes for the table's bordered, scrolling container. */
   containerClassName?: string;
+  /** Reserve room for a scrollbar instead of letting it float over the cells (see `Table`). @default false */
+  reserveTrack?: TableProps["reserveTrack"];
   /**
    * Makes body rows activatable (e.g. open a detail sheet): called on a click on the row and on Enter / Space while
    * the row has focus. Activatable rows are focusable (`tabIndex={0}`), show a pointer cursor and carry
@@ -168,6 +170,7 @@ export function DataTable<TData extends RowData>({
   tableClassName,
   layout = "fixed",
   containerClassName,
+  reserveTrack,
   onRowActivate,
   onRowClick,
   getRowProps,
@@ -307,6 +310,7 @@ export function DataTable<TData extends RowData>({
           className={cn(layout === "fixed" && "table-fixed", tableClassName)}
           style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
           containerClassName={containerClassName}
+          reserveTrack={reserveTrack}
         >
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

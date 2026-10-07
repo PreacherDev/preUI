@@ -86,20 +86,23 @@ Scaffolds a FiveM NUI resource (fxmanifest, client.lua, Vite + React + preUI web
 Options (after "--" when started through npm create):
   --lang de|en    language of the texts and the README (default: de)
   --no-theme      without the preui_theme bridge (server-wide theme)
+  --exact         pin the @pre_scripts packages to exact versions (no ^), e.g. when every resource must use the
+                  same build; "prebuild" (preui check-version) then stops a build with any other installed version
   --force         write into a non-empty folder (existing files are overwritten)
   -h, --help      show this help
 `;
 
-/** Parses argv; returns { name, lang, theme, force, help } or throws an Error with a user-facing message. */
+/** Parses argv; returns { name, lang, theme, exact, force, help } or throws an Error with a user-facing message. */
 export function parseArgs(argv) {
   // Note: through `npm create`, options only arrive after `--`; without it npm consumes them itself.
-  const options = { name: undefined, lang: "de", theme: true, force: false, help: false };
+  const options = { name: undefined, lang: "de", theme: true, exact: false, force: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--") continue;
     if (arg === "-h" || arg === "--help") options.help = true;
     else if (arg === "--no-theme") options.theme = false;
     else if (arg === "--theme") options.theme = true;
+    else if (arg === "--exact") options.exact = true;
     else if (arg === "--force" || arg === "-f") options.force = true;
     else if (arg === "--lang" || arg.startsWith("--lang=")) {
       const value = arg === "--lang" ? argv[++i] : arg.slice("--lang=".length);
@@ -181,7 +184,7 @@ function listFiles(dir) {
 }
 
 /** Writes the resource into `targetDir`; returns the list of written paths (relative, with `/`). */
-export function scaffold(targetDir, { name, lang = "de", theme = true }) {
+export function scaffold(targetDir, { name, lang = "de", theme = true, exact = false }) {
   const written = [];
   for (const source of listFiles(TEMPLATE_DIR)) {
     let rel = relative(TEMPLATE_DIR, source).split(sep).join("/");
@@ -202,7 +205,19 @@ export function scaffold(targetDir, { name, lang = "de", theme = true }) {
     else writeFileSync(target, readFileSync(source));
     written.push(rel);
   }
+  if (exact) pinExact(join(targetDir, "web", "package.json"));
   return written;
+}
+
+/** `"^0.8.0"` → `"0.8.0"` for the @pre_scripts packages in a package.json. */
+function pinExact(file) {
+  const pkg = JSON.parse(readFileSync(file, "utf8"));
+  for (const field of ["dependencies", "devDependencies"]) {
+    for (const [dep, range] of Object.entries(pkg[field] ?? {})) {
+      if (dep.startsWith("@pre_scripts/")) pkg[field][dep] = range.replace(/^[\^~]/, "");
+    }
+  }
+  writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
 function isEmptyDir(dir) {
@@ -241,7 +256,7 @@ async function main() {
     }
   }
 
-  scaffold(targetDir, { name, lang: options.lang, theme: options.theme });
+  scaffold(targetDir, { name, lang: options.lang, theme: options.theme, exact: options.exact });
 
   const de = options.lang === "de";
   const lines = de

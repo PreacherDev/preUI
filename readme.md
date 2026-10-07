@@ -164,6 +164,8 @@ toast.promise(save(), { loading: "Saving…", success: "Saved", error: "Failed" 
 (e.g. a HUD setting); at the top the newest toast is on top and toasts slide in downwards. The viewport carries
 `data-position`.
 
+`<Toaster actions={false} />` hides the action buttons (overlays without focus can't click them).
+
 `<Toaster closeButton={false} />` hides the × button on every toast (default `true`); `toast("…", { closeButton })`
 overrides it for one toast. Toasts still close on their
 timeout, by swipe, with an action or `toast.dismiss(id)`, so keep a timeout when you hide it.
@@ -279,6 +281,21 @@ through, so use `surface="solid"`: the same tint laid over the page `background`
   </Badge>
 </div>
 ```
+
+### Badge with a reason on hover
+
+For a locked card show only the icon; the text slides open after a delay while the card is hovered:
+
+```tsx
+<Card className="group">
+  …
+  <Badge variant="warning" icon={<TriangleAlert />} reveal="hover" revealDelay={500} revealGroup>
+    License needed
+  </Badge>
+</Card>
+```
+
+Without `revealGroup` only hovering (or focusing) the badge itself opens it. It closes at once.
 
 ### Tabs with a fixed height
 
@@ -1321,17 +1338,29 @@ One theme editor for websites and FiveM NUI. It edits a `ThemeConfig` (theme pro
 server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or your API.
 
 - **Presets** (`defaultThemePresets`, or your own `ThemePreset[]`; `presets={[]}` hides them), each marked when it
-  passes the contrast check
+  passes the contrast check. A preset is the **whole look**: colours plus every style value (radius, opacity,
+  accent, borders, shadows — the default where it sets none). **Save as preset** with `onSavePreset`.
 - **Default scheme** (dark / light / system) and **base colours per scheme** (primary, background, text, positive,
   negative, destructive, warning, info), expanded with `deriveTokens`. Unset fields show the effective colour, changed
-  fields are marked and can be reset one by one
-- **Radius** and optional **font** (`fonts`)
+  fields are marked and can be reset one by one. **Fix** next to an unreadable field nudges its lightness until it
+  passes; **From dark** (Light tab) carries the dark accents over, readable on light. **All colours** (collapsed)
+  edits every colour token of the scheme.
+- **Style**: corner radius, **panel opacity** (see-through panels, e.g. over the game), **accent strength**,
+  **borders**, **shadows** — one shared token each (`--pui-radius`, `--pui-surface-opacity`, `--pui-tint-scale`,
+  `--pui-border-opacity`, `--pui-shadow-scale`)
+- **Font** (`fonts`), optionally with a file: `{ label, value, src: "fonts/rajdhani.woff2" }` is loaded on demand and
+  stored in the theme (`fonts.sans`), so every UI that receives the theme loads it too (`loadThemeFonts`,
+  `NuiThemeBridge`) — no import in code
 - **Contrast, always visible**: a status for both schemes, the pair list of the scheme being edited, and a badge
   on every colour that takes part in a failing pair
-- **Reset all**, **Save** (`onSave`, may return a promise), optional **export** of CSS overrides and JSON (`exportable`)
+- **Undo / redo** (also Ctrl+Z / Ctrl+Y), **Unsaved changes** + **Discard changes** (`savedValue`), **Reset all**,
+  **Save** (`onSave`, may return a promise), **import** (`importable`) and **export** (`exportable`) as JSON / CSS
+- `sections` picks the parts to show, e.g. `sections={["presets", "colors", "contrast", "style"]}` for a player
+  settings window
 - **Large layout with preview** (`layout="split"`): the controls on the left, a big preview pane on the right with
-  sample buttons, form controls, a card, badges, alerts and a table (`ThemeEditorPreview`), always in the edited colours
-  of the scheme picked at its top. `previewSlot` replaces the sample with your own content. Below `lg` the two stack.
+  sample buttons, form controls, a card, badges, alerts and a table (`ThemeEditorPreview`), or — switch "Game" — HUD,
+  progress, a list menu, a notification and key hints, always in the edited colours of the scheme picked at its top.
+  `previewSlot` replaces the sample with your own content. Below `lg` the two stack.
 - **Live preview** (`preview`, default on): applies the edited theme to the whole page in its own `<style>` while
   mounted and removes it on unmount. It doesn't change `data-scheme`. The preview pane / `previewSlot` show the edited
   colours with or without it (scoped CSS variables).

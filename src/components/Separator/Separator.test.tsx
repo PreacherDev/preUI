@@ -30,4 +30,8 @@ describe("Separator", () => {
     rerender(<Separator data-slot="item-separator" />);
     expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "item-separator");
   });
+  it("stretches vertically in a row whose height comes from its content", () => {
+    const { container } = render(<Separator orientation="vertical" />);
+    expect(container.querySelector("[data-slot=separator]")).toHaveClass("data-[orientation=vertical]:self-stretch");
+  });
 });

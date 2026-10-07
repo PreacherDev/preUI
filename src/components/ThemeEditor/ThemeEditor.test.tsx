@@ -38,7 +38,8 @@ describe("ThemeEditor", () => {
       "theme-editor-scheme",
       "theme-editor-colors",
       "theme-editor-contrast",
-      "theme-editor-radius",
+      "theme-editor-style",
+      "theme-editor-advanced",
       "theme-editor-font",
       "theme-editor-export",
       "theme-editor-actions",
@@ -176,7 +177,7 @@ describe("ThemeEditor", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<ThemeEditor onChange={onChange} presets={[]} />);
-    const slider = screen.getByRole("slider");
+    const slider = screen.getByRole("slider", { name: "Corner radius" });
     act(() => slider.focus());
     await user.keyboard("{ArrowRight}");
     expect(onChange).toHaveBeenLastCalledWith({ v: 1, scheme: "dark", palette: {}, tokens: { shared: { radius: "0.525rem" } } });
@@ -347,12 +348,12 @@ describe("ThemeEditor", () => {
       // All built-ins pass the contrast check in both schemes.
       for (const button of buttons) expect(button).toHaveAttribute("data-contrast", "pass");
       await user.click(screen.getByRole("button", { name: /Emerald/ }));
-      // Palette replaced, the user's radius kept.
+      // A preset is the whole look: palette replaced, the style values (radius …) become the preset's — Emerald
+      // sets none, so back to the defaults.
       expect(onChange).toHaveBeenLastCalledWith({
         v: 1,
         scheme: "dark",
         palette: { dark: { primary: "#34d399" }, light: { primary: "#047857" } },
-        tokens: { shared: { radius: "0rem" } },
       });
       expect(container.querySelector('[data-preset="emerald"]')).toHaveAttribute("aria-pressed", "true");
       expect(container.querySelector('[data-preset="default"]')).toHaveAttribute("aria-pressed", "false");

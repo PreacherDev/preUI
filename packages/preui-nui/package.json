@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/preui-nui",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "FiveM NUI helpers for preUI: fetchNui, NUI message hooks, browser mocks and a live theme bridge",
   "keywords": ["fivem", "nui", "cfx", "react", "preui", "theme"],
   "author": "PRE_SCRIPTS",
@@ -47,7 +47,7 @@
     "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "peerDependencies": {
-    "@pre_scripts/preui": ">=0.6.0",
+    "@pre_scripts/preui": ">=0.9.0",
     "react": ">=18"
   },
   "publishConfig": {

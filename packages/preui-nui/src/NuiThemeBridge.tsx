@@ -1,5 +1,6 @@
 import {
   applyTokens,
+  loadThemeFonts,
   resolveThemeConfig,
   THEME_CONFIG_VERSION,
   useTheme,
@@ -75,6 +76,8 @@ export function NuiThemeBridge({
         removeTokens.current?.();
         removeTokens.current = null;
       }
+      // Font files the theme names (picked in the ThemeEditor) — loaded on demand, the CSS fallbacks show meanwhile.
+      if (payload.fonts) void loadThemeFonts(payload);
       if (payload.scheme) setScheme(payload.scheme);
       if (payload.theme !== undefined) setTheme(payload.theme || null);
       onChangeRef.current?.(payload);

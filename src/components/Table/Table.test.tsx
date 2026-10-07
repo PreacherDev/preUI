@@ -122,4 +122,21 @@ describe("Table tokens + slots", () => {
     }
     expect(container.querySelector('[data-slot="table-row"]')).toHaveClass("duration-pui-fast", "ease-pui");
   });
+  it("reserveTrack reserves the scrollbar room per axis", () => {
+    const { unmount } = renderTable();
+    const content = () => document.querySelector("[data-slot=scroll-area-content]")!;
+    expect(content()).not.toHaveClass("pb-2.5");
+    unmount();
+    render(
+      <Table reserveTrack="horizontal">
+        <TableBody>
+          <TableRow>
+            <TableCell>Zelle</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    expect(content()).toHaveClass("pb-2.5");
+    expect(content()).not.toHaveClass("pr-2.5");
+  });
 });

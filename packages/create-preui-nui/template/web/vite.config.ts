@@ -3,9 +3,10 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  // thirdPartyLicenses: writes dist/THIRD_PARTY_LICENSES.txt with the licenses of everything in the bundle
-  // (React, Base UI, preUI, fonts …). MIT / Apache-2.0 / OFL ask for it, and web/dist goes to every player.
-  plugins: [react(), thirdPartyLicenses()],
+  // thirdPartyLicenses: the licenses of everything in the bundle (React, Base UI, preUI, fonts …) as
+  // dist/THIRD_PARTY_LICENSES.txt and as LICENSES/ in the resource (one file per package + THIRD_PARTY.md; your own
+  // *-LICENSE.manual.txt files there stay). MIT / Apache-2.0 / OFL ask for it, and web/dist goes to every player.
+  plugins: [react(), thirdPartyLicenses({ dir: "../LICENSES" })],
   // One React copy, also when preUI is linked locally (npm link / file:).
   resolve: { dedupe: ["react", "react-dom"] },
   // FiveM loads the page from the resource folder (ui_page 'web/dist/index.html'): relative asset paths.

@@ -94,11 +94,11 @@ const baseTokens = {
   // Dialog/sheet/drawer backdrop strength (over --pui-background)
   "--pui-overlay-opacity": "0.7",
 
-  // Elevation (floating layers only — panels use borders)
-  "--pui-shadow-window": "0 25px 50px -12px rgb(0 0 0 / 0.5)",
-  "--pui-shadow-floating": "0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5)",
+  // Elevation (floating layers only — panels use borders). The alphas follow --pui-shadow-scale (1 = default).
+  "--pui-shadow-window": "0 25px 50px -12px rgb(0 0 0 / calc(0.5 * var(--pui-shadow-scale, 1)))",
+  "--pui-shadow-floating": "0 20px 25px -5px rgb(0 0 0 / calc(0.5 * var(--pui-shadow-scale, 1))), 0 8px 10px -6px rgb(0 0 0 / calc(0.5 * var(--pui-shadow-scale, 1)))",
   "--pui-shadow-tooltip":
-    "0 4px 16px -4px hsl(var(--pui-background) / 0.9), 0 2px 6px -2px hsl(var(--pui-background) / 0.7)",
+    "0 4px 16px -4px hsl(var(--pui-background) / calc(0.9 * var(--pui-shadow-scale, 1))), 0 2px 6px -2px hsl(var(--pui-background) / calc(0.7 * var(--pui-shadow-scale, 1)))",
   "--pui-shadow-thumb": "0 2px 4px rgb(0 0 0 / 0.4)",
 
   // Motion
@@ -106,6 +106,14 @@ const baseTokens = {
   "--pui-duration-base": "200ms",
   "--pui-duration-slow": "500ms",
   "--pui-ease": "cubic-bezier(0, 0, 0.2, 1)",
+
+  // Style: 1 = the default look. Surface opacity < 1 makes page, window, card and popover see-through; tint scale
+  // multiplies every tint (badges, default buttons, selections); border opacity fades the borders (0 = none);
+  // shadow scale multiplies the shadow alphas.
+  "--pui-surface-opacity": "1",
+  "--pui-tint-scale": "1",
+  "--pui-border-opacity": "1",
+  "--pui-shadow-scale": "1",
 
   // Shape & type
   "--pui-radius": "0.5rem",
@@ -140,6 +148,10 @@ export const sharedTokenNames = [
   "--pui-duration-base",
   "--pui-duration-slow",
   "--pui-ease",
+  "--pui-surface-opacity",
+  "--pui-tint-scale",
+  "--pui-border-opacity",
+  "--pui-shadow-scale",
   "--pui-radius",
   "--pui-font-sans",
   "--pui-font-mono",
@@ -234,9 +246,9 @@ const lightSchemeTokens: Record<Exclude<PreuiTokenName, SharedTokenName>, string
   "--pui-overlay-opacity": "0.4",
 
   // Elevation: lighter, softer shadows
-  "--pui-shadow-window": "0 24px 48px -12px rgb(16 24 40 / 0.18), 0 2px 6px -2px rgb(16 24 40 / 0.06)",
-  "--pui-shadow-floating": "0 12px 24px -6px rgb(16 24 40 / 0.12), 0 4px 8px -4px rgb(16 24 40 / 0.08)",
-  "--pui-shadow-tooltip": "0 4px 12px -2px rgb(16 24 40 / 0.2), 0 1px 3px rgb(16 24 40 / 0.1)",
+  "--pui-shadow-window": "0 24px 48px -12px rgb(16 24 40 / calc(0.18 * var(--pui-shadow-scale, 1))), 0 2px 6px -2px rgb(16 24 40 / calc(0.06 * var(--pui-shadow-scale, 1)))",
+  "--pui-shadow-floating": "0 12px 24px -6px rgb(16 24 40 / calc(0.12 * var(--pui-shadow-scale, 1))), 0 4px 8px -4px rgb(16 24 40 / calc(0.08 * var(--pui-shadow-scale, 1)))",
+  "--pui-shadow-tooltip": "0 4px 12px -2px rgb(16 24 40 / calc(0.2 * var(--pui-shadow-scale, 1))), 0 1px 3px rgb(16 24 40 / calc(0.1 * var(--pui-shadow-scale, 1)))",
   "--pui-shadow-thumb": "0 1px 3px rgb(16 24 40 / 0.25), 0 0 0 0.5px rgb(16 24 40 / 0.08)",
 };
 

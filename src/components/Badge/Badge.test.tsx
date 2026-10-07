@@ -99,4 +99,31 @@ describe("Badge", () => {
       }
     }
   });
+  it("renders an icon before the text", () => {
+    render(<Badge icon={<svg data-testid="icon" />}>Neu</Badge>);
+    const badge = screen.getByText("Neu");
+    expect(badge.firstElementChild).toBe(screen.getByTestId("icon"));
+  });
+
+  it('reveal="hover" shows the icon and slides the text open with a delay; revealGroup follows the group parent', () => {
+    const { rerender } = render(
+      <Badge variant="warning" icon={<svg data-testid="icon" />} reveal="hover" revealDelay={300}>
+        License needed
+      </Badge>,
+    );
+    const label = screen.getByText("License needed").closest<HTMLElement>("[data-slot=badge-label]")!;
+    const badge = label.closest("[data-slot=badge]")!;
+    expect(badge).toHaveAttribute("data-reveal", "hover");
+    expect(badge).toHaveClass("group/badge", "gap-0");
+    expect(label).toHaveClass("max-w-0", "overflow-hidden", "group-hover/badge:max-w-[var(--pui-badge-reveal-width,0px)]");
+    expect(label.style.getPropertyValue("--pui-badge-reveal-delay")).toBe("300ms");
+    expect(label.style.getPropertyValue("--pui-badge-reveal-width")).toMatch(/px$/);
+    expect(label).not.toHaveClass("group-hover:opacity-100");
+    rerender(
+      <Badge icon={<svg />} reveal="hover" revealGroup>
+        License needed
+      </Badge>,
+    );
+    expect(screen.getByText("License needed").closest("[data-slot=badge-label]")).toHaveClass("group-hover:opacity-100");
+  });
 });

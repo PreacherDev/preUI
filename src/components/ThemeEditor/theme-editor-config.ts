@@ -1,11 +1,11 @@
 // Pure helpers of the ThemeEditor: reading and writing fields of a ThemeConfig, preset matching, contrast per field.
 import type { SchemePreference } from "../Theme/theme-script";
 import { rgbToHex } from "../ColorPicker/color";
-import { parseAnyColor, type TokenContrastResult } from "../../theming/contrast";
+import { checkTokenContrast, parseAnyColor, type TokenContrastResult } from "../../theming/contrast";
 import type { DeriveTokensBase } from "../../theming/derive";
-import type { ThemeConfig, ThemePalette, ThemePreset } from "../../theming/theme-config";
-import type { TokenInput, TokenOverrides } from "../../theming/token-css";
-import type { PreuiScheme } from "../../tailwind/tokens";
+import { resolveThemeConfigTokens, type ThemeConfig, type ThemePalette, type ThemePreset } from "../../theming/theme-config";
+import { normalizeTokens, type TokenInput, type TokenOverrides } from "../../theming/token-css";
+import { lightTokens, tokens as defaultTokens, type PreuiScheme, type PreuiTokenName } from "../../tailwind/tokens";
 
 /** The base colours the editor offers per scheme (`deriveTokens` input). */
 export type ThemeEditorColorKey = keyof DeriveTokensBase;
@@ -175,6 +175,20 @@ export function parseRem(value: string | undefined): number | null {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Style values (shared tokens the "Style" section edits)
+// ------------------------------------------------------------------------------------------------
+
+/** Shared tokens that make up the look besides the colours. A preset sets all of them (missing = default). */
+export const styleTokenKeys = ["radius", "surface-opacity", "tint-scale", "border-opacity", "shadow-scale"] as const;
+export type StyleTokenKey = (typeof styleTokenKeys)[number];
+
+/** The default value of a style token (`"0.5rem"`, `"1"` …). */
+export const styleDefault = (key: StyleTokenKey) => (defaultTokens as Record<string, string>)[`--pui-${key}`];
+
+/** A style token's value, or its default when unset. */
+export const getStyleToken = (config: ThemeConfig, key: StyleTokenKey) => getSharedToken(config, key) ?? styleDefault(key);
+
+// ------------------------------------------------------------------------------------------------
 // Presets
 // ------------------------------------------------------------------------------------------------
 
@@ -191,8 +205,17 @@ function canonicalMap(input: Record<string, unknown> | undefined, only?: Set<str
   return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
 }
 
+// The preset's own shared keys plus every style key (a preset always defines the whole look).
 const sharedKeysOf = (config: ThemeConfig) =>
-  new Set(Object.keys(config.tokens?.shared ?? {}).map((key) => key.replace(/^--pui-/, "")));
+  new Set([...Object.keys(config.tokens?.shared ?? {}).map((key) => key.replace(/^--pui-/, "")), ...styleTokenKeys]);
+
+/** Shared tokens with the style defaults filled in, so "unset" and "set to the default" compare equal. */
+function withStyleDefaults(shared: Record<string, unknown> | undefined) {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(shared ?? {})) out[key.replace(/^--pui-/, "")] = value;
+  for (const key of styleTokenKeys) if (typeof out[key] !== "string" || out[key] === "") out[key] = styleDefault(key);
+  return out;
+}
 
 function presetSignature(config: ThemeConfig, sharedKeys: Set<string>) {
   const tokens = config.tokens as TokenOverrides | undefined;
@@ -201,27 +224,36 @@ function presetSignature(config: ThemeConfig, sharedKeys: Set<string>) {
     paletteLight: canonicalMap(config.palette?.light),
     dark: canonicalMap(tokens?.dark),
     light: canonicalMap(tokens?.light),
-    shared: canonicalMap(tokens?.shared, sharedKeys),
+    shared: canonicalMap(withStyleDefaults(tokens?.shared), sharedKeys),
   });
 }
 
 /**
- * Whether `config` currently shows `preset`: same palettes and per-scheme tokens, and the shared tokens the preset
- * sets (radius, fonts …) are equal — shared tokens the preset leaves out may differ.
+ * Whether `config` currently shows `preset`: same palettes and per-scheme tokens, the same style values (radius,
+ * transparency … — unset counts as the default) and the other shared tokens the preset sets (e.g. a font) are equal.
+ * Shared tokens the preset leaves out (except the style values) may differ.
  */
 export function matchesPreset(config: ThemeConfig, preset: ThemePreset): boolean {
   const keys = sharedKeysOf(preset.config);
   return presetSignature(config, keys) === presetSignature(preset.config, keys);
 }
 
-/** Applies a preset: its palettes and per-scheme tokens replace the current ones, its shared tokens are merged in. */
+/**
+ * Applies a preset: its palettes and per-scheme tokens replace the current ones; the style values (radius,
+ * transparency, accent, borders, shadows) become the preset's (its defaults where it sets none); other shared
+ * tokens it sets (a font) are merged in, the rest (your font) stays.
+ */
 export function applyPreset(config: ThemeConfig, preset: ThemePreset): ThemeConfig {
   const source = preset.config;
+  const kept: Record<string, string> = {};
+  for (const [key, value] of Object.entries((config.tokens?.shared ?? {}) as Record<string, string>)) {
+    if (!(styleTokenKeys as readonly string[]).includes(key.replace(/^--pui-/, ""))) kept[key] = value;
+  }
   const next: ThemeConfig = {
     ...config,
     palette: { dark: { ...source.palette?.dark }, light: { ...source.palette?.light } },
     tokens: {
-      shared: { ...config.tokens?.shared, ...source.tokens?.shared },
+      shared: { ...kept, ...source.tokens?.shared } as TokenInput,
       dark: source.tokens?.dark && { ...source.tokens.dark },
       light: source.tokens?.light && { ...source.tokens.light },
     },
@@ -229,4 +261,121 @@ export function applyPreset(config: ThemeConfig, preset: ThemePreset): ThemeConf
   if (source.scheme) next.scheme = source.scheme;
   if (source.theme !== undefined) next.theme = source.theme;
   return next;
+}
+
+// ------------------------------------------------------------------------------------------------
+// Contrast repair, light-from-dark, import
+// ------------------------------------------------------------------------------------------------
+
+/** `"217 91% 63%"` → { h, s, l }; null for anything else. */
+function parseChannels(value: string | undefined): { h: number; s: number; l: number } | null {
+  const match = /^\s*(-?\d*\.?\d+)\s+(\d*\.?\d+)%\s+(\d*\.?\d+)%\s*$/.exec(value ?? "");
+  return match ? { h: Number(match[1]), s: Number(match[2]), l: Number(match[3]) } : null;
+}
+
+const hslHex = (h: number, s: number, l: number) => toHex(`hsl(${h} ${s}% ${Math.min(100, Math.max(0, l))}%)`);
+
+/**
+ * The smallest lightness change of one base colour that clears all contrast problems of its field in a scheme:
+ * tries ±1, ±2 … percentage points (hue and saturation stay). Returns the changed config, or `null` when no
+ * lightness works (e.g. a background between two text colours that both need the opposite direction).
+ */
+export function fixFieldContrast(
+  config: ThemeConfig,
+  scheme: PreuiScheme,
+  key: ThemeEditorColorKey,
+  minContrast: number,
+): ThemeConfig | null {
+  const current = parseChannels(resolveThemeConfigTokens(config, scheme)[`--pui-${key}` as PreuiTokenName]);
+  if (!current) return null;
+  if (fieldProblems(key, checkTokenContrast(resolveThemeConfigTokens(config, scheme)), minContrast).length === 0) return config;
+  for (let step = 1; step <= 100; step++) {
+    for (const direction of [1, -1]) {
+      const l = current.l + direction * step;
+      if (l < 0 || l > 100) continue;
+      const hex = hslHex(current.h, current.s, l);
+      if (!hex) continue;
+      const candidate = setPaletteColor(config, scheme, key, hex);
+      if (fieldProblems(key, checkTokenContrast(resolveThemeConfigTokens(candidate, scheme)), minContrast).length === 0) {
+        return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Fills the light scheme from the dark one: every accent / status colour set for dark gets a light counterpart with
+ * the same hue and saturation at the light default's lightness, then nudged until it is readable on the light
+ * background. Background and text of the light scheme are kept (dark surfaces don't translate to light ones).
+ */
+export function deriveLightFromDark(config: ThemeConfig, minContrast: number): ThemeConfig {
+  const dark = config.palette?.dark ?? {};
+  let next: ThemeConfig = config;
+  for (const key of themeEditorColorKeys) {
+    if (key === "background" || key === "foreground") continue;
+    const value = dark[key];
+    if (!value) continue;
+    const source = parseChannels(toHex(value) ? resolveThemeConfigTokens({ palette: { dark: { [key]: value } } }, "dark")[`--pui-${key}` as PreuiTokenName] : undefined);
+    const lightDefault = parseChannels((lightTokens as Record<string, string>)[`--pui-${key}`]);
+    if (!source || !lightDefault) continue;
+    const hex = hslHex(source.h, source.s, lightDefault.l);
+    if (!hex) continue;
+    const candidate = setPaletteColor(next, "light", key, hex);
+    next = fixFieldContrast(candidate, "light", key, minContrast) ?? candidate;
+  }
+  return next;
+}
+
+/** Result of reading a pasted theme. */
+export type ThemeImportResult =
+  | { ok: true; config: ThemeConfig; warnings: string[] }
+  | { ok: false; error: "json" | "shape" | "version" | "size" };
+
+const IMPORT_KEYS = new Set(["v", "scheme", "theme", "palette", "tokens", "fonts"]);
+const MAX_IMPORT_LENGTH = 64 * 1024;
+
+/**
+ * Reads a pasted theme (JSON of a `ThemeConfig`, protocol v1): checks size, shape and version, keeps only known
+ * fields, and lists what will be dropped (unknown tokens, invalid colours, unknown fields) as warnings.
+ */
+export function parseThemeImport(text: string, fallbackScheme: SchemePreference): ThemeImportResult {
+  if (text.length > MAX_IMPORT_LENGTH) return { ok: false, error: "size" };
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { ok: false, error: "json" };
+  }
+  if (!isObject(data)) return { ok: false, error: "shape" };
+  if (data.v !== undefined && data.v !== 1) return { ok: false, error: "version" };
+  const warnings: string[] = [];
+  const picked: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (IMPORT_KEYS.has(key)) picked[key] = value;
+    else warnings.push(key);
+  }
+  const palette = isObject(picked.palette) ? picked.palette : {};
+  for (const scheme of ["dark", "light"] as const) {
+    const colors = isObject(palette[scheme]) ? (palette[scheme] as Record<string, unknown>) : {};
+    for (const [key, value] of Object.entries(colors)) {
+      if (!(themeEditorColorKeys as readonly string[]).includes(key) || typeof value !== "string" || !toHex(value)) {
+        warnings.push(`palette.${scheme}.${key}`);
+        delete colors[key];
+      }
+    }
+  }
+  const tokens = isObject(picked.tokens) ? (picked.tokens as Record<string, unknown>) : undefined;
+  if (tokens) {
+    for (const part of ["shared", "dark", "light"] as const) {
+      const input = isObject(tokens[part]) ? (tokens[part] as Record<string, string>) : undefined;
+      if (!input) continue;
+      const { issues } = normalizeTokens(input as TokenInput);
+      for (const issue of issues) {
+        warnings.push(`tokens.${part}.${issue.key}`);
+        delete input[issue.key];
+      }
+    }
+  }
+  return { ok: true, config: normalizeThemeConfig(picked as ThemeConfig, fallbackScheme), warnings };
 }

@@ -87,6 +87,19 @@ describe("create-preui-nui", () => {
     expect(result.stdout).not.toContain("preui_theme");
   });
 
+  it("--exact pins the @pre_scripts packages; prebuild checks the installed versions", () => {
+    const result = run(["pinned", "--exact"]);
+    expect(result.status, result.stderr).toBe(0);
+    const pkg = JSON.parse(read("pinned", "web", "package.json")) as {
+      scripts: Record<string, string>;
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies["@pre_scripts/preui"]).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(pkg.dependencies["@pre_scripts/preui-nui"]).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(pkg.dependencies.react).toMatch(/^\^/); // only the @pre_scripts packages
+    expect(pkg.scripts.prebuild).toBe("preui check-version");
+  });
+
   it("--lang en writes English texts and README", () => {
     const result = run(["shop_en", "--", "--lang", "en"]);
     expect(result.status, result.stderr).toBe(0);
@@ -169,10 +182,11 @@ describe("helpers", () => {
   });
 
   it("parseArgs", () => {
-    expect(parseArgs(["x", "--", "--no-theme", "--lang=en", "--force"])).toEqual({
+    expect(parseArgs(["x", "--", "--no-theme", "--lang=en", "--force", "--exact"])).toEqual({
       name: "x",
       lang: "en",
       theme: false,
+      exact: true,
       force: true,
       help: false,
     });

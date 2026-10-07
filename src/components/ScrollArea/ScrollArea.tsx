@@ -3,6 +3,7 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type Ref 
 import { cn, mergeClassName } from "../../utils/cn";
 
 export type ScrollAreaOrientation = "vertical" | "horizontal" | "both";
+export type ScrollAreaReserveTrack = boolean | "vertical" | "horizontal" | "both";
 
 export interface ScrollAreaProps extends ComponentPropsWithoutRef<typeof BaseScrollArea.Root> {
   /** Which scrollbars to render. Default `vertical`. */
@@ -18,8 +19,9 @@ export interface ScrollAreaProps extends ComponentPropsWithoutRef<typeof BaseScr
   /**
    * `true` (default): the 10px track is reserved as content padding, so nothing shifts when the thumb shows.
    * `false`: the thumb floats over the content — for tight surfaces like menus and lists.
+   * `"vertical"` / `"horizontal"` / `"both"`: reserve only the track of that axis.
    */
-  reserveTrack?: boolean;
+  reserveTrack?: ScrollAreaReserveTrack;
   /**
    * Fades the left/right edge while more content is hidden there, so horizontal overflow is visible
    * without hovering. Only with a horizontal scrollbar. Default `true`; editors with a caret turn it off.
@@ -58,6 +60,8 @@ export const ScrollArea = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseScr
     const vertical = orientation !== "horizontal";
     const horizontal = orientation !== "vertical";
     const fade = edgeFade && horizontal;
+    const reserveY = reserveTrack === true || reserveTrack === "both" || reserveTrack === "vertical";
+    const reserveX = reserveTrack === true || reserveTrack === "both" || reserveTrack === "horizontal";
     return (
       <BaseScrollArea.Root
         ref={ref}
@@ -81,8 +85,8 @@ export const ScrollArea = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseScr
           <BaseScrollArea.Content
             data-slot="scroll-area-content"
             className={cn(
-              reserveTrack && vertical && "pr-2.5",
-              reserveTrack && horizontal && "pb-2.5",
+              reserveY && vertical && "pr-2.5",
+              reserveX && horizontal && "pb-2.5",
               // Base UI gives the content an inline `min-width: fit-content`. With a horizontal bar the content
               // may grow wider than the viewport (at least full width); vertical-only it must follow the
               // viewport width, so wide children (code, tables) wrap or scroll in their own areas instead of

@@ -220,6 +220,7 @@ interface ToastItemProps {
   timeout: number;
   closeUnfocused: boolean;
   closeButton: boolean;
+  actions: boolean;
   closeLabel: string;
   toastClassName: ToasterProps["toastClassName"];
   position: ToasterPosition;
@@ -230,6 +231,7 @@ function ToastItem({
   timeout,
   closeUnfocused,
   closeButton,
+  actions,
   closeLabel,
   toastClassName: className,
   position,
@@ -251,15 +253,17 @@ function ToastItem({
           className={cn(toast.title ? "text-pui-muted-foreground" : "text-pui-popover-foreground")}
         />
       </div>
-      <BaseToast.Action
-        data-slot="toast-action"
-        className={cn(
-          // -my-1: centred on the title line without making the toast taller than the others.
-          "-my-1 inline-flex h-7 shrink-0 items-center rounded-pui-md border border-pui-border bg-pui-secondary px-2.5 text-xs font-medium text-pui-secondary-foreground",
-          "transition-colors duration-pui-fast ease-pui hover:bg-pui-accent",
-          "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
-        )}
-      />
+      {actions && (
+        <BaseToast.Action
+          data-slot="toast-action"
+          className={cn(
+            // -my-1: centred on the title line without making the toast taller than the others.
+            "-my-1 inline-flex h-7 shrink-0 items-center rounded-pui-md border border-pui-border bg-pui-secondary px-2.5 text-xs font-medium text-pui-secondary-foreground",
+            "transition-colors duration-pui-fast ease-pui hover:bg-pui-accent",
+            "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
+          )}
+        />
+      )}
       {((toast as ToastObject & { closeButton?: boolean }).closeButton ?? closeButton) && (
         <BaseToast.Close
           data-slot="toast-close"
@@ -281,6 +285,7 @@ function ToastList({
   timeout,
   closeUnfocused,
   closeButton,
+  actions,
   closeLabel,
   toastClassName,
   position,
@@ -295,6 +300,7 @@ function ToastList({
           timeout={timeout}
           closeUnfocused={closeUnfocused}
           closeButton={closeButton}
+          actions={actions}
           closeLabel={closeLabel}
           toastClassName={toastClassName}
           position={position}
@@ -321,6 +327,11 @@ export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.
    * action or `toast.dismiss(id)` (keep a timeout, or one of those, when you hide it). @default true
    */
   closeButton?: boolean;
+  /**
+   * Show the action buttons (`toast(…, { action })`). `false` hides them — for overlays nothing can be clicked on,
+   * like a FiveM NUI without focus. @default true
+   */
+  actions?: boolean;
   /** Accessible label of each toast's close button. */
   closeLabel?: string;
   /** Extra classes for every toast (string or function of the toast state). */
@@ -346,6 +357,7 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
     limit,
     pauseWhenUnfocused,
     closeButton = true,
+    actions = true,
     closeLabel = "Close",
     toastClassName,
     container,
@@ -382,6 +394,7 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
             timeout={timeout}
             closeUnfocused={closeUnfocused}
             closeButton={closeButton}
+            actions={actions}
             closeLabel={closeLabel}
             toastClassName={toastClassName}
             position={position}

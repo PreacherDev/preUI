@@ -7,8 +7,12 @@ import { Button, type ButtonVariant } from "../Button/Button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "../Card/Card";
 import { Checkbox } from "../Checkbox/Checkbox";
 import { Field, FieldDescription, FieldLabel } from "../Field/Field";
+import { HudStatus, HudStatusGroup } from "../HudStatus/HudStatus";
 import { Input } from "../Input/Input";
+import { KeybindHint, KeybindHintBar } from "../KeybindHint/KeybindHint";
+import { ListMenu, ListMenuContent, ListMenuItem } from "../ListMenu/ListMenu";
 import { Progress } from "../Progress/Progress";
+import { ProgressCircle } from "../ProgressCircle/ProgressCircle";
 import { Slider } from "../Slider/Slider";
 import { Switch } from "../Switch/Switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../Table/Table";
@@ -54,6 +58,15 @@ export interface ThemeEditorPreviewLabels {
       tone: BadgeVariant;
       amount: string;
     }[];
+  };
+  /** The game sample (`sample="game"`): HUD, progress, a list menu, key hints, a notification. */
+  game: {
+    groups: { hud: string; progress: string; menu: string; hints: string; notification: string };
+    hud: { health: string; armor: string; hunger: string; thirst: string };
+    progress: string;
+    menu: { label: string; description: string; suffix: string; disabled?: boolean }[];
+    hints: { keys: string; label: string }[];
+    notification: { title: string; description: string };
   };
 }
 
@@ -155,6 +168,22 @@ export const defaultThemeEditorPreviewLabels: ThemeEditorPreviewLabels = {
       },
     ],
   },
+  game: {
+    groups: { hud: "HUD", progress: "Progress", menu: "Menu", hints: "Key hints", notification: "Notification" },
+    hud: { health: "Health", armor: "Armor", hunger: "Hunger", thirst: "Thirst" },
+    progress: "Repairing",
+    menu: [
+      { label: "Karin Sultan", description: "LS 4711", suffix: "Parked" },
+      { label: "Declasse Vigero", description: "LS 0815", suffix: "Out" },
+      { label: "Pegassi Zentorno", description: "LS 1337", suffix: "Impounded", disabled: true },
+    ],
+    hints: [
+      { keys: "E", label: "Interact" },
+      { keys: "G", label: "Lock" },
+      { keys: "F2", label: "Menu" },
+    ],
+    notification: { title: "Vehicle stored", description: "Your Karin Sultan is in the garage." },
+  },
 };
 
 const buttonVariants: ButtonVariant[] = [
@@ -177,6 +206,8 @@ const alertIcons = {
 
 export interface ThemeEditorPreviewProps extends HTMLAttributes<HTMLDivElement> {
   labels?: Partial<ThemeEditorPreviewLabels>;
+  /** `"web"`: interface components (default) · `"game"`: HUD, progress, list menu, key hints, a notification. */
+  sample?: "web" | "game";
 }
 
 /**
@@ -185,8 +216,11 @@ export interface ThemeEditorPreviewProps extends HTMLAttributes<HTMLDivElement> 
  * wraps by its own width (no viewport breakpoints), so it fits any preview pane.
  */
 export const ThemeEditorPreview = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEditorPreviewProps>(
-  function ThemeEditorPreview({ labels: labelsProp, className, ...props }, ref) {
+  function ThemeEditorPreview({ labels: labelsProp, sample = "web", className, ...props }, ref) {
     const labels = { ...defaultThemeEditorPreviewLabels, ...labelsProp };
+    if (sample === "game") {
+      return <GameSample ref={ref} labels={labels.game} className={className} {...props} />;
+    }
     const Success = useIcon(alertIcons.positive);
     const Warning = useIcon(alertIcons.warning);
     const Info = useIcon(alertIcons.info);
@@ -342,3 +376,76 @@ function Group({ label, className, children }: { label: string; className?: stri
     </section>
   );
 }
+
+const GameSample = /* @__PURE__ */ forwardRef<
+  HTMLDivElement,
+  HTMLAttributes<HTMLDivElement> & { labels: ThemeEditorPreviewLabels["game"] }
+>(function GameSample({ labels, className, ...props }, ref) {
+  const Success = useIcon("success");
+  return (
+    <div ref={ref} data-slot="theme-editor-sample" data-sample="game" className={cn("flex flex-col gap-6", className)} {...props}>
+      <div className="flex flex-wrap gap-6">
+        <Group label={labels.groups.hud} className="min-w-0 flex-1 basis-64">
+          <HudStatusGroup aria-label={labels.groups.hud} className="flex-wrap">
+            <HudStatus value={78} label={labels.hud.health} criticalBelow={20} />
+            <HudStatus value={45} label={labels.hud.armor} />
+            <HudStatus value={32} label={labels.hud.hunger} warnBelow={40} />
+            <HudStatus value={12} label={labels.hud.thirst} criticalBelow={20} pulseWhenCritical={false} />
+          </HudStatusGroup>
+          <div className="flex flex-col gap-2">
+            <HudStatus variant="bar" value={78} label={labels.hud.health} showLabel />
+            <HudStatus variant="bar" value={32} label={labels.hud.hunger} showLabel warnBelow={40} />
+          </div>
+        </Group>
+        <Group label={labels.groups.progress} className="min-w-0 flex-1 basis-64">
+          <div className="flex items-center gap-4">
+            <ProgressCircle value={64} showValue aria-label={labels.progress} />
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <span className="text-sm">{labels.progress}</span>
+              <Progress value={64} aria-label={labels.progress} />
+            </div>
+          </div>
+        </Group>
+      </div>
+
+      <div className="flex flex-wrap gap-6">
+        <Group label={labels.groups.menu} className="min-w-0 flex-1 basis-64">
+          <ListMenu className="rounded-pui-md bg-pui-shell shadow-pui-window">
+            <ListMenuContent aria-label={labels.groups.menu}>
+              {labels.menu.map((item) => (
+                <ListMenuItem
+                  key={item.label}
+                  value={item.label}
+                  description={item.description}
+                  disabled={item.disabled}
+                  suffix={<Badge variant={item.disabled ? "destructive" : "secondary"}>{item.suffix}</Badge>}
+                >
+                  {item.label}
+                </ListMenuItem>
+              ))}
+            </ListMenuContent>
+          </ListMenu>
+        </Group>
+        <Group label={labels.groups.notification} className="min-w-0 flex-1 basis-64">
+          {/* A toast as it looks in game, drawn in place (the real Toaster renders in a portal outside the preview). */}
+          <div
+            data-slot="theme-editor-sample-toast"
+            className="flex items-start gap-2.5 rounded-pui border border-pui-border bg-pui-popover px-3.5 py-3 text-sm text-pui-popover-foreground shadow-pui-floating"
+          >
+            <Success className="mt-0.5 size-4 shrink-0 text-pui-positive" aria-hidden="true" />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-medium">{labels.notification.title}</span>
+              <span className="text-pui-muted-foreground">{labels.notification.description}</span>
+            </div>
+          </div>
+          <span className="text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground">{labels.groups.hints}</span>
+          <KeybindHintBar variant="panel">
+            {labels.hints.map((hint) => (
+              <KeybindHint key={hint.keys} keys={hint.keys} label={hint.label} />
+            ))}
+          </KeybindHintBar>
+        </Group>
+      </div>
+    </div>
+  );
+});

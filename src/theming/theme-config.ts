@@ -31,6 +31,24 @@ export interface ThemeConfig {
   palette?: { dark?: ThemePalette; light?: ThemePalette };
   /** Explicit token overrides (`applyTokens` format); win over `palette`. `shared` holds radius, fonts … */
   tokens?: TokenOverrides;
+  /**
+   * Font files the theme's fonts need, loaded on demand by `loadThemeFonts` (and by `NuiThemeBridge`), so a font the
+   * editor picked shows in every UI that receives the theme — without importing it in code. `sans` / `mono` match
+   * `--pui-font-sans` / `--pui-font-mono`. Optional; receivers that don't know it ignore it.
+   */
+  fonts?: { sans?: ThemeFontSource; mono?: ThemeFontSource };
+}
+
+/** One font family and its files (`url(…)` targets: `.woff2` paths or URLs, e.g. `https://cfx-nui-my_lib/fonts/x.woff2`). */
+export interface ThemeFontSource {
+  /** The family name used in `--pui-font-sans`, e.g. `"Rajdhani"`. */
+  family: string;
+  /** One file, or several (e.g. per weight: give `weight` as `"400 700"` for a variable font instead). */
+  src: string | string[];
+  /** `font-weight` range of the file(s), e.g. `"400 700"`. @default "100 900" */
+  weight?: string;
+  /** @default "normal" */
+  style?: string;
 }
 
 /** A named theme for pickers (e.g. the `ThemeEditor` presets). */
@@ -136,13 +154,14 @@ export const defaultThemePresets: readonly ThemePreset[] = [
   {
     id: "police",
     label: "Police",
-    description: "Blue accent on navy surfaces",
+    description: "Blue accent on navy surfaces, tighter corners",
     config: {
       v: 1,
       palette: {
         dark: { primary: "#60a5fa", background: "#0b1324" },
         light: { primary: "#1d4ed8", background: "#f8fafc" },
       },
+      tokens: { shared: { radius: "0.375rem" } },
     },
   },
   {
@@ -154,25 +173,37 @@ export const defaultThemePresets: readonly ThemePreset[] = [
   {
     id: "amber",
     label: "Amber",
-    description: "Warm yellow accent on warm surfaces",
+    description: "Warm yellow accent on warm surfaces, round corners",
     config: {
       v: 1,
       palette: {
         dark: { primary: "#fbbf24", background: "#15120d" },
         light: { primary: "#b45309", background: "#fffdf8" },
       },
+      tokens: { shared: { radius: "0.75rem" } },
     },
   },
   {
     id: "mono",
     label: "Mono",
-    description: "Neutral greys, no colour accent",
+    description: "Neutral greys, no colour accent, square corners",
     config: {
       v: 1,
       palette: {
         dark: { primary: "#e5e5e5", background: "#111111" },
         light: { primary: "#171717", background: "#ffffff" },
       },
+      tokens: { shared: { radius: "0.25rem", "tint-scale": "0.8" } },
+    },
+  },
+  {
+    id: "glass",
+    label: "Glass",
+    description: "See-through panels over the game, soft borders",
+    config: {
+      v: 1,
+      palette: { dark: { primary: "#a78bfa" }, light: { primary: "#6d28d9" } },
+      tokens: { shared: { radius: "0.75rem", "surface-opacity": "0.85", "border-opacity": "0.6", "shadow-scale": "0.6" } },
     },
   },
 ];

@@ -27,6 +27,8 @@ No dependencies besides `react` and `@pre_scripts/preui` (peer dependencies). Co
 | `createNuiTexts(texts, { locale })`, `flattenTexts`, `formatText` | The same `t` without React (tests, notifications). |
 | `useNuiMoney({ event, fallback, locale })` | `{ format(amount), currency, ready }`: asks `getCurrency` once (`{ format = '${amount}', decimals = 0 }`), follows `setCurrency`, then formats every amount locally — no round trip per amount. |
 | `formatMoney(amount, { format, decimals, locale })` | `1234.5` → `"$1,235"`; the sign goes in front of the template (`-$500`). |
+| `<NuiToastRelay readyEvent action />` | Shows notifications Lua hands to this NUI (e.g. while this window has the focus and FiveM draws it above a shared notification UI). Calls `readyEvent` once, then shows every `action` message `{ title?, description, type, duration, position }`. Close button and actions off. |
+| `installAltGrFix()` | Types AltGr characters (`{ } [ ] \ @ € ~ \|` on German and similar keyboards) when the NUI dropped them. Does nothing where the browser typed them itself; call once in `main.tsx`. |
 | `thirdPartyLicenses()` from `@pre_scripts/preui-nui/vite` | Vite plugin (build time): writes `dist/THIRD_PARTY_LICENSES.txt` with name, version, license and license text of every npm package in the bundle, fonts included. |
 
 ```tsx
@@ -98,8 +100,16 @@ export default defineConfig({
 });
 ```
 
-Options: `fileName` (default `"THIRD_PARTY_LICENSES.txt"`), `header` (first lines, e.g. your resource name),
-`exclude` (package names to leave out). Works with Vite 7 (Rollup) and 8 (Rolldown).
+Options: `fileName` (default `"THIRD_PARTY_LICENSES.txt"`, `false` for none), `header` (first lines, e.g. your
+resource name), `exclude` (package names to leave out), `dir` (also keep a folder next to the project, e.g.
+`"../LICENSES"` for a FiveM resource: one `<scope>-<name>-LICENSE.txt` per package plus `THIRD_PARTY.md`; files of
+packages no longer bundled are removed, your `*-LICENSE.manual.txt` stay). Works with Vite 7 (Rollup) and 8 (Rolldown).
+
+Stop a build when the installed preUI packages differ from `package.json` (exact pins, or `^` / `~` ranges):
+
+```json
+"scripts": { "prebuild": "preui check-version" }
+```
 
 `NuiThemeBridge` must sit inside a `ThemeProvider` (it uses `useTheme`). Props: `action` (default `"setTheme"`),
 `getThemeEvent` (default `"getTheme"`, `false` to skip), `mock` (what `getTheme` returns in a browser), `tokensId`

@@ -127,6 +127,13 @@ const withForeground = (name: string) => ({
 });
 
 /**
+ * Surfaces (page, window, card, popover) also follow `--pui-surface-opacity` (1 = opaque, the default): one value
+ * makes every panel see-through, e.g. over the game in FiveM. Opacity modifiers keep working (`bg-pui-card/80` is
+ * 0.8 × the surface opacity).
+ */
+const surface = (name: string) => `hsl(var(--pui-${name}) / calc(<alpha-value> * var(--pui-surface-opacity, 1)))`;
+
+/**
  * Tailwind v3 preset for preUI.
  *
  * tailwind.config.js (CommonJS):
@@ -147,11 +154,11 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
       colors: {
         pui: {
           backdrop: color("backdrop"),
-          shell: color("shell"),
-          background: color("background"),
+          shell: surface("shell"),
+          background: surface("background"),
           foreground: color("foreground"),
-          card: withForeground("card"),
-          popover: withForeground("popover"),
+          card: { DEFAULT: surface("card"), foreground: color("card-foreground") },
+          popover: { DEFAULT: surface("popover"), foreground: color("popover-foreground") },
           "rail-active": color("rail-active"),
           tooltip: withForeground("tooltip"),
           scrim: color("scrim"),
@@ -160,7 +167,8 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
           secondary: withForeground("secondary"),
           muted: withForeground("muted"),
           accent: withForeground("accent"),
-          border: color("border"),
+          // --pui-border-opacity (1 = default, 0 = no borders) fades every border at once.
+          border: "hsl(var(--pui-border) / calc(<alpha-value> * var(--pui-border-opacity, 1)))",
           input: color("input"),
           ring: color("ring"),
           positive: withForeground("positive"),
@@ -202,10 +210,11 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
         "pui-control-lg": "var(--pui-control-h-lg)",
       },
       // Tint strengths as opacity modifiers: bg-pui-primary/tint, hover:bg-pui-primary/tint-hover …
+      // --pui-tint-scale (1 = default) makes every tint stronger or weaker at once.
       opacity: {
-        tint: "var(--pui-tint-rest)",
-        "tint-hover": "var(--pui-tint-hover)",
-        "tint-border": "var(--pui-tint-border)",
+        tint: "calc(var(--pui-tint-rest) * var(--pui-tint-scale, 1))",
+        "tint-hover": "calc(var(--pui-tint-hover) * var(--pui-tint-scale, 1))",
+        "tint-border": "calc(var(--pui-tint-border) * var(--pui-tint-scale, 1))",
         scrim: "var(--pui-overlay-opacity)",
       },
       ringWidth: {

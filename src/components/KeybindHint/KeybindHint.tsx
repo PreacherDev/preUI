@@ -108,11 +108,15 @@ export const keybindHintBarVariants = /* @__PURE__ */ cva("flex w-fit", {
     variant: {
       default: "",
       surface: "border border-pui-border bg-pui-card/80 text-pui-card-foreground",
+      /** Like a HUD panel: opaque window surface, window shadow, theme radius (no border). */
+      panel: "bg-pui-shell text-pui-foreground shadow-pui-window",
     },
   },
   compoundVariants: [
     { orientation: "horizontal", variant: "surface", className: "rounded-full px-4 py-1.5" },
     { orientation: "vertical", variant: "surface", className: "rounded-pui px-3 py-2.5" },
+    { orientation: "horizontal", variant: "panel", className: "rounded-pui-md px-4 py-2" },
+    { orientation: "vertical", variant: "panel", className: "rounded-pui-md px-4 py-3" },
   ],
   defaultVariants: {
     orientation: "horizontal",
@@ -126,7 +130,10 @@ export type KeybindHintBarOrientation = NonNullable<VariantProps<typeof keybindH
 export interface KeybindHintBarProps extends Omit<useRender.ComponentProps<"div">, "ref"> {
   /** Default `"horizontal"`. */
   orientation?: KeybindHintBarOrientation;
-  /** `"default"` is plain, `"surface"` a subtle card-coloured pill (horizontal) or panel (vertical). */
+  /**
+   * `"default"` is plain, `"surface"` a subtle card-coloured pill (horizontal) or panel (vertical), `"panel"` looks like
+   * a HUD panel (window surface and shadow, theme radius). The radius can always be set with `className`.
+   */
   variant?: KeybindHintBarVariant;
   /** Space between the hints in px (overrides the default gap). */
   gap?: number;

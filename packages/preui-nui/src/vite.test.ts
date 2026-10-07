@@ -1,6 +1,7 @@
 // @vitest-environment node
+import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { packageRootOf, renderThirdPartyLicenses, thirdPartyLicenses } from "./vite";
+import { licenseFileName, packageRootOf, renderThirdPartyLicenses, thirdPartyLicenses } from "./vite";
 
 describe("thirdPartyLicenses", () => {
   it("finds the package root of a module id", () => {
@@ -52,5 +53,34 @@ describe("thirdPartyLicenses", () => {
     expect(source).toContain("Copyright (c) Meta Platforms");
     expect(source).not.toContain("clsx@");
     expect(source.match(/^react@/gm)).toHaveLength(1);
+  });
+  it("licenseFileName flattens the scope", () => {
+    expect(licenseFileName("@base-ui/react")).toBe("base-ui-react-LICENSE.txt");
+    expect(licenseFileName("react")).toBe("react-LICENSE.txt");
+  });
+
+  it("dir keeps a LICENSES folder: one file per package, THIRD_PARTY.md, stale files removed, manual ones kept", () => {
+    const root = new URL("../../../node_modules/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    const dir = `${root}.cache/preui-licenses-test/LICENSES`;
+    mkdirSync(dir, { recursive: true });
+    for (const file of readdirSync(dir)) unlinkSync(`${dir}/${file}`);
+    writeFileSync(`${dir}/old-package-LICENSE.txt`, "stale");
+    writeFileSync(`${dir}/flags-LICENSE.manual.txt`, "by hand");
+
+    const plugin = thirdPartyLicenses({ fileName: false, dir: "LICENSES" });
+    plugin.configResolved({ root: `${root}.cache/preui-licenses-test` });
+    const emitted: unknown[] = [];
+    plugin.generateBundle.call(
+      { emitFile: (file) => (emitted.push(file), "id") },
+      {},
+      { "index.js": { type: "chunk", moduleIds: [`${root}react/index.js`, `${root}@floating-ui/utils/dist/floating-ui.utils.mjs`] } },
+    );
+    expect(emitted).toHaveLength(0); // fileName: false
+    const files = readdirSync(dir).sort();
+    expect(files).toEqual(["THIRD_PARTY.md", "flags-LICENSE.manual.txt", "floating-ui-utils-LICENSE.txt", "react-LICENSE.txt"]);
+    expect(readFileSync(`${dir}/react-LICENSE.txt`, "utf8")).toContain("MIT License");
+    const overview = readFileSync(`${dir}/THIRD_PARTY.md`, "utf8");
+    expect(overview).toMatch(/^\| @floating-ui\/utils \| \S+ \| MIT \| \[floating-ui-utils-LICENSE\.txt\]\(floating-ui-utils-LICENSE\.txt\) \|$/m);
+    expect(overview.indexOf("@floating-ui/utils")).toBeLessThan(overview.indexOf("| react |"));
   });
 });

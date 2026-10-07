@@ -1,6 +1,6 @@
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
 export const badgeVariants = /* @__PURE__ */ cva(
@@ -67,13 +67,73 @@ export interface BadgeProps extends Omit<useRender.ComponentProps<"span">, "ref"
    * @default "tint"
    */
   surface?: BadgeSurface;
+  /** Icon before the text (sized like any `<svg>` child). With `reveal`, the icon is all that shows until opened. */
+  icon?: ReactNode;
+  /**
+   * `"hover"`: only the `icon` shows; the text slides open while the badge (or, with `revealGroup`, its `group`
+   * parent) is hovered or holds the focus — e.g. the reason on a locked card. Opens after `revealDelay`, closes at
+   * once. The text stays readable for screen readers.
+   */
+  reveal?: "hover";
+  /** ms before the text opens. @default 500 */
+  revealDelay?: number;
+  /** Open when the nearest parent with the `group` class is hovered (a card), not only the badge itself. */
+  revealGroup?: boolean;
+}
+
+/**
+ * The sliding text of a `reveal` badge. Chromium 103 can't transition `grid-template-columns`, so the text width is
+ * measured into `--pui-badge-reveal-width` and `max-width` animates to it; measured again once the fonts have loaded
+ * (a narrower fallback font would cut the last letter) and whenever the text changes size.
+ */
+function RevealLabel({ children, delay, group }: { children: ReactNode; delay: number; group: boolean }) {
+  const outerRef = useRef<HTMLSpanElement>(null);
+  const innerRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const measure = () => outer.style.setProperty("--pui-badge-reveal-width", `${inner.scrollWidth}px`);
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(inner);
+    let active = true;
+    void inner.ownerDocument.fonts?.ready.then(() => active && measure());
+    return () => {
+      active = false;
+      observer?.disconnect();
+    };
+  }, []);
+  return (
+    <span
+      ref={outerRef}
+      data-slot="badge-label"
+      style={{ "--pui-badge-reveal-delay": `${delay}ms` } as CSSProperties}
+      className={cn(
+        // Closed: no delay, so it closes at once; the open state carries the delay.
+        "inline-block max-w-0 overflow-hidden opacity-0 transition-[max-width,opacity] duration-pui-base ease-pui",
+        // Written out in full: Tailwind only finds class names that appear literally in the source.
+        "group-hover/badge:max-w-[var(--pui-badge-reveal-width,0px)] group-hover/badge:opacity-100 group-hover/badge:[transition-delay:var(--pui-badge-reveal-delay)]",
+        "group-focus-visible/badge:max-w-[var(--pui-badge-reveal-width,0px)] group-focus-visible/badge:opacity-100 group-focus-visible/badge:[transition-delay:var(--pui-badge-reveal-delay)]",
+        group && [
+          "group-hover:max-w-[var(--pui-badge-reveal-width,0px)] group-hover:opacity-100 group-hover:[transition-delay:var(--pui-badge-reveal-delay)]",
+          "group-focus-within:max-w-[var(--pui-badge-reveal-width,0px)] group-focus-within:opacity-100 group-focus-within:[transition-delay:var(--pui-badge-reveal-delay)]",
+        ],
+      )}
+    >
+      <span ref={innerRef} className="inline-block whitespace-nowrap pl-1">
+        {children}
+      </span>
+    </span>
+  );
 }
 
 /** Small tinted status pill. Use `render` to swap the element, e.g. `render={<a href="…" />}`. */
 export const Badge = /* @__PURE__ */ forwardRef<HTMLElement, BadgeProps>(function Badge(
-  { variant, surface, className, render, ...props },
+  { variant, surface, icon, reveal, revealDelay = 500, revealGroup = false, className, render, children, ...props },
   ref,
 ) {
+  const revealing = reveal === "hover";
   return useRender({
     defaultTagName: "span",
     render,
@@ -82,8 +142,22 @@ export const Badge = /* @__PURE__ */ forwardRef<HTMLElement, BadgeProps>(functio
       "data-slot": "badge",
       "data-variant": variant ?? "default",
       "data-surface": surface ?? "tint",
-      className: cn(badgeVariants({ variant, surface }), className),
+      "data-reveal": revealing ? "hover" : undefined,
+      className: cn(badgeVariants({ variant, surface }), revealing && "group/badge gap-0", className),
       ...props,
+      children: revealing ? (
+        <>
+          {icon}
+          <RevealLabel delay={revealDelay} group={revealGroup}>
+            {children}
+          </RevealLabel>
+        </>
+      ) : (
+        <>
+          {icon}
+          {children}
+        </>
+      ),
     },
   });
 });

@@ -17,7 +17,9 @@ export const Separator = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseSepa
         [
           "shrink-0 bg-pui-border",
           "data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full",
-          "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+          // self-stretch: in a flex row whose height comes from its content, h-full resolves to auto (0 for an
+          // empty element); stretching gives it the row's height. An explicit h-* still wins.
+          "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px data-[orientation=vertical]:self-stretch",
         ],
         className,
       )}
