@@ -8,10 +8,14 @@ changes; a patch version never does. The NUI helpers have their own section at t
 ### ThemeEditor
 
 - **Style section** with sliders for corner radius, **panel opacity** (see-through panels, e.g. over the game),
-  **accent strength**, **borders** and **shadows**. Each is one new shared token (below), each resets on its own.
+  **accent strength** (50–300 %), **borders** and **shadows**. Each is one new shared token (below), each resets on
+  its own. While panels are see-through, the split preview shows a backdrop of flat shapes in the theme colours, so
+  the transparency is visible (on a plain dark pane it wouldn't be).
 - **Presets are the whole look:** a preset sets every style value (radius, opacity, accent, borders, shadows — the
   default where it sets none), so picking "preUI" also resets the radius. The other shared tokens you set (a font)
-  stay. New preset **Glass** (see-through panels). Police, Amber and Mono now have their own radius.
+  stay. New preset **Glass** (see-through panels — plain transparency, no blur: `backdrop-filter` flickers
+  permanently in FiveM's CEF 103, and a test keeps it out of every component). Police, Amber and Mono now have their
+  own radius.
 - **Undo / redo** (buttons and Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z; a slider or colour drag is one step),
   **"Unsaved changes"** and **"Discard changes"** (back to `savedValue`, or what the editor opened with, then the
   last `onSave`).
@@ -26,9 +30,10 @@ changes; a patch version never does. The NUI helpers have their own section at t
   notification, key hints. `ThemeEditorPreview` takes `sample="game"`; texts in `labels.sample.game`.
 - **`sections`** shows only the parts you list (`"presets" | "scheme" | "colors" | "contrast" | "style" | "font" |
   "advanced" | "import" | "export"`).
-- **Fonts with files:** `fonts={[{ label, value, src: "fonts/x.woff2", weight? }]}` — no import in code; the file is
-  loaded when the font is picked and stored in the theme's new `fonts.sans`, so every UI that receives the theme
-  loads it too.
+- **Fonts:** by default the editor offers the two fonts preUI ships, Inter (the default) and JetBrains Mono
+  (`defaultThemeEditorFonts`); `fonts={[]}` hides the section. A font in `fonts` may bring a file:
+  `{ label, value, src: "fonts/x.woff2", weight? }` — no import in code; the file is loaded when the font is picked
+  and stored in the theme's new `fonts.sans`, so every UI that receives the theme loads it too.
 - The section "Shape & font" is split into "Style" and "Font" (`labels.shared` is now the font heading). New labels
   for all of the above (English defaults).
 

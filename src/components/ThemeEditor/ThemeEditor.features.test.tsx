@@ -177,7 +177,7 @@ describe("ThemeEditor features", () => {
       }),
     );
     await user.click(screen.getByRole("combobox", { name: "Font" }));
-    await user.click(await screen.findByRole("option", { name: "Default" }));
+    await user.click(await screen.findByRole("option", { name: "Inter (default)" }));
     expect(onChange).toHaveBeenLastCalledWith({ v: 1, scheme: "dark", palette: {} });
   });
 
@@ -190,5 +190,25 @@ describe("ThemeEditor features", () => {
     await waitFor(() => expect(pane.querySelector('[data-slot="theme-editor-sample"]')).toHaveAttribute("data-sample", "game"));
     expect(within(pane).getAllByRole("meter").length + within(pane).getAllByRole("progressbar").length).toBeGreaterThan(0);
     expect(within(pane).getByText("Karin Sultan")).toBeInTheDocument();
+  });
+
+  it("offers the two shipped fonts by default; fonts={[]} hides the section", async () => {
+    const user = userEvent.setup();
+    const { container, unmount } = render(<ThemeEditor presets={[]} preview={false} />);
+    await user.click(screen.getByRole("combobox", { name: "Font" }));
+    const names = (await screen.findAllByRole("option")).map((option) => option.textContent);
+    expect(names).toEqual(["Inter (default)", "JetBrains Mono"]);
+    await user.keyboard("{Escape}");
+    unmount();
+    const hidden = render(<ThemeEditor presets={[]} preview={false} fonts={[]} />);
+    expect(slot(hidden.container, "theme-editor-font")).toBeNull();
+    expect(container).toBeDefined();
+  });
+
+  it("see-through panels get a backdrop in the preview, opaque ones none", () => {
+    const { container, rerender } = render(<ThemeEditor layout="split" presets={[]} preview={false} />);
+    expect(slot(container, "theme-editor-backdrop")).toBeNull();
+    rerender(<ThemeEditor layout="split" presets={[]} preview={false} value={{ tokens: { shared: { "surface-opacity": "0.8" } } }} />);
+    expect(slot(container, "theme-editor-backdrop")).toBeInTheDocument();
   });
 });

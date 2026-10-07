@@ -65,7 +65,7 @@ const labels: ThemeEditorProps["labels"] = {
   radius: "Eckenradius",
   radiusValue: (value) => `${value} rem`,
   font: "Schrift",
-  fontDefault: "Standard (Inter)",
+  fontDefault: "Inter (Standard)",
   fontCustom: "Eigene",
   preview: "Vorschau",
   reset: "Alles zurücksetzen",
@@ -195,11 +195,6 @@ const presets = defaultThemePresets.map((preset) => ({
   description: presetNames[preset.id]?.[1] ?? preset.description,
 }));
 
-const fonts = [
-  { label: "Inter", value: '"Inter Variable", Inter, system-ui, sans-serif' },
-  { label: "System", value: 'system-ui, "Segoe UI", Roboto, sans-serif' },
-  { label: "JetBrains Mono", value: '"JetBrains Mono", ui-monospace, monospace' },
-];
 
 interface InGameThemeEditorProps {
   /** The theme the server currently has (GlobalState.theme) — the editor starts from it. */
@@ -236,7 +231,6 @@ export function ThemeEditor({ initial, onClose }: InGameThemeEditorProps) {
           defaultEditingScheme={resolvedScheme}
           onSave={save}
           presets={presets}
-          fonts={fonts}
           labels={labels}
           locale="de-DE"
           actionsSlot={

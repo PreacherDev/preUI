@@ -72,7 +72,7 @@ const styleSliders: StyleSlider[] = [
     format: (value, labels, number) => labels.radiusValue(number.format(value)),
   },
   { key: "surface-opacity", label: (labels) => labels.surfaceOpacity, min: 0.7, max: 1, step: 0.05, read: numeric, write: rounded, format: percent },
-  { key: "tint-scale", label: (labels) => labels.tintScale, min: 0.5, max: 2, step: 0.1, read: numeric, write: rounded, format: percent },
+  { key: "tint-scale", label: (labels) => labels.tintScale, min: 0.5, max: 3, step: 0.1, read: numeric, write: rounded, format: percent },
   { key: "border-opacity", label: (labels) => labels.borderOpacity, min: 0, max: 1, step: 0.1, read: numeric, write: rounded, format: percent },
   { key: "shadow-scale", label: (labels) => labels.shadowScale, min: 0, max: 2, step: 0.1, read: numeric, write: rounded, format: percent },
 ];

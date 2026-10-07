@@ -195,7 +195,7 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
   radius: "Corner radius",
   radiusValue: (value) => `${value} rem`,
   font: "Font",
-  fontDefault: "Default",
+  fontDefault: "Inter (default)",
   fontCustom: "Custom",
   preview: "Preview",
   export: "Export",
@@ -300,7 +300,10 @@ export interface ThemeEditorProps
    * `[]` hides the section. @default defaultThemePresets
    */
   presets?: readonly ThemePreset[];
-  /** Font choices for `--pui-font-sans`; the font section is hidden without them. */
+  /**
+   * Font choices for `--pui-font-sans` besides the default (Inter). Default: JetBrains Mono — the two fonts preUI
+   * ships. `[]` hides the font section.
+   */
   fonts?: readonly ThemeEditorFont[];
   /**
    * Live preview: while mounted, the edited theme is applied to the whole page with `applyTokens` (own `<style>`,
@@ -368,6 +371,11 @@ export interface ThemeEditorProps
 }
 
 const schemeList: PreuiScheme[] = ["dark", "light"];
+
+/** The fonts preUI ships besides the default (Inter): JetBrains Mono. */
+export const defaultThemeEditorFonts: readonly ThemeEditorFont[] = [
+  { label: "JetBrains Mono", value: (tokens as Record<string, string>)["--pui-font-mono"] },
+];
 
 /** Whether the dark palette sets an accent or status colour (something "From dark" can carry over). */
 const hasDarkAccents = (config: ThemeConfig) =>
@@ -638,6 +646,9 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
   const id = useId();
 
   const split = layout === "split";
+  const fontChoices = fonts ?? defaultThemeEditorFonts;
+  // See-through panels only show on something busy: the preview then gets a backdrop (see PreviewBackdrop).
+  const seeThrough = Number(effective[editing]["--pui-surface-opacity" as PreuiTokenName]) < 1;
 
   const schemeSummary = (scheme: PreuiScheme) => {
     const count = problemCount(scheme);
@@ -821,7 +832,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
 
           {show("style") && <StyleSection config={config} labels={labels} locale={locale} update={update} />}
 
-          {show("font") && fonts && fonts.length > 0 && <FontSection config={config} fonts={fonts} labels={labels} update={update} />}
+          {show("font") && fontChoices.length > 0 && <FontSection config={config} fonts={fontChoices} labels={labels} update={update} />}
 
           {show("import") && (
             <ImportSection
@@ -879,14 +890,16 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               </ToggleGroup>
             </div>
             {/* The edited tokens of the active tab as scoped CSS variables — independent of the page and of `preview`. */}
-            <ScrollArea
+            <div
               data-scheme={editing}
               style={effective[editing] as CSSProperties}
-              className="min-h-0 flex-1 bg-pui-background font-sans text-pui-foreground"
-              contentClassName="p-4 lg:p-6"
+              className="relative flex min-h-0 flex-1 flex-col font-sans text-pui-foreground"
             >
-              {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
-            </ScrollArea>
+              {seeThrough && <PreviewBackdrop />}
+              <ScrollArea className="relative min-h-0 flex-1 bg-pui-background" contentClassName="p-4 lg:p-6">
+                {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
+              </ScrollArea>
+            </div>
           </section>
         )}
       </div>
@@ -946,6 +959,29 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     </div>
   );
 });
+
+/**
+ * Stand-in for what lies behind see-through panels (the game in FiveM): flat shapes in the theme's own colours, no
+ * gradients. Without it a translucent dark panel on a dark pane looks exactly like an opaque one.
+ */
+function PreviewBackdrop() {
+  const shape = (token: string) => ({ fill: `hsl(var(--pui-${token}))` });
+  return (
+    <svg
+      aria-hidden="true"
+      data-slot="theme-editor-backdrop"
+      className="pointer-events-none absolute inset-0 size-full"
+      viewBox="0 0 400 300"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <circle cx="70" cy="70" r="70" style={shape("primary")} />
+      <rect x="230" y="20" width="150" height="110" rx="16" style={shape("info")} />
+      <circle cx="320" cy="230" r="60" style={shape("warning")} />
+      <rect x="40" y="180" width="170" height="90" rx="16" style={shape("positive")} />
+      <circle cx="190" cy="150" r="40" style={shape("negative")} />
+    </svg>
+  );
+}
 
 // ------------------------------------------------------------------------------------------------
 // Presets

@@ -1,4 +1,4 @@
-export { defaultThemeEditorLabels, ThemeEditor } from "./ThemeEditor";
+export { defaultThemeEditorFonts, defaultThemeEditorLabels, ThemeEditor } from "./ThemeEditor";
 export type {
   ThemeEditorExportFormat,
   ThemeEditorFont,
