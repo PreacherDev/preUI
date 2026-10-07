@@ -142,12 +142,12 @@ const labels: ThemeEditorProps["labels"] = {
 
 /** The built-in presets with German names. A server could send its own list instead. */
 const presetNames: Record<string, [string, string]> = {
-  default: ["preUI", "Das Standard-Blau"],
+  default: ["preUI", "Das Standard-Violett"],
+  blue: ["Blau", "Blauer Akzent (bis 0.7 Standard)"],
   emerald: ["Smaragd", "Grüner Akzent"],
   police: ["Polizei", "Blau auf Marine"],
   crimson: ["Karmin", "Roter Akzent"],
   amber: ["Bernstein", "Warmes Gelb"],
-  violet: ["Violett", "Lila Akzent"],
   mono: ["Mono", "Nur Grautöne"],
 };
 const presets = defaultThemePresets.map((preset) => ({

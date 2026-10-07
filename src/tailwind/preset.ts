@@ -32,8 +32,8 @@ export const tokensHeader = `/*
  *                                 scheme-dependent tokens. Sizes, motion, radius and fonts are shared (:root only).
  *   data-theme="<name>"           Your own brand/style theme: override only what it changes, the rest comes from
  *                                 the scheme. Put theme rules after these blocks:
- *     [data-theme="brand"] { --pui-primary: 262 83% 58%; --pui-ring: 262 83% 58%; }
- *     [data-theme="brand"][data-scheme="light"] { --pui-primary: 262 70% 48%; }  (optional light fine-tuning)
+ *     [data-theme="brand"] { --pui-primary: 27 96% 61%; --pui-ring: 27 96% 61%; }
+ *     [data-theme="brand"][data-scheme="light"] { --pui-primary: 21 90% 40%; }  (optional light fine-tuning)
  *     [data-theme="paper"] { color-scheme: light; --pui-background: 40 30% 98%; }  (light-only theme — declare it
  *                                 as <ThemeProvider themes={{ paper: "light" }}> so the light base applies)
  */

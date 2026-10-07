@@ -288,9 +288,9 @@ describe("checkTokenContrast", () => {
 
 describe("deriveTokens", () => {
   it("the default primary reproduces the default token sets", () => {
-    expect(deriveTokens({ primary: "217 91% 63%" }, "dark")).toEqual(tokens);
-    expect(deriveTokens({ primary: "221 83% 53%" }, "light")).toEqual(lightTokens);
-    expect(deriveTokens({ primary: "hsl(217 91% 63%)", background: "225 12% 9%" }, "dark")).toEqual(tokens);
+    expect(deriveTokens({ primary: "255 92% 76%" }, "dark")).toEqual(tokens);
+    expect(deriveTokens({ primary: "263 70% 50%" }, "light")).toEqual(lightTokens);
+    expect(deriveTokens({ primary: "hsl(255 92% 76%)", background: "225 12% 9%" }, "dark")).toEqual(tokens);
   });
 
   it("returns the same keys as tokens and is directly usable by applyTokens", () => {

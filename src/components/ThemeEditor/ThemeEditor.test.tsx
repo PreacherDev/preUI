@@ -227,7 +227,7 @@ describe("ThemeEditor", () => {
     const style = previewStyle()!;
     expect(style).not.toBeNull();
     // Complete token set: other runtime overrides can't leak into the preview.
-    expect(style.textContent).toContain("--pui-primary: 217 91% 63%");
+    expect(style.textContent).toContain("--pui-primary: 255 92% 76%");
     expect(style.textContent).toContain("--pui-radius: 0.5rem");
     await setColor(user, "Primary", "#f97316");
     expect(previewStyle()!.textContent).toContain("--pui-primary: 25 95% 53%");

@@ -120,7 +120,13 @@ export function checkThemeConfigContrast(
  * `label` / `description` for other languages.
  */
 export const defaultThemePresets: readonly ThemePreset[] = [
-  { id: "default", label: "preUI", description: "The default blue accent", config: { v: 1, palette: {} } },
+  { id: "default", label: "preUI", description: "The default violet accent", config: { v: 1, palette: {} } },
+  {
+    id: "blue",
+    label: "Blue",
+    description: "Blue accent (preUI's default before 0.8)",
+    config: { v: 1, palette: { dark: { primary: "#4b8df7" }, light: { primary: "#2463eb" } } },
+  },
   {
     id: "emerald",
     label: "Emerald",
@@ -156,12 +162,6 @@ export const defaultThemePresets: readonly ThemePreset[] = [
         light: { primary: "#b45309", background: "#fffdf8" },
       },
     },
-  },
-  {
-    id: "violet",
-    label: "Violet",
-    description: "Purple accent",
-    config: { v: 1, palette: { dark: { primary: "#a78bfa" }, light: { primary: "#6d28d9" } } },
   },
   {
     id: "mono",

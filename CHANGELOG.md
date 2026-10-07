@@ -3,6 +3,22 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.8.0 — 2026-10-07
+
+### Visible changes
+
+- **Violet is the default accent.** `--pui-primary` and `--pui-ring` are the former "Violet" preset: dark
+  `255 92% 76%` (`#a78bfa`), light `263 70% 50%` (`#6d28d9`). Everything else stays — surfaces, status colours, the
+  text on primary (contrast ≥ 4.5:1 in both schemes, tested). Buttons, links, focus rings, selected items, charts
+  (`--pui-chart-primary`) and every `bg-pui-primary/tint` follow.
+- **Presets:** `default` ("preUI") is now violet; the old blue is the new `blue` preset (`#4b8df7` / `#2463eb`, exactly
+  the former defaults); the `violet` preset is gone (it is the default now). Saved themes are copies, not preset
+  references, so nothing saved changes.
+
+To keep the blue look: pick the "Blue" preset, or set `primary` / `ring` in your tokens
+(`tokens={{ dark: { primary: "#4b8df7", ring: "#4b8df7" }, light: { primary: "#2463eb", ring: "#2463eb" } }}`).
+A `preui.css` written earlier by `npx preui init` is yours and keeps its colours.
+
 ## 0.7.1 — 2026-10-01
 
 - **CodeEditor / MarkdownEditor**: AltGr characters type again. Windows reports AltGr as Ctrl + Alt, so on German
@@ -237,6 +253,10 @@ changes; a patch version never does. The NUI helpers have their own section at t
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.1.5 — 2026-10-07
+
+- New resources depend on `@pre_scripts/preui` `^0.8.0`.
 
 ### 0.1.4 — 2026-10-01
 

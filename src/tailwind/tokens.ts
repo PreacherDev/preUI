@@ -1,7 +1,7 @@
 // The design token values (both schemes) and their selectors. Kept apart from the Tailwind preset so the runtime
 // theming helpers (applyTokens, deriveTokens, contrast) can use them without importing the preset.
 
-/** Default look (dark scheme): dark surfaces, blue accent. Values from the design handoff (`tokens/colors.css`). */
+/** Default look (dark scheme): dark surfaces, violet accent (since 0.8; blue before). Surfaces from the design handoff. */
 const baseTokens = {
   // Surfaces
   "--pui-backdrop": "220 14% 22%",
@@ -19,7 +19,7 @@ const baseTokens = {
   "--pui-scrim": "var(--pui-background)",
 
   // Interactive
-  "--pui-primary": "217 91% 63%",
+  "--pui-primary": "255 92% 76%",
   "--pui-primary-foreground": "225 12% 9%",
   "--pui-secondary": "225 10% 16%",
   "--pui-secondary-foreground": "225 12% 92%",
@@ -29,7 +29,7 @@ const baseTokens = {
   "--pui-accent-foreground": "225 12% 96%",
   "--pui-border": "225 10% 18%",
   "--pui-input": "225 10% 20%",
-  "--pui-ring": "217 91% 63%",
+  "--pui-ring": "255 92% 76%",
   // Switch / slider thumb
   "--pui-thumb": "var(--pui-foreground)",
 
@@ -166,7 +166,7 @@ const lightSchemeTokens: Record<Exclude<PreuiTokenName, SharedTokenName>, string
   "--pui-scrim": "225 20% 10%",
 
   // Interactive
-  "--pui-primary": "221 83% 53%",
+  "--pui-primary": "263 70% 50%",
   "--pui-primary-foreground": "0 0% 100%",
   "--pui-secondary": "225 16% 94%",
   "--pui-secondary-foreground": "225 18% 12%",
@@ -176,7 +176,7 @@ const lightSchemeTokens: Record<Exclude<PreuiTokenName, SharedTokenName>, string
   "--pui-accent-foreground": "225 18% 10%",
   "--pui-border": "225 14% 89%",
   "--pui-input": "225 12% 82%",
-  "--pui-ring": "221 83% 53%",
+  "--pui-ring": "263 70% 50%",
   "--pui-thumb": "0 0% 100%",
 
   // Semantic
