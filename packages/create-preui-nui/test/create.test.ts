@@ -165,9 +165,20 @@ describe("template versions", () => {
     dependencies: Record<string, string>;
   };
 
-  it("depends on the current @pre_scripts/preui and @pre_scripts/preui-nui", () => {
-    expect(template.dependencies["@pre_scripts/preui"]).toBe(`^${version("../../../package.json")}`);
-    expect(template.dependencies["@pre_scripts/preui-nui"]).toBe(`^${version("../../preui-nui/package.json")}`);
+  // ^0.9.0 covers 0.9.x: the range must be on the current minor and not ahead of the current version, so a patch
+  // release of preUI needs no new starter, but a new minor does.
+  const covers = (range: string, current: string) => {
+    const [want, have] = [range.replace(/^\^/, ""), current].map((value) => value.split(".").map(Number));
+    return range.startsWith("^") && want[0] === have[0] && want[1] === have[1] && want[2] <= have[2];
+  };
+
+  it("depends on the current @pre_scripts/preui and @pre_scripts/preui-nui (same minor)", () => {
+    for (const [name, path] of [
+      ["@pre_scripts/preui", "../../../package.json"],
+      ["@pre_scripts/preui-nui", "../../preui-nui/package.json"],
+    ] as const) {
+      expect({ name, ok: covers(template.dependencies[name], version(path)) }).toEqual({ name, ok: true });
+    }
   });
 });
 
