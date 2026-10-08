@@ -113,7 +113,9 @@ export const keybindHintBarVariants = /* @__PURE__ */ cva("flex w-fit", {
     },
   },
   compoundVariants: [
-    { orientation: "horizontal", variant: "surface", className: "rounded-full px-4 py-1.5" },
+    // Theme radius, not a pill: the row wraps (flex-wrap) when it runs out of width, and a two-line rounded-full
+    // bar turns into a lozenge. Pass `className="rounded-full"` for a pill when the bar stays on one line.
+    { orientation: "horizontal", variant: "surface", className: "rounded-pui px-4 py-1.5" },
     { orientation: "vertical", variant: "surface", className: "rounded-pui px-3 py-2.5" },
     { orientation: "horizontal", variant: "panel", className: "rounded-pui-md px-4 py-2" },
     { orientation: "vertical", variant: "panel", className: "rounded-pui-md px-4 py-3" },
@@ -131,8 +133,9 @@ export interface KeybindHintBarProps extends Omit<useRender.ComponentProps<"div"
   /** Default `"horizontal"`. */
   orientation?: KeybindHintBarOrientation;
   /**
-   * `"default"` is plain, `"surface"` a subtle card-coloured pill (horizontal) or panel (vertical), `"panel"` looks like
-   * a HUD panel (window surface and shadow, theme radius). The radius can always be set with `className`.
+   * `"default"` is plain, `"surface"` a subtle card-coloured bar with the theme radius (also when a long horizontal
+   * row wraps onto a second line), `"panel"` looks like a HUD panel (window surface and shadow, theme radius). The
+   * radius can always be set with `className`, e.g. `rounded-full` for a one-line pill.
    */
   variant?: KeybindHintBarVariant;
   /** Space between the hints in px (overrides the default gap). */

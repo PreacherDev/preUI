@@ -2,11 +2,15 @@ import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type ReactNode } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   bareInputClass,
   emptyClass,
   fieldClass,
   fieldIconButtonClass,
+  fieldInvalidFocusWithinClass,
+  fieldPaddingEndClass,
+  fieldPaddingStartClass,
   fieldSizeClass,
   groupLabelClass,
   listClass,
@@ -80,8 +84,10 @@ export const AutocompleteInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof 
           [
             fieldClass,
             fieldSizeClass[size],
-            "flex items-center gap-2 pl-3 focus-within:border-pui-ring",
-            showClear || showTrigger ? "pr-1.5" : "pr-3",
+            fieldPaddingStartClass[size],
+            "flex items-center gap-2 focus-within:border-pui-ring",
+            fieldInvalidFocusWithinClass,
+            showClear || showTrigger ? "pr-1.5" : fieldPaddingEndClass[size],
           ],
           className,
         )}
@@ -122,7 +128,7 @@ export interface AutocompleteContentProps extends ComponentPropsWithoutRef<typeo
   sideOffset?: PositionerProps["sideOffset"];
   alignOffset?: PositionerProps["alignOffset"];
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseAutocomplete.Portal.Props["container"];
 }
 
@@ -133,18 +139,20 @@ export const AutocompleteContent = /* @__PURE__ */ forwardRef<ComponentRef<typeo
     ref,
   ) {
     return (
-      <BaseAutocomplete.Portal container={container}>
-        <BaseAutocomplete.Positioner
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          data-slot="autocomplete-positioner"
-          {...positionerProps}
-          className={mergeClassName(listPositionerClass, positionerProps?.className)}
-        >
-          <BaseAutocomplete.Popup ref={ref} data-slot="autocomplete-content" className={mergeClassName(listPopupClass, className)} {...props} />
-        </BaseAutocomplete.Positioner>
+      <BaseAutocomplete.Portal container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BaseAutocomplete.Positioner
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            data-slot="autocomplete-positioner"
+            {...positionerProps}
+            className={mergeClassName(listPositionerClass, positionerProps?.className)}
+          >
+            <BaseAutocomplete.Popup ref={ref} data-slot="autocomplete-content" className={mergeClassName(listPopupClass, className)} {...props} />
+          </BaseAutocomplete.Positioner>
+        </PortalContainerScope>
       </BaseAutocomplete.Portal>
     );
   },

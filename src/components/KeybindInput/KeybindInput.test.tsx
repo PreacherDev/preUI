@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, useState } from "react";
+import { Field } from "../Field/Field";
 import { KeybindInput, formatKeybind, keybindFromEvent, matchesKeybind, type Keybind } from "./KeybindInput";
 
 function field() {
@@ -229,5 +230,28 @@ describe("KeybindInput", () => {
     expect(document.querySelector<HTMLInputElement>('input[name="menuKey"]')!.value).toBe(
       JSON.stringify({ key: " ", code: "Space", ctrl: true }),
     );
+  });
+});
+
+describe("KeybindInput layout", () => {
+  it("keeps the key caps unsquashed and clips long bindings inside the keys area", () => {
+    render(<KeybindInput aria-label="Taste" defaultValue={{ key: "f", code: "KeyF", ctrl: true, alt: true, shift: true }} />);
+    const area = document.querySelector('[data-slot="keybind-input-keys"]');
+    expect(area).toHaveClass("min-w-0", "overflow-hidden", "justify-end", "whitespace-nowrap", "[&>*]:shrink-0");
+    expect(keys()).toEqual(["Ctrl", "Alt", "Shift", "F"]);
+  });
+
+  it("shows focus on an invalid field with a ring in the negative colour", () => {
+    render(<KeybindInput aria-label="Taste" invalid />);
+    expect(field()).toHaveClass("data-[invalid]:focus-within:ring-pui", "data-[invalid]:focus-within:ring-pui-negative");
+  });
+
+  it("follows a surrounding Field's validity", () => {
+    render(
+      <Field invalid>
+        <KeybindInput aria-label="Key" />
+      </Field>,
+    );
+    expect(field()).toHaveAttribute("data-invalid");
   });
 });

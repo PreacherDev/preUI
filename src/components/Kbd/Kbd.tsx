@@ -3,7 +3,10 @@ import { cn } from "../../utils/cn";
 
 export type KbdProps = HTMLAttributes<HTMLElement>;
 
-/** Keyboard key cap for shortcuts, e.g. `<Kbd>Esc</Kbd>`. */
+/**
+ * Keyboard key cap for shortcuts, e.g. `<Kbd>Esc</Kbd>`. Corners capped at 4px (`rounded-pui-xs`), so it stays a key
+ * at any `--pui-radius`.
+ */
 export const Kbd = /* @__PURE__ */ forwardRef<HTMLElement, KbdProps>(function Kbd({ className, ...props }, ref) {
   return (
     <kbd
@@ -11,7 +14,7 @@ export const Kbd = /* @__PURE__ */ forwardRef<HTMLElement, KbdProps>(function Kb
       data-slot="kbd"
       className={cn(
         "pointer-events-none inline-flex h-5 w-fit min-w-5 select-none items-center justify-center gap-1",
-        "rounded-pui-sm border border-pui-border bg-pui-muted px-1",
+        "rounded-pui-xs border border-pui-border bg-pui-muted px-1",
         "font-sans text-xs font-medium text-pui-muted-foreground",
         "[&_svg:not([class*='size-'])]:size-3",
         className,

@@ -32,8 +32,7 @@ export function createSelectColumn<TData extends RowData>({
           indeterminate={some}
           onCheckedChange={(checked) => table.toggleAllPageRowsSelected(checked)}
           aria-label={selectAllLabel}
-          className="align-middle"
-        />
+          />
       );
     },
     cell: ({ row }) => (
@@ -42,7 +41,6 @@ export function createSelectColumn<TData extends RowData>({
         disabled={!row.getCanSelect()}
         onCheckedChange={(checked) => row.toggleSelected(checked)}
         aria-label={selectRowLabel}
-        className="align-middle"
       />
     ),
     enableSorting: false,

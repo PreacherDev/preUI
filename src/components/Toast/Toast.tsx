@@ -12,6 +12,7 @@ import {
 import { useIcon } from "../../icons";
 import type { IconName } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 
 /** Toast types with a built-in icon and color (`toast.success()`, `toast.error()` …). */
 export type ToastType = "success" | "error" | "info" | "warning" | "loading";
@@ -246,7 +247,8 @@ function ToastItem({
       className={mergeClassName(getToastClassName(position), className)}
     >
       {isToastType(toast.type) && <ToastIcon type={toast.type} />}
-      <div data-slot="toast-content" className="flex min-w-0 flex-1 flex-col gap-0.5">
+      {/* overflow-wrap:anywhere breaks long unbroken words (URLs, IDs) instead of overflowing the toast. */}
+      <div data-slot="toast-content" className="flex min-w-0 flex-1 flex-col gap-0.5 [overflow-wrap:anywhere]">
         <BaseToast.Title data-slot="toast-title" className="font-medium text-pui-popover-foreground" />
         <BaseToast.Description
           data-slot="toast-description"
@@ -336,7 +338,7 @@ export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.
   closeLabel?: string;
   /** Extra classes for every toast (string or function of the toast state). */
   toastClassName?: BaseToast.Root.Props["className"];
-  /** Portal container; defaults to `document.body`. */
+  /** Portal container; defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseToast.Portal.Props["container"];
   /**
    * Corner or edge the toasts stack at (24px inset). Default `"bottom-right"`; can change at runtime.
@@ -372,34 +374,36 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
   const closeUnfocused = pauseWhenUnfocused === undefined ? inNui : !pauseWhenUnfocused;
   return (
     <BaseToast.Provider toastManager={toastManager} timeout={timeout} limit={limit}>
-      <BaseToast.Portal data-slot="toaster-portal" container={container}>
-        <BaseToast.Viewport
-          ref={ref}
-          data-slot="toaster"
-          data-position={position}
-          className={mergeClassName(
-            [
-              "pointer-events-none fixed",
-              positionConfig[position].viewport,
-              "z-[100] flex w-80 max-w-[calc(100vw-3rem)]",
-              // Newest toast closest to the screen edge.
-              isTopPosition(position) ? "flex-col" : "flex-col-reverse",
-              "gap-2 outline-none",
-            ],
-            className,
-          )}
-          {...props}
-        >
-          <ToastList
-            timeout={timeout}
-            closeUnfocused={closeUnfocused}
-            closeButton={closeButton}
-            actions={actions}
-            closeLabel={closeLabel}
-            toastClassName={toastClassName}
-            position={position}
-          />
-        </BaseToast.Viewport>
+      <BaseToast.Portal data-slot="toaster-portal" container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BaseToast.Viewport
+            ref={ref}
+            data-slot="toaster"
+            data-position={position}
+            className={mergeClassName(
+              [
+                "pointer-events-none fixed",
+                positionConfig[position].viewport,
+                "z-[100] flex w-80 max-w-[calc(100vw-3rem)]",
+                // Newest toast closest to the screen edge.
+                isTopPosition(position) ? "flex-col" : "flex-col-reverse",
+                "gap-2 outline-none",
+              ],
+              className,
+            )}
+            {...props}
+          >
+            <ToastList
+              timeout={timeout}
+              closeUnfocused={closeUnfocused}
+              closeButton={closeButton}
+              actions={actions}
+              closeLabel={closeLabel}
+              toastClassName={toastClassName}
+              position={position}
+            />
+          </BaseToast.Viewport>
+        </PortalContainerScope>
       </BaseToast.Portal>
     </BaseToast.Provider>
   );

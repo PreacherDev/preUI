@@ -74,6 +74,23 @@ describe("ProgressCircle", () => {
     expect(value.parentElement).toHaveAttribute("data-slot", "progress-circle-content");
   });
 
+  it("drops the % sign on small rings so the value fits (aria-valuetext keeps it)", () => {
+    const { rerender } = render(<ProgressCircle value={100} size="sm" showValue aria-label="A" />);
+    const bar = screen.getByRole("progressbar");
+    const value = () => bar.querySelector('[data-slot="progress-circle-value"]')!;
+    expect(value()).toHaveTextContent(/^100$/);
+    expect(bar).toHaveAttribute("aria-valuetext", "100%");
+    rerender(<ProgressCircle value={42.6} size={40} showValue aria-label="A" />);
+    expect(value()).toHaveTextContent(/^43$/);
+    rerender(<ProgressCircle value={null} size="sm" showValue aria-label="A" />);
+    expect(value()).toHaveTextContent(/^$/);
+    // Default size and an explicit format keep the formatted text.
+    rerender(<ProgressCircle value={100} showValue aria-label="A" />);
+    expect(value()).toHaveTextContent("100%");
+    rerender(<ProgressCircle value={3} max={5} size="sm" format={{ style: "decimal" }} showValue aria-label="A" />);
+    expect(value()).toHaveTextContent(/^3$/);
+  });
+
   it("renders children instead of the value", () => {
     render(
       <ProgressCircle value={40} showValue aria-label="A">

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Button } from "../Button/Button";
 import { ButtonGroup, ButtonGroupSeparator, ButtonGroupText } from "./ButtonGroup";
@@ -63,5 +63,45 @@ describe("ButtonGroup", () => {
     render(<ButtonGroup data-testid="group" className="w-full" />);
     expect(screen.getByTestId("group")).toHaveClass("w-full");
     expect(screen.getByTestId("group")).not.toHaveClass("w-fit");
+  });
+});
+
+describe("ButtonGroup focused fields", () => {
+  it("outlines the group for any focused field child, not only <input>", () => {
+    render(<ButtonGroup data-testid="group" />);
+    const group = screen.getByTestId("group");
+    expect(group).toHaveClass(
+      "has-[>:is(:focus-within,[data-popup-open]):not([data-variant]):not([data-slot=button-group])]:ring-pui",
+      "data-[has-focused-field]:ring-pui",
+      "[&>:is(:focus-within,[data-popup-open]):not([data-variant]):not([data-invalid]):not([aria-invalid=true])]:border-pui-input",
+    );
+  });
+
+  // (Focus is set before the hook's first check: jsdom's selector engine caches `:focus-within` results until the
+  // DOM mutates, so later focus moves can't be observed here.)
+  it("sets the :has() fallback attribute for a focused field wrapper (e.g. NumberField)", async () => {
+    render(
+      <ButtonGroup data-testid="group">
+        <Button variant="outline">Minus</Button>
+        <div data-slot="number-field">
+          <input aria-label="Menge" autoFocus />
+        </div>
+      </ButtonGroup>,
+    );
+    await waitFor(() => expect(screen.getByTestId("group")).toHaveAttribute("data-has-focused-field"));
+  });
+
+  it("does not set it for a focused button (buttons draw their own ring)", async () => {
+    render(
+      <ButtonGroup data-testid="group">
+        <Button variant="outline" autoFocus>
+          Minus
+        </Button>
+        <input aria-label="Menge" />
+      </ButtonGroup>,
+    );
+    expect(screen.getByRole("button", { name: "Minus" })).toHaveFocus();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(screen.getByTestId("group")).not.toHaveAttribute("data-has-focused-field");
   });
 });

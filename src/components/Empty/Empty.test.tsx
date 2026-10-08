@@ -51,4 +51,16 @@ describe("Empty", () => {
     expect(screen.getByText("Titel")).toHaveClass("text-base");
     expect(screen.getByText("Titel")).not.toHaveClass("text-sm");
   });
+
+  it("wraps long unbreakable text inside the centred header", () => {
+    render(
+      <Empty data-testid="empty">
+        <EmptyHeader data-testid="header">
+          <EmptyTitle>Keine_Ergebnisse_fuer_einen_sehr_langen_Suchbegriff_ohne_Leerzeichen</EmptyTitle>
+        </EmptyHeader>
+      </Empty>,
+    );
+    expect(screen.getByTestId("empty")).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
+    expect(screen.getByTestId("header")).toHaveClass("max-w-sm", "[overflow-wrap:anywhere]");
+  });
 });

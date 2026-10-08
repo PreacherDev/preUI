@@ -97,7 +97,7 @@ function defaultFormat(locale?: DayPickerLocale) {
 const fieldTriggerClassName = [
   "flex h-pui-control w-full items-center gap-2 rounded-pui-md border border-pui-input bg-pui-background px-3 text-left text-sm text-pui-foreground",
   "outline-none transition-colors duration-pui-fast ease-pui focus-visible:border-pui-ring data-[popup-open]:border-pui-ring",
-  "data-[invalid]:border-pui-negative",
+  "data-[invalid]:border-pui-negative data-[invalid]:focus-visible:ring-pui data-[invalid]:focus-visible:ring-pui-negative",
   "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
   "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
 ];

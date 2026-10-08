@@ -64,3 +64,15 @@ describe("Input aria-invalid", () => {
     expect(screen.getByLabelText("Mail")).toHaveClass("aria-[invalid=true]:border-pui-negative", "data-[invalid]:border-pui-negative");
   });
 });
+
+describe("Input invalid focus", () => {
+  it("shows focus on an invalid field with a ring in the negative colour", () => {
+    render(<Input aria-invalid="true" aria-label="Mail" />);
+    expect(screen.getByLabelText("Mail")).toHaveClass(
+      "data-[invalid]:focus-visible:ring-pui",
+      "data-[invalid]:focus-visible:ring-pui-negative",
+      "aria-[invalid=true]:focus-visible:ring-pui",
+      "aria-[invalid=true]:focus-visible:ring-pui-negative",
+    );
+  });
+});

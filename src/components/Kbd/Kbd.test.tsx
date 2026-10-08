@@ -12,7 +12,7 @@ describe("Kbd", () => {
     );
     const key = screen.getByText("Strg");
     expect(key.tagName).toBe("KBD");
-    expect(key).toHaveClass("h-5", "min-w-5", "px-1", "text-xs", "rounded-pui-sm", "border-pui-border", "bg-pui-muted");
+    expect(key).toHaveClass("h-5", "min-w-5", "px-1", "text-xs", "rounded-pui-xs", "border-pui-border", "bg-pui-muted");
     const group = screen.getByTestId("group");
     expect(group.tagName).toBe("KBD");
     expect(group).toHaveClass("inline-flex", "gap-1");

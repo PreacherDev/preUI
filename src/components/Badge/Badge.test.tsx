@@ -20,7 +20,7 @@ describe("Badge", () => {
     const { rerender } = render(<Badge variant="secondary">4</Badge>);
     expect(screen.getByText("4")).toHaveClass("bg-pui-muted", "text-pui-muted-foreground");
     rerender(<Badge variant="outline">4</Badge>);
-    expect(screen.getByText("4")).toHaveClass("border-pui-border");
+    expect(screen.getByText("4")).toHaveClass("border-pui-input");
     rerender(<Badge variant="destructive">4</Badge>);
     expect(screen.getByText("4")).toHaveClass("bg-pui-negative/tint", "text-pui-negative");
     rerender(<Badge variant="warning">4</Badge>);
@@ -54,7 +54,9 @@ describe("Badge", () => {
 
   it("gives the raw outline classes no conflicting transparent border (used without tailwind-merge)", () => {
     const outline = badgeVariants({ variant: "outline" }).split(/\s+/);
-    expect(outline).toContain("border-pui-border");
+    // border-pui-input, not border-pui-border: --pui-border-opacity: 0 must not erase the outline badge.
+    expect(outline).toContain("border-pui-input");
+    expect(outline).not.toContain("border-pui-border");
     expect(outline).not.toContain("border-transparent");
     expect(badgeVariants({ variant: "positive" }).split(/\s+/)).toContain("border-transparent");
   });
@@ -67,6 +69,11 @@ describe("Badge", () => {
     rerender(<Badge surface="solid">Neu</Badge>);
     expect(badge).toHaveAttribute("data-surface", "solid");
     expect(badge).toHaveClass("[--pui-badge-tint:var(--pui-primary)]", "text-pui-primary");
+    // The solid tint follows --pui-tint-scale like every other tint.
+    expect(badge).toHaveClass(
+      "[--pui-badge-alpha:calc(var(--pui-tint-rest)*var(--pui-tint-scale,1))]",
+      "[a&]:hover:[--pui-badge-alpha:calc(var(--pui-tint-hover)*var(--pui-tint-scale,1))]",
+    );
     expect(badge.className).toContain("linear-gradient(hsl(var(--pui-background)),hsl(var(--pui-background)))");
     rerender(
       <Badge surface="solid" variant="warning">

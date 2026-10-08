@@ -442,7 +442,7 @@ const GameSample = /* @__PURE__ */ forwardRef<
             className="flex items-start gap-2.5 rounded-pui border border-pui-border bg-pui-popover px-3.5 py-3 text-sm text-pui-popover-foreground shadow-pui-floating"
           >
             <Success className="mt-0.5 size-4 shrink-0 text-pui-positive" aria-hidden="true" />
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex min-w-0 flex-col gap-0.5 [overflow-wrap:anywhere]">
               <span className="font-medium">{labels.notification.title}</span>
               <span className="text-pui-muted-foreground">{labels.notification.description}</span>
             </div>

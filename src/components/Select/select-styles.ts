@@ -11,11 +11,40 @@ export const fieldClass = [
   "data-[invalid]:border-pui-negative",
 ].join(" ");
 
+/** Height and text size per size, matching `inputVariants` (sm = 12px text, default / lg = 14px). */
 export const fieldSizeClass = {
-  sm: "h-pui-control-sm",
-  default: "h-pui-control",
-  lg: "h-pui-control-lg",
+  sm: "h-pui-control-sm text-xs",
+  default: "h-pui-control text-sm",
+  lg: "h-pui-control-lg text-sm",
 } as const;
+
+/** Horizontal text inset per size, matching `inputVariants` (10 / 12 / 14px). */
+export const fieldPaddingClass = {
+  sm: "px-2.5",
+  default: "px-3",
+  lg: "px-3.5",
+} as const;
+
+/** Leading text inset per size (fields with trailing buttons keep their own, tighter end padding). */
+export const fieldPaddingStartClass = {
+  sm: "pl-2.5",
+  default: "pl-3",
+  lg: "pl-3.5",
+} as const;
+
+/** Trailing inset of fields without trailing buttons. */
+export const fieldPaddingEndClass = {
+  sm: "pr-2.5",
+  default: "pr-3",
+  lg: "pr-3.5",
+} as const;
+
+/**
+ * Focused + invalid field groups (combobox / autocomplete): the negative border outranks the focus border, so a ring
+ * in the negative colour shows the focus. (`SelectTrigger` uses `focus-visible` for the same.)
+ */
+export const fieldInvalidFocusWithinClass =
+  "data-[invalid]:focus-within:ring-pui data-[invalid]:focus-within:ring-pui-negative";
 
 /** Size of the field-like controls (`SelectTrigger`, `ComboboxInput`, `ComboboxChips`, `AutocompleteInput`). */
 export type FieldSize = keyof typeof fieldSizeClass;
@@ -68,6 +97,6 @@ export const fieldIconButtonClass = [
   "[&_svg]:size-4",
 ].join(" ");
 
-/** Bare input inside a field group. */
+/** Bare input inside a field group. Takes the group's text size (`fieldSizeClass`). */
 export const bareInputClass =
-  "h-full min-w-0 flex-1 bg-transparent text-sm text-pui-foreground outline-none placeholder:text-pui-muted-foreground disabled:cursor-not-allowed";
+  "h-full min-w-0 flex-1 bg-transparent text-[length:inherit] text-pui-foreground outline-none placeholder:text-pui-muted-foreground disabled:cursor-not-allowed";

@@ -13,7 +13,7 @@ describe("KeybindHint", () => {
     const key = screen.getByText("E");
     expect(key.tagName).toBe("KBD");
     expect(key).toHaveAttribute("data-slot", "keybind-hint-key");
-    expect(key).toHaveClass("bg-pui-muted", "rounded-pui-sm");
+    expect(key).toHaveClass("bg-pui-muted", "rounded-pui-xs");
     expect(key.parentElement).toHaveAttribute("data-slot", "keybind-hint-keys");
     expect(screen.getByText("Interagieren")).toHaveAttribute("data-slot", "keybind-hint-label");
     expect(hint.querySelector('[data-slot="keybind-hint-separator"]')).toBeNull();
@@ -148,7 +148,12 @@ describe("KeybindHintBar", () => {
   it("supports vertical orientation and the surface variant", () => {
     const { rerender } = render(<KeybindHintBar variant="surface" data-testid="bar" />);
     const bar = screen.getByTestId("bar");
-    expect(bar).toHaveClass("bg-pui-card/80", "border-pui-border", "rounded-full", "px-4");
+    // Theme radius, so the bar still looks right when the row wraps onto a second line.
+    expect(bar).toHaveClass("bg-pui-card/80", "border-pui-border", "rounded-pui", "px-4", "flex-wrap");
+    expect(bar).not.toHaveClass("rounded-full");
+    rerender(<KeybindHintBar variant="surface" className="rounded-full" data-testid="bar" />);
+    expect(bar).toHaveClass("rounded-full");
+    expect(bar).not.toHaveClass("rounded-pui");
     rerender(<KeybindHintBar variant="surface" orientation="vertical" data-testid="bar" />);
     expect(bar).toHaveAttribute("data-orientation", "vertical");
     expect(bar).toHaveAttribute("data-variant", "surface");

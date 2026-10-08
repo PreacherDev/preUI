@@ -119,6 +119,11 @@ describe("Kanban", () => {
     expect(screen.getByText("todo")).toHaveAttribute("data-slot", "kanban-column-title");
   });
 
+  it("wraps long unbreakable text inside the card instead of widening it", () => {
+    render(<Board />);
+    expect(card("Anfrage prüfen")).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
+  });
+
   it("is read-only without onCardMove", () => {
     render(<Board readOnly />);
     const first = card("Anfrage prüfen");

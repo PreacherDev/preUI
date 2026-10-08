@@ -60,6 +60,13 @@ export const InputGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, InputGroupP
         "data-[invalid]:border-pui-negative data-[has-invalid]:border-pui-negative",
         "has-[[data-slot=input-group-control][data-invalid]]:border-pui-negative",
         "has-[[data-slot=input-group-control][aria-invalid=true]]:border-pui-negative",
+        // The invalid border outranks the focus border: a ring in the negative colour shows the focus instead.
+        "data-[invalid]:focus-within:ring-pui data-[invalid]:focus-within:ring-pui-negative",
+        "data-[has-invalid]:focus-within:ring-pui data-[has-invalid]:focus-within:ring-pui-negative",
+        "has-[[data-slot=input-group-control][data-invalid]]:focus-within:ring-pui",
+        "has-[[data-slot=input-group-control][data-invalid]]:focus-within:ring-pui-negative",
+        "has-[[data-slot=input-group-control][aria-invalid=true]]:focus-within:ring-pui",
+        "has-[[data-slot=input-group-control][aria-invalid=true]]:focus-within:ring-pui-negative",
         className,
       )}
       {...props}
@@ -71,7 +78,7 @@ export const inputGroupAddonVariants = /* @__PURE__ */ cva(
   [
     "flex h-auto cursor-text select-none items-center justify-center gap-2 py-1.5 text-sm font-medium text-pui-muted-foreground",
     "[&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:shrink-0",
-    "[&>kbd]:rounded-pui-sm",
+    "[&>kbd]:rounded-pui-xs",
   ],
   {
     variants: {
@@ -124,9 +131,9 @@ export const InputGroupAddon = /* @__PURE__ */ forwardRef<HTMLDivElement, InputG
 export const inputGroupButtonVariants = /* @__PURE__ */ cva("gap-2 shadow-none", {
   variants: {
     size: {
-      xs: "h-6 gap-1 rounded-pui-sm px-2 text-xs [&_svg]:size-3.5",
+      xs: "h-6 gap-1 rounded-pui-sm px-2 text-xs [:where(&)_svg]:size-3.5",
       sm: "h-pui-control-sm gap-1.5 px-2.5 text-xs",
-      "icon-xs": "size-6 rounded-pui-sm p-0 [&_svg]:size-3.5",
+      "icon-xs": "size-6 rounded-pui-sm p-0 [:where(&)_svg]:size-3.5",
       "icon-sm": "size-pui-control-sm p-0",
     },
   },

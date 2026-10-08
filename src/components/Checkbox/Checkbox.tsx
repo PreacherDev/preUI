@@ -9,7 +9,8 @@ export interface CheckboxProps extends BaseCheckbox.Root.Props {
 }
 
 /**
- * 16px checkbox with a 4px radius. Checked and indeterminate fill with primary and show the `check` /
+ * 16px checkbox with a 4px radius (`rounded-pui-xs`: follows `--pui-radius` but never above 4px, so a large radius
+ * doesn't make it look like a radio). Checked and indeterminate fill with primary and show the `check` /
  * `minus` icon. Wrap it in a `<label>` (or `FieldLabel`) together with its text.
  */
 export const Checkbox = /* @__PURE__ */ forwardRef<HTMLElement, CheckboxProps>(function Checkbox(
@@ -25,7 +26,7 @@ export const Checkbox = /* @__PURE__ */ forwardRef<HTMLElement, CheckboxProps>(f
       data-slot="checkbox"
       className={mergeClassName(
         [
-          "peer inline-flex size-4 shrink-0 items-center justify-center rounded-pui-sm border border-pui-input bg-transparent p-0",
+          "peer inline-flex size-4 shrink-0 items-center justify-center rounded-pui-xs border border-pui-input bg-transparent p-0",
           "text-pui-primary-foreground outline-none transition-colors duration-pui-fast ease-pui",
           // 1px gap before the ring, otherwise it vanishes against the primary fill when checked.
           "focus-visible:ring-pui focus-visible:ring-pui-ring focus-visible:ring-offset-pui focus-visible:ring-offset-pui-background",

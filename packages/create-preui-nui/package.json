@@ -1,8 +1,18 @@
 {
   "name": "@pre_scripts/create-preui-nui",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Scaffolds a FiveM NUI resource with preUI: npm create @pre_scripts/preui-nui",
-  "keywords": ["fivem", "nui", "cfx", "preui", "react", "vite", "create", "starter", "template"],
+  "keywords": [
+    "fivem",
+    "nui",
+    "cfx",
+    "preui",
+    "react",
+    "vite",
+    "create",
+    "starter",
+    "template"
+  ],
   "author": "PRE_SCRIPTS",
   "license": "MIT",
   "repository": {

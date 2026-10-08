@@ -68,3 +68,13 @@ describe("Textarea aria-invalid", () => {
     expect(screen.getByLabelText("Note")).toHaveClass("aria-[invalid=true]:border-pui-negative");
   });
 });
+
+describe("Textarea invalid focus", () => {
+  it("shows focus on an invalid field with a ring in the negative colour", () => {
+    render(<Textarea aria-invalid="true" aria-label="Note" />);
+    expect(screen.getByLabelText("Note")).toHaveClass(
+      "data-[invalid]:focus-visible:ring-pui-negative",
+      "aria-[invalid=true]:focus-visible:ring-pui-negative",
+    );
+  });
+});

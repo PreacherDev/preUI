@@ -77,6 +77,7 @@ export const importantPairs: readonly string[] = [
   "warning/background",
   "info/background",
   "destructive-foreground/destructive",
+  "primary/primary",
 ];
 
 /** Any colour string → `#rrggbb` (the ColorPicker value); `null` when it is no colour. */
@@ -276,9 +277,19 @@ function parseChannels(value: string | undefined): { h: number; s: number; l: nu
 const hslHex = (h: number, s: number, l: number) => toHex(`hsl(${h} ${s}% ${Math.min(100, Math.max(0, l))}%)`);
 
 /**
+ * True when `tokens` (shared or the scheme's) sets this colour directly: raw tokens win over the palette, so
+ * changing the palette colour can't fix its contrast.
+ */
+export function hasRawColorToken(config: ThemeConfig, scheme: PreuiScheme, key: ThemeEditorColorKey): boolean {
+  const raw: Record<string, unknown> = { ...config.tokens?.shared, ...config.tokens?.[scheme] };
+  return raw[key] !== undefined || raw[`--pui-${key}`] !== undefined;
+}
+
+/**
  * The smallest lightness change of one base colour that clears all contrast problems of its field in a scheme:
  * tries ±1, ±2 … percentage points (hue and saturation stay). Returns the changed config, or `null` when no
- * lightness works (e.g. a background between two text colours that both need the opposite direction).
+ * lightness works (e.g. a background between two text colours that both need the opposite direction) or when a raw
+ * token overrides the colour (`hasRawColorToken`).
  */
 export function fixFieldContrast(
   config: ThemeConfig,
@@ -286,6 +297,7 @@ export function fixFieldContrast(
   key: ThemeEditorColorKey,
   minContrast: number,
 ): ThemeConfig | null {
+  if (hasRawColorToken(config, scheme, key)) return null;
   const current = parseChannels(resolveThemeConfigTokens(config, scheme)[`--pui-${key}` as PreuiTokenName]);
   if (!current) return null;
   if (fieldProblems(key, checkTokenContrast(resolveThemeConfigTokens(config, scheme)), minContrast).length === 0) return config;

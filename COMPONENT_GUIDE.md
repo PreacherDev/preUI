@@ -177,7 +177,7 @@ Nur diese Farben verwenden, **nie** Hex-Werte oder Tailwind-Standardfarben (`sla
 | Flächen | `bg-pui-shell` (Dialog), `bg-pui-background` (Felder, Inhalt), `bg-pui-card` (Panels), `bg-pui-popover` (Menüs, Toasts), `bg-pui-tooltip`, `bg-pui-scrim/scrim` (Overlay hinter Dialog/Sheet/Drawer) |
 | Text | `text-pui-foreground`, `text-pui-muted-foreground` (sekundär, Icons in Ruhe) |
 | Interaktion | `pui-primary`, `pui-secondary`, `pui-accent` (Hover-Fläche), `pui-muted` (Tracks), `pui-rail-active`, `pui-thumb` (Switch-/Slider-Knopf) |
-| Linien | `border-pui-border` (jede Trennlinie/Panelkante), `border-pui-input` (Feldrahmen), `ring-pui-ring` |
+| Linien | `border-pui-border` (jede Trennlinie/Panelkante; verblasst mit `--pui-border-opacity`), `border-pui-input` (Feldrahmen und alles, dessen einzige Form der Rahmen ist, z. B. Outline-Button/-Badge; verblasst nie), `ring-pui-ring` |
 | Semantik | `pui-positive`, `pui-negative`, `pui-destructive`, `pui-warning`, `pui-info` (+ `-foreground`) |
 
 **Tönung statt Füllung:** Akzentflächen `bg-pui-primary/15`, Hover `/25`, Rahmen `border-pui-primary/30`.
@@ -185,7 +185,7 @@ Deckend (`bg-pui-primary`) nur für die eine bestätigende Aktion bzw. „an"-Zu
 
 | | |
 |---|---|
-| Radius | `rounded-pui-window` 12px · `rounded-pui` 8px (Panels, Dialoge, Tabellen, Toasts) · `rounded-pui-md` 6px (Buttons, Inputs, Menüs, Tooltips) · `rounded-pui-sm` 4px (Menüeinträge, Checkbox) · `rounded-full` (Progress, Pills) |
+| Radius | `rounded-pui-window` 12px · `rounded-pui` 8px (Panels, Dialoge, Tabellen, Toasts) · `rounded-pui-md` 6px (Buttons, Inputs, Menüs, Tooltips) · `rounded-pui-sm` 4px (Menüeinträge) · `rounded-pui-xs` max. 4px (Checkbox, Kbd, alles ≤ 20px; wird bei großem Radius nie rund) · `rounded-full` (Progress, Pills) |
 | Schatten | nur schwebende Ebenen: `shadow-pui-window` (Dialog), `shadow-pui-floating` (Menü, Popover, Toast), `shadow-pui-tooltip`. Panels **ohne** Schatten |
 | Höhen | Controls `h-8` sm · `h-9` default · `h-10` lg |
 | Schrift | Fließtext `text-sm`; Hinweise `text-xs`; Dialogtitel `text-base font-semibold`; Eyebrow `text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground`; Bezeichner `font-mono` |
@@ -198,7 +198,7 @@ Deckend (`bg-pui-primary`) nur für die eine bestätigende Aktion bzw. „an"-Zu
 | Hover | **nur Farbe**: `hover:bg-pui-accent`, Tönung 15 → 25 %, Sekundärtext → `text-pui-foreground`. Kein Anheben, Skalieren, Schatten, Unterstreichen |
 | Fokus | Buttons/Schalter: `focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pui-ring`. Felder: Rahmen wechselt `focus-visible:border-pui-ring` (bzw. `focus-within:` / `data-[focused]:`), kein Ring, kein Glow |
 | Disabled | `data-[disabled]:pointer-events-none data-[disabled]:opacity-50` (Base UI setzt `data-disabled`; bei nativen Elementen zusätzlich `disabled:`) |
-| Ungültig | `data-[invalid]:border-pui-negative` |
+| Ungültig | `data-[invalid]:border-pui-negative`; fokussiert und ungültig zusätzlich ein Ring in Negativ-Farbe (`data-[invalid]:focus-visible:ring-pui data-[invalid]:focus-visible:ring-pui-negative`, bei Feldgruppen `focus-within:`), sonst ist der Fokus unsichtbar |
 | Hervorgehoben (Menü, Option) | `data-[highlighted]:bg-pui-accent data-[highlighted]:text-pui-accent-foreground` |
 
 Base UI setzt State-Attribute (`data-open`, `data-checked`, `data-pressed`, `data-selected`, `data-highlighted`,
@@ -219,7 +219,7 @@ Base UI setzt State-Attribute (`data-open`, `data-checked`, `data-pressed`, `dat
 - **Menüeintrag**: `flex items-center gap-2.5 rounded-pui-sm p-2 text-sm outline-none` + highlighted. Select-Option `py-1.5 pl-2 pr-8` (Platz fürs Häkchen). Menü-Label: Eyebrow, `px-2 py-1.5`. Separator `-mx-1 my-1 h-px bg-pui-border`.
 - **Feld** (Input, Select-Trigger, Combobox): `h-9 w-full rounded-pui-md border border-pui-input bg-pui-background px-3 text-sm text-pui-foreground placeholder:text-pui-muted-foreground transition-colors duration-150 ease-out focus-visible:border-pui-ring outline-none`.
 - **Label**: `text-xs font-medium text-pui-muted-foreground`; Feld-Stack `flex flex-col gap-1.5`; Hinweis `text-xs text-pui-muted-foreground`; Fehler `text-xs text-pui-negative`.
-- **Checkbox**: `size-4 rounded-pui-sm border border-pui-input`, checked `bg-pui-primary border-pui-primary`, Häkchen `size-3.5 text-pui-primary-foreground`.
+- **Checkbox**: `size-4 rounded-pui-xs border border-pui-input`, checked `bg-pui-primary border-pui-primary`, Häkchen `size-3.5 text-pui-primary-foreground`.
 - **Switch**: `h-5 w-9 rounded-full bg-pui-input`, checked `bg-pui-primary`; Thumb `size-4 rounded-full bg-pui-thumb shadow-pui-thumb`, checked `translate-x-4`.
 - **Dialog**: Overlay `fixed inset-0 z-50 bg-pui-scrim/scrim`; Popup `fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg max-h-[85vh] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-pui border border-pui-border bg-pui-shell p-5 shadow-pui-window`; Titel `text-base font-semibold`; Beschreibung `text-sm text-pui-muted-foreground`; Footer `flex justify-end gap-2 pt-1`; Schließen-X `absolute right-4 top-4 text-pui-muted-foreground hover:text-pui-foreground`.
 - **Tooltip**: `max-w-64 rounded-pui-md bg-pui-tooltip px-2.5 py-1.5 text-xs font-medium leading-snug text-pui-tooltip-foreground shadow-pui-tooltip`.

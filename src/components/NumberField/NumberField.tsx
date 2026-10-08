@@ -6,17 +6,20 @@ import { cn, mergeClassName, type StateClassName } from "../../utils/cn";
 
 export const numberFieldVariants = /* @__PURE__ */ cva(
   [
-    "flex w-full items-stretch overflow-hidden rounded-pui-md border border-pui-input bg-pui-background text-sm",
+    "flex w-full items-stretch overflow-hidden rounded-pui-md border border-pui-input bg-pui-background",
     "transition-colors duration-pui-fast ease-pui focus-within:border-pui-ring",
     "data-[invalid]:border-pui-negative",
+    // The invalid border outranks the focus border: a ring in the negative colour shows the focus instead.
+    "data-[invalid]:focus-within:ring-pui data-[invalid]:focus-within:ring-pui-negative",
     "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
   ],
   {
     variants: {
+      // Text size like `inputVariants` (the inner input inherits it).
       size: {
-        sm: "h-pui-control-sm",
-        default: "h-pui-control",
-        lg: "h-pui-control-lg",
+        sm: "h-pui-control-sm text-xs",
+        default: "h-pui-control text-sm",
+        lg: "h-pui-control-lg text-sm",
       },
     },
     defaultVariants: {
@@ -95,7 +98,7 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
           {...inputProps}
           className={mergeClassName(
             [
-              "min-w-0 flex-1 border-0 bg-transparent px-2 text-center text-sm tabular-nums text-pui-foreground outline-none",
+              "min-w-0 flex-1 border-0 bg-transparent px-2 text-center text-[length:inherit] tabular-nums text-pui-foreground outline-none",
               "placeholder:text-pui-muted-foreground",
             ],
             inputClassName,

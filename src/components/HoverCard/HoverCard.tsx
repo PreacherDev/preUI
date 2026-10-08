@@ -1,6 +1,7 @@
 import { PreviewCard as BasePreviewCard } from "@base-ui/react/preview-card";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 
 export const HoverCard = BasePreviewCard.Root;
 
@@ -22,7 +23,7 @@ export interface HoverCardContentProps extends ComponentPropsWithoutRef<typeof B
   alignOffset?: BasePreviewCard.Positioner.Props["alignOffset"];
   /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
   positionerProps?: Omit<BasePreviewCard.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BasePreviewCard.Portal.Props["container"];
 }
 
@@ -30,30 +31,32 @@ export interface HoverCardContentProps extends ComponentPropsWithoutRef<typeof B
 export const HoverCardContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BasePreviewCard.Popup>, HoverCardContentProps>(
   function HoverCardContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
-      <BasePreviewCard.Portal data-slot="hover-card-portal" container={container}>
-        <BasePreviewCard.Positioner
-          data-slot="hover-card-positioner"
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          {...positionerProps}
-          className={mergeClassName("z-50 outline-none", positionerProps?.className)}
-        >
-          <BasePreviewCard.Popup
-            ref={ref}
-            data-slot="hover-card-content"
-            className={mergeClassName(
-              [
-                "w-72 rounded-pui-md border border-pui-border bg-pui-popover p-4 text-sm text-pui-popover-foreground shadow-pui-floating outline-none",
-                "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
-                "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
-              ],
-              className,
-            )}
-            {...props}
-          />
-        </BasePreviewCard.Positioner>
+      <BasePreviewCard.Portal data-slot="hover-card-portal" container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BasePreviewCard.Positioner
+            data-slot="hover-card-positioner"
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            {...positionerProps}
+            className={mergeClassName("z-50 outline-none", positionerProps?.className)}
+          >
+            <BasePreviewCard.Popup
+              ref={ref}
+              data-slot="hover-card-content"
+              className={mergeClassName(
+                [
+                  "w-72 rounded-pui-md border border-pui-border bg-pui-popover p-4 text-sm text-pui-popover-foreground shadow-pui-floating outline-none",
+                  "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
+                  "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
+                ],
+                className,
+              )}
+              {...props}
+            />
+          </BasePreviewCard.Positioner>
+        </PortalContainerScope>
       </BasePreviewCard.Portal>
     );
   },

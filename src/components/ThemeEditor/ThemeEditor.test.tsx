@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { renderToStringAndHydrate } from "../../test-utils/ssr";
 import { defaultThemePresets, type ThemeConfig, type ThemePreset } from "../../theming/theme-config";
+import { Popover, PopoverContent, PopoverTrigger } from "../Popover/Popover";
 import { ThemeEditor, type ThemeEditorProps } from "./ThemeEditor";
 
 const PREVIEW_ID = "preui-theme-editor-preview";
@@ -256,6 +257,34 @@ describe("ThemeEditor", () => {
     expect(slot).toHaveAttribute("data-scheme", "light");
   });
 
+  it.each(["stacked", "split"] as const)(
+    "%s: popups opened in previewSlot portal into the scoped preview and get its tokens",
+    async (layout) => {
+      const user = userEvent.setup();
+      const { container } = render(
+        <ThemeEditor
+          layout={layout}
+          presets={[]}
+          previewSlot={
+            <Popover>
+              <PopoverTrigger>Open sample</PopoverTrigger>
+              <PopoverContent>Sample popup</PopoverContent>
+            </Popover>
+          }
+        />,
+      );
+      const scope = container.querySelector<HTMLElement>('[data-slot="theme-editor-preview"] [data-scheme]')!;
+      const layer = scope.querySelector<HTMLElement>(':scope > [data-slot="theme-editor-portal"]')!;
+      expect(layer).toHaveClass("fixed", "size-0");
+      await user.click(screen.getByRole("button", { name: "Open sample" }));
+      const popup = await screen.findByText("Sample popup");
+      expect(layer).toContainElement(popup);
+      // Inherits the scheme and the scoped token variables of the preview, not the page's.
+      expect(popup.closest("[data-scheme]")).toBe(scope);
+      expect(scope.style.getPropertyValue("--pui-popover")).not.toBe("");
+    },
+  );
+
   it("previewSlot shows the edited tokens as scoped variables, also with preview={false}", async () => {
     const user = userEvent.setup();
     const config: ThemeConfig = {
@@ -353,21 +382,21 @@ describe("ThemeEditor", () => {
       expect(onChange).toHaveBeenLastCalledWith({
         v: 1,
         scheme: "dark",
-        palette: { dark: { primary: "#34d399" }, light: { primary: "#047857" } },
+        palette: { dark: { primary: "#34d399" }, light: { primary: "#047052" } },
       });
       expect(container.querySelector('[data-preset="emerald"]')).toHaveAttribute("aria-pressed", "true");
       expect(container.querySelector('[data-preset="default"]')).toHaveAttribute("aria-pressed", "false");
       // Further edits continue from the preset.
       await setColor(user, "Background", "#101820");
       expect(onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({ palette: { dark: { primary: "#34d399", background: "#101820" }, light: { primary: "#047857" } } }),
+        expect.objectContaining({ palette: { dark: { primary: "#34d399", background: "#101820" }, light: { primary: "#047052" } } }),
       );
       expect(container.querySelector('[data-preset="emerald"]')).toHaveAttribute("aria-pressed", "false");
     });
 
     it("recognises the current value as a preset (case and format insensitive)", () => {
       const { container } = render(
-        <ThemeEditor defaultValue={{ palette: { dark: { primary: "#34D399" }, light: { primary: "rgb(4, 120, 87)" } } }} />,
+        <ThemeEditor defaultValue={{ palette: { dark: { primary: "#34D399" }, light: { primary: "rgb(4, 112, 82)" } } }} />,
       );
       expect(container.querySelector('[data-preset="emerald"]')).toHaveAttribute("aria-pressed", "true");
     });

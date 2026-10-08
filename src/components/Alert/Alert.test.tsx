@@ -1,5 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
+import { lightTokens, tokens } from "../../tailwind/tokens";
+import { getContrast } from "../../theming/contrast";
+import { parseColor, type Rgba } from "../ColorPicker/color";
 import { Alert, AlertDescription, AlertTitle } from "./Alert";
 
 describe("Alert", () => {
@@ -24,8 +27,30 @@ describe("Alert", () => {
     render(<Alert variant={variant}>Text</Alert>);
     const alert = screen.getByRole("alert");
     expect(alert).toHaveClass(`border-pui-${tone}/tint-border`, `bg-pui-${tone}/tint`);
+    // The description reads foreground at 85 % on the tint (muted-foreground falls below 4.5:1 there).
+    expect(alert).toHaveClass("[&>[data-slot=alert-description]]:text-pui-foreground/85");
     expect(alert).toHaveAttribute("data-slot", "alert");
     expect(alert).toHaveAttribute("data-variant", variant);
+  });
+
+  it("tinted descriptions (foreground at 85 %) reach 4.5:1 on every status tint in both schemes", () => {
+    const blend = (top: Rgba, bottom: Rgba, alpha: number): Rgba => ({
+      r: top.r * alpha + bottom.r * (1 - alpha),
+      g: top.g * alpha + bottom.g * (1 - alpha),
+      b: top.b * alpha + bottom.b * (1 - alpha),
+      a: 1,
+    });
+    const rgb = ({ r, g, b }: Rgba) => `rgb(${r} ${g} ${b})`;
+    for (const set of [tokens, lightTokens] as Record<string, string>[]) {
+      const tint = Number(set["--pui-tint-rest"]);
+      for (const tone of ["negative", "positive", "warning", "info"]) {
+        for (const surface of ["background", "card"]) {
+          const back = blend(parseColor(`hsl(${set[`--pui-${tone}`]})`)!, parseColor(`hsl(${set[`--pui-${surface}`]})`)!, tint);
+          const text = blend(parseColor(`hsl(${set["--pui-foreground"]})`)!, back, 0.85);
+          expect({ tone, surface, ok: getContrast(rgb(text), rgb(back)) >= 4.5 }).toEqual({ tone, surface, ok: true });
+        }
+      }
+    }
   });
 
   it("merges className and forwards refs", () => {

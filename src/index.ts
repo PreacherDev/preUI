@@ -89,3 +89,5 @@ export type { StateClassName } from "./utils/cn";
 export * from "./utils/escape";
 export * from "./utils/use-window-toggle";
 export * from "./utils/use-list-navigation";
+export { PortalContainerProvider } from "./utils/portal-container";
+export type { PortalContainer, PortalContainerProviderProps } from "./utils/portal-container";

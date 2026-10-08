@@ -247,6 +247,29 @@ describe("DataTable", () => {
   });
 });
 
+describe("DataTable in a fixed-height parent", () => {
+  it("keeps the flex chain from the root to the table container, pagination does not shrink", () => {
+    const { container } = render(
+      <DataTable
+        columns={columns}
+        data={bookings}
+        className="min-h-0 flex-1"
+        containerClassName="min-h-0 flex-1"
+        paginationProps={{ className: "custom-pagination" }}
+      />,
+    );
+    expect(container.querySelector('[data-slot="data-table"]')).toHaveClass("flex", "flex-col", "min-h-0", "flex-1");
+    expect(container.querySelector('[data-slot="data-table-content"]')).toHaveClass("flex", "min-h-0", "flex-1", "flex-col");
+    expect(container.querySelector('[data-slot="table-container"]')).toHaveClass("min-h-0", "flex-1");
+    expect(container.querySelector('[data-slot="data-table-pagination"]')).toHaveClass("shrink-0", "custom-pagination");
+  });
+
+  it("does not let the root shrink on its own (only with the user's min-h-0)", () => {
+    const { container } = render(<DataTable columns={columns} data={bookings} />);
+    expect(container.querySelector('[data-slot="data-table"]')).not.toHaveClass("min-h-0");
+  });
+});
+
 describe("DataTable slots", () => {
   it("marks toolbar, content, header, pagination and view options with data-slot", () => {
     const { container } = render(

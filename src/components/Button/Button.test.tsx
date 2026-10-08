@@ -116,3 +116,58 @@ describe("Button data attributes", () => {
     );
   });
 });
+
+describe("Button icons, hover and loading", () => {
+  it("sizes icons by default without outranking a size class on the icon", () => {
+    render(<Button leftIcon={<svg className="size-5" />}>Groß</Button>);
+    const button = screen.getByRole("button");
+    expect(button).toHaveClass("[:where(&)_svg]:size-4");
+    expect(button).not.toHaveClass("[&_svg]:size-4");
+  });
+
+  it("gives the secondary variant a hover that differs from its fill", () => {
+    render(<Button variant="secondary">Abbrechen</Button>);
+    const button = screen.getByRole("button");
+    expect(button).toHaveClass("bg-pui-secondary", "hover:bg-pui-input", "hover:border-pui-input");
+    expect(button).not.toHaveClass("hover:bg-pui-accent");
+  });
+
+  it("keeps its width while loading: the spinner covers the content, which stays in the layout", () => {
+    render(
+      <Button loading rightIcon={<svg data-testid="right" />}>
+        Speichern
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Speichern" });
+    expect(button).toHaveClass("relative");
+    const content = button.querySelector("[data-slot=button-content]");
+    expect(content).toHaveClass("opacity-0", "[gap:inherit]");
+    expect(content).toHaveTextContent("Speichern");
+    expect(content).toContainElement(screen.getByTestId("right"));
+    const spinner = button.querySelector("[data-slot=button-spinner]")!;
+    expect(spinner.parentElement).toHaveClass("absolute", "inset-0");
+  });
+
+  it("puts the spinner in the left icon's slot while loading", () => {
+    render(
+      <Button loading leftIcon={<svg data-testid="left" />} rightIcon={<svg data-testid="right" />}>
+        Speichern
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Speichern" });
+    expect(button).not.toHaveClass("relative");
+    expect(button.querySelector("[data-slot=button-content]")).toBeNull();
+    const slot = button.querySelector("[data-slot=button-icon][data-position=left]")!;
+    expect(slot).toHaveClass("relative");
+    expect(slot.querySelector("[data-slot=button-spinner]")).not.toBeNull();
+    expect(screen.getByTestId("left").parentElement).toHaveClass("opacity-0");
+    expect(screen.getByTestId("right")).toBeInTheDocument();
+  });
+
+  it("renders the plain structure when not loading", () => {
+    render(<Button leftIcon={<svg data-testid="left" />}>Speichern</Button>);
+    const button = screen.getByRole("button");
+    expect(button.querySelector("[data-slot=button-spinner]")).toBeNull();
+    expect(screen.getByTestId("left").parentElement).toHaveAttribute("data-slot", "button-icon");
+  });
+});

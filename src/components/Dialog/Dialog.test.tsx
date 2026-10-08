@@ -305,3 +305,35 @@ describe("DialogPopup", () => {
     expect(document.querySelector("[data-slot=dialog-overlay]")).toHaveClass("bg-pui-scrim/20");
   });
 });
+
+describe("nested dialogs", () => {
+  it("dims the parent dialog while a dialog opened from it is open", async () => {
+    const user = userEvent.setup();
+    render(
+      <Dialog defaultOpen>
+        <DialogContent>
+          <DialogTitle>Fahrzeug</DialogTitle>
+          <Dialog>
+            <DialogTrigger>Verkaufen</DialogTrigger>
+            <DialogContent>
+              <DialogTitle>Wirklich verkaufen?</DialogTitle>
+              <DialogClose>Nein</DialogClose>
+            </DialogContent>
+          </Dialog>
+        </DialogContent>
+      </Dialog>,
+    );
+    const parent = await screen.findByRole("dialog", { name: "Fahrzeug" });
+    // The dim layer is always there (fades), visible only while a nested dialog is open.
+    expect(parent).toHaveClass("after:bg-pui-scrim/scrim", "after:opacity-0", "data-[nested-dialog-open]:after:opacity-100");
+    expect(parent).not.toHaveAttribute("data-nested-dialog-open");
+
+    await user.click(screen.getByRole("button", { name: "Verkaufen" }));
+    const child = await screen.findByRole("dialog", { name: "Wirklich verkaufen?" });
+    await waitFor(() => expect(parent).toHaveAttribute("data-nested-dialog-open"));
+    expect(child).not.toHaveAttribute("data-nested-dialog-open");
+
+    await user.click(screen.getByRole("button", { name: "Nein" }));
+    await waitFor(() => expect(parent).not.toHaveAttribute("data-nested-dialog-open"));
+  });
+});

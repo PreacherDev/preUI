@@ -3,6 +3,7 @@ import { cva } from "class-variance-authority";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 
 export type NavigationMenuItemProps = ComponentPropsWithoutRef<typeof BaseNavigationMenu.Item>;
@@ -152,7 +153,7 @@ export interface NavigationMenuViewportProps extends ComponentPropsWithoutRef<ty
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
   /** Class for the inner viewport that hosts the active content. */
   viewportClassName?: ComponentPropsWithoutRef<typeof BaseNavigationMenu.Viewport>["className"];
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseNavigationMenu.Portal.Props["container"];
 }
 
@@ -168,43 +169,45 @@ export const NavigationMenuViewport = /* @__PURE__ */ forwardRef<
   ref,
 ) {
   return (
-    <BaseNavigationMenu.Portal container={container}>
-      <BaseNavigationMenu.Positioner
-        side={side}
-        align={align}
-        sideOffset={sideOffset}
-        alignOffset={alignOffset}
-        collisionPadding={8}
-        data-slot="navigation-menu-positioner"
-        {...positionerProps}
-        className={mergeClassName(
-          [
-            "z-50 h-[var(--positioner-height)] w-[var(--positioner-width)] max-w-[var(--available-width)] outline-none",
-            "transition-[top,left,right,bottom] duration-pui-base ease-pui data-[instant]:transition-none",
-          ],
-          positionerProps?.className,
-        )}
-      >
-        <BaseNavigationMenu.Popup
-          ref={ref}
-          data-slot="navigation-menu-popup"
+    <BaseNavigationMenu.Portal container={usePortalContainer(container)}>
+      <PortalContainerScope>
+        <BaseNavigationMenu.Positioner
+          side={side}
+          align={align}
+          sideOffset={sideOffset}
+          alignOffset={alignOffset}
+          collisionPadding={8}
+          data-slot="navigation-menu-positioner"
+          {...positionerProps}
           className={mergeClassName(
             [
-              "relative h-[var(--popup-height)] max-h-[var(--available-height)] w-[var(--popup-width)] overflow-hidden",
-              "rounded-pui-md border border-pui-border bg-pui-popover text-sm text-pui-popover-foreground shadow-pui-floating outline-none",
-              "origin-[var(--transform-origin)] transition-[opacity,transform,width,height] duration-pui-base ease-pui",
-              "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
+              "z-50 h-[var(--positioner-height)] w-[var(--positioner-width)] max-w-[var(--available-width)] outline-none",
+              "transition-[top,left,right,bottom] duration-pui-base ease-pui data-[instant]:transition-none",
             ],
-            className,
+            positionerProps?.className,
           )}
-          {...props}
         >
-          <BaseNavigationMenu.Viewport
-            data-slot="navigation-menu-viewport"
-            className={mergeClassName("relative h-full w-full overflow-hidden", viewportClassName)}
-          />
-        </BaseNavigationMenu.Popup>
-      </BaseNavigationMenu.Positioner>
+          <BaseNavigationMenu.Popup
+            ref={ref}
+            data-slot="navigation-menu-popup"
+            className={mergeClassName(
+              [
+                "relative h-[var(--popup-height)] max-h-[var(--available-height)] w-[var(--popup-width)] overflow-hidden",
+                "rounded-pui-md border border-pui-border bg-pui-popover text-sm text-pui-popover-foreground shadow-pui-floating outline-none",
+                "origin-[var(--transform-origin)] transition-[opacity,transform,width,height] duration-pui-base ease-pui",
+                "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
+              ],
+              className,
+            )}
+            {...props}
+          >
+            <BaseNavigationMenu.Viewport
+              data-slot="navigation-menu-viewport"
+              className={mergeClassName("relative h-full w-full overflow-hidden", viewportClassName)}
+            />
+          </BaseNavigationMenu.Popup>
+        </BaseNavigationMenu.Positioner>
+      </PortalContainerScope>
     </BaseNavigationMenu.Portal>
   );
 });

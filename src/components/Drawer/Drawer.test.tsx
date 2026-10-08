@@ -15,6 +15,7 @@ import {
   DrawerTrigger,
 } from "./Drawer";
 import type { DrawerContentProps, DrawerProps } from "./Drawer";
+import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "../Dialog/Dialog";
 
 function Example({
   swipeDirection,
@@ -218,5 +219,35 @@ describe("Drawer overlays", () => {
     const drawer = await screen.findByRole("dialog");
     expect(drawer).toHaveAttribute("data-slot", "drawer-popup");
     expect(drawer).toHaveClass("bg-pui-shell", "fixed");
+  });
+});
+
+describe("nested modals in a drawer", () => {
+  it("dims the drawer while a dialog opened from it is open", async () => {
+    const user = userEvent.setup();
+    render(
+      <Drawer defaultOpen>
+        <DrawerContent>
+          <DrawerTitle>Garage</DrawerTitle>
+          <Dialog>
+            <DialogTrigger>Umbenennen</DialogTrigger>
+            <DialogContent>
+              <DialogTitle>Neuer Name</DialogTitle>
+              <DialogClose>Fertig</DialogClose>
+            </DialogContent>
+          </Dialog>
+        </DrawerContent>
+      </Drawer>,
+    );
+    const drawer = await screen.findByRole("dialog", { name: "Garage" });
+    expect(drawer).toHaveClass("after:bg-pui-scrim/scrim", "data-[nested-dialog-open]:after:opacity-100");
+    expect(drawer).not.toHaveAttribute("data-nested-dialog-open");
+
+    await user.click(screen.getByRole("button", { name: "Umbenennen" }));
+    await screen.findByRole("dialog", { name: "Neuer Name" });
+    await waitFor(() => expect(drawer).toHaveAttribute("data-nested-dialog-open"));
+
+    await user.click(screen.getByRole("button", { name: "Fertig" }));
+    await waitFor(() => expect(drawer).not.toHaveAttribute("data-nested-dialog-open"));
   });
 });

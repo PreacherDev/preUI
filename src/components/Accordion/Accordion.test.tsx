@@ -75,6 +75,18 @@ describe("Accordion", () => {
     expect(screen.queryByText("30 Tage Rückgaberecht.")).not.toBeInTheDocument();
   });
 
+  it("ties the chevron to its own trigger through a named group", () => {
+    render(<Example />);
+    const trigger = screen.getByRole("button", { name: "Versand" });
+    expect(trigger).toHaveClass("group/accordion-trigger");
+    const chevron = trigger.querySelector("svg")!;
+    expect(chevron).toHaveClass(
+      "group-hover/accordion-trigger:text-pui-foreground",
+      "group-data-[panel-open]/accordion-trigger:rotate-180",
+    );
+    expect(chevron.getAttribute("class")!.split(" ").some((name) => /^group-[^/]*:/.test(name))).toBe(false);
+  });
+
   it("uses the chevron from IconProvider", () => {
     const Chevron = () => <svg data-testid="chevron" />;
     render(

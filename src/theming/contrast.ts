@@ -7,9 +7,17 @@ export type ContrastLevel = "fail" | "AA-large" | "AA" | "AAA";
 /** One checked pair of `checkTokenContrast`. */
 export interface TokenContrastResult {
   fg: PreuiTokenName;
+  /** The background token. For a tinted pair the tint colour itself (`fg === bg`), see `surface`. */
   bg: PreuiTokenName;
   ratio: number;
   level: ContrastLevel;
+  /**
+   * Tinted pairs only (`text-pui-x` on `bg-pui-x/tint`): the surface under the tint that gave the lowest ratio
+   * (one of `tintContrastSurfaces`).
+   */
+  surface?: PreuiTokenName;
+  /** Tinted pairs only: the tint's opacity, `--pui-tint-rest` × `--pui-tint-scale` of the checked set (max. 1). */
+  tint?: number;
 }
 
 /** Any colour string preUI understands: hex, `rgb()`, `hsl()` or HSL channels (`"217 91% 60%"`). */
@@ -98,6 +106,56 @@ export const contrastPairs: readonly (readonly [PreuiTokenName, PreuiTokenName])
   ["--pui-info", "--pui-background"],
 ];
 
+/**
+ * Colours used as text on their own tint — `text-pui-x` on `bg-pui-x/tint`: default and tinted buttons, badges,
+ * alert titles, selected items. `checkTokenContrast` checks each over every `tintContrastSurfaces` entry and reports
+ * the worst as one pair (`fg` and `bg` = the colour, `surface` = where it was lowest).
+ */
+export const tintContrastColors: readonly PreuiTokenName[] = [
+  "--pui-primary",
+  "--pui-positive",
+  "--pui-negative",
+  "--pui-warning",
+  "--pui-info",
+];
+
+/** The surfaces tinted elements sit on: page, card, menus, windows (shell) and selected rows / tracks (muted). */
+export const tintContrastSurfaces: readonly PreuiTokenName[] = [
+  "--pui-background",
+  "--pui-card",
+  "--pui-popover",
+  "--pui-shell",
+  "--pui-muted",
+];
+
+/** `--pui-tint-rest` × `--pui-tint-scale` of a token set (scale defaults to 1), clamped to 0–1; `null` without a rest value. */
+function tintAlpha(values: Record<string, string | undefined>): number | null {
+  const rest = Number.parseFloat(values["--pui-tint-rest"] ?? "");
+  if (!Number.isFinite(rest)) return null;
+  const scale = Number.parseFloat(values["--pui-tint-scale"] ?? "");
+  return Math.min(1, Math.max(0, rest * (Number.isFinite(scale) ? scale : 1)));
+}
+
+/**
+ * The lowest contrast of `colour` as text on its own tint (the set's `--pui-tint-rest` × `--pui-tint-scale`) over the
+ * `tintContrastSurfaces` of a token set; `null` when the set has no tint or none of the surfaces.
+ */
+export function worstTintContrast(
+  values: Record<string, string | undefined>,
+  colour: Rgba,
+): { ratio: number; surface: PreuiTokenName; tint: number } | null {
+  const tint = tintAlpha(values);
+  if (tint === null) return null;
+  let worst: { ratio: number; surface: PreuiTokenName; tint: number } | null = null;
+  for (const surface of tintContrastSurfaces) {
+    const back = resolveColor(values, surface);
+    if (!back) continue;
+    const ratio = contrastRatio({ ...colour, a: 1 }, composite({ ...colour, a: tint }, { ...back, a: 1 }));
+    if (!worst || ratio < worst.ratio) worst = { ratio, surface, tint };
+  }
+  return worst;
+}
+
 /** Resolves a token's value inside a set, following `var(--pui-x)` references. */
 function resolveColor(values: Record<string, string | undefined>, name: string, depth = 0): Rgba | null {
   const value = values[name];
@@ -109,8 +167,10 @@ function resolveColor(values: Record<string, string | undefined>, name: string, 
 
 /**
  * Checks the fixed pair list (`contrastPairs`) of a token set — e.g. `tokens`, `lightTokens`, the output of
- * `deriveTokens` or an editor's state. Pairs with a missing or unparsable token are skipped. Nothing is blocked;
- * show the result in your editor (e.g. with `ContrastBadge`).
+ * `deriveTokens` or an editor's state — followed by one tinted pair per `tintContrastColors` entry: the colour as text
+ * on its own tint (`--pui-tint-rest` × `--pui-tint-scale` of the set) over the `tintContrastSurfaces`, worst surface
+ * reported. Pairs with a missing or unparsable token are skipped. Nothing is blocked; show the result in your editor
+ * (e.g. with `ContrastBadge`).
  */
 export function checkTokenContrast(
   tokenSet: Partial<Record<PreuiTokenName, string>>,
@@ -123,6 +183,12 @@ export function checkTokenContrast(
     if (!fore || !back) continue;
     const ratio = contrastRatio(fore, { ...back, a: 1 });
     results.push({ fg, bg, ratio, level: getContrastLevel(ratio) });
+  }
+  for (const name of tintContrastColors) {
+    const colour = resolveColor(values, name);
+    const worst = colour && worstTintContrast(values, colour);
+    if (!worst) continue;
+    results.push({ fg: name, bg: name, ...worst, level: getContrastLevel(worst.ratio) });
   }
   return results;
 }

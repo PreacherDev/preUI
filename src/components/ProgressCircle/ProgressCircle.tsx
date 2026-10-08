@@ -40,6 +40,9 @@ export const progressCircleIndicatorVariants = /* @__PURE__ */ cva(
   },
 );
 
+/** Below this size (px) `showValue` drops the `%` sign so the value fits inside the ring. */
+const COMPACT_VALUE_BELOW_PX = 48;
+
 const sizeClasses: Record<ProgressCircleSize, string> = {
   sm: "size-8 text-pui-2xs",
   default: "size-12 text-xs",
@@ -52,7 +55,11 @@ export interface ProgressCircleProps extends Omit<ComponentPropsWithoutRef<typeo
   size?: ProgressCircleSize | number;
   /** Stroke width in px (relative to the nominal size). Default 3 / 4 / 5 for sm / default / lg, 4 for numbers. */
   thickness?: number;
-  /** Shows the formatted value in the centre (ignored when `children` are given). */
+  /**
+   * Shows the formatted value in the centre (ignored when `children` are given). Rings smaller than 48px (`"sm"`)
+   * show the bare number without the `%` sign, since "100%" is wider than their opening; `aria-valuetext` keeps the
+   * percent. Pass `format` (or your own `children`) to choose the text yourself.
+   */
   showValue?: boolean;
   /** Content centred inside the ring, e.g. an icon or `<ProgressCircleValue />` with a render function. */
   children?: ReactNode;
@@ -82,6 +89,7 @@ export const ProgressCircle = /* @__PURE__ */ forwardRef<ComponentRef<typeof Bas
       showValue = false,
       locale = "en-US",
       value,
+      format,
       min = 0,
       max = 100,
       trackClassName,
@@ -105,12 +113,23 @@ export const ProgressCircle = /* @__PURE__ */ forwardRef<ComponentRef<typeof Bas
     const mergedStyle: ProgressCircleProps["style"] =
       typeof style === "function" ? (state) => ({ ...sizeStyle, ...style(state) }) : { ...sizeStyle, ...style };
 
-    const content = children ?? (showValue ? <ProgressCircleValue /> : null);
+    // Small rings: "100%" (≈29px at 10px) would overflow the 26px opening of the 32px ring — show the number only.
+    const compactValue = showValue && children == null && format === undefined && px < COMPACT_VALUE_BELOW_PX;
+    const content =
+      children ??
+      (showValue ? (
+        <ProgressCircleValue>
+          {compactValue
+            ? () => (indeterminate ? null : new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(fraction * 100))
+            : undefined}
+        </ProgressCircleValue>
+      ) : null);
 
     return (
       <BaseProgress.Root
         ref={ref}
         value={value}
+        format={format}
         min={min}
         max={max}
         locale={locale}

@@ -1,6 +1,6 @@
 // Deriving a complete token set from a few base colours (for theme editors with a handful of controls).
 import { lightTokens, tokens, type PreuiScheme, type PreuiTokenName, type PreuiTokens } from "../tailwind/tokens";
-import { contrastRatio, parseAnyColor } from "./contrast";
+import { contrastRatio, parseAnyColor, relativeLuminance, worstTintContrast } from "./contrast";
 import { toHslChannels } from "./token-css";
 
 /** The base colours `deriveTokens` builds a palette from. Any colour format `applyTokens` accepts. */
@@ -54,13 +54,46 @@ export function pickForeground(preferred: string, surface: string): string {
 
 /**
  * The tint of the default surfaces per scheme. Derived surfaces keep their default distance to this reference
- * (lightness offset, saturation ratio, hue offset), re-anchored on the given background. Light uses the tinted
- * surfaces' hue/saturation, because its default background is pure white.
+ * (lightness offset, chroma ratio, hue offset), re-anchored on the given background. Light uses the tinted
+ * surfaces' hue, because its default background is pure white.
  */
 const REFERENCE: Record<PreuiScheme, Hsl> = {
   dark: { h: 225, s: 12, l: 9 },
   light: { h: 225, s: 16, l: 100 },
 };
+
+/** How much colour HSL saturation can carry at a lightness: 1 at 50 %, 0 at black and white. */
+const chromaRange = (l: number) => 1 - Math.abs((2 * clamp(l, 0, 100)) / 100 - 1);
+
+/** HSL chroma (0–1): how colourful a colour really is. Saturation is not — near white or black, 100 % is almost grey. */
+const chroma = ({ s, l }: Pick<Hsl, "s" | "l">) => chromaRange(l) * (s / 100);
+
+/**
+ * The background chroma that keeps the default tint (factor 1). Dark: the default background. Light: its background
+ * is white, so the reference is the default muted surface (225 16% 94%).
+ */
+const REFERENCE_CHROMA: Record<PreuiScheme, number> = {
+  dark: chroma(REFERENCE.dark),
+  light: chroma({ s: 16, l: 94 }),
+};
+
+/**
+ * Text follows the background's tint at most this much more strongly than the defaults: a navy or cream page gets
+ * slightly tinted text, not blue or brown text.
+ */
+const MAX_TEXT_TINT = 1.5;
+
+/**
+ * The saturation that gives a colour at lightness `l` the default's chroma × `factor` (but at least `minChroma`).
+ * Chroma, not saturation, is scaled: `#fffdf8` has 100 % saturation but hardly any colour, and scaling the
+ * saturation by it turned surfaces yellow and text brown.
+ */
+function scaledSaturation(def: Hsl, factor: number, l: number, minChroma = 0): number {
+  const range = chromaRange(l);
+  if (range <= 0) return 0;
+  // Written as a saturation ratio, so the same lightness and factor 1 return the default saturation exactly.
+  return Math.max(def.s * factor * (chromaRange(def.l) / range), (minChroma / range) * 100);
+}
 
 /** Tokens placed relative to the background. */
 const SURFACES: PreuiTokenName[] = [
@@ -95,12 +128,15 @@ const STATUS = ["positive", "negative", "destructive", "warning", "info"] as con
  *
  * - `primary` → `--pui-primary` and `--pui-ring` (charts and syntax keywords reference primary already).
  * - `background` → every surface (card, popover, shell, muted, secondary, accent, rail, border, input …) keeps its
- *   default lightness distance to the background; hue and saturation follow the background.
+ *   default lightness distance to the background; hue and colourfulness (chroma) follow the background, and no
+ *   surface is less colourful than the background. Text follows the background's tint at most 1.5× as strongly as
+ *   the defaults.
  * - `foreground` (or derived from the background) → all text colours; `muted-foreground` keeps its default
  *   position and is moved towards the foreground until it reaches 4.5:1 on background, card and muted.
  * - Every `*-foreground` keeps its default when it reaches 4.5:1 on its surface, otherwise it becomes pure white or
  *   black (whichever contrasts more — one of them always reaches at least 4.58:1).
- * - Colours you leave out (and quality tiers) keep the scheme's defaults.
+ * - Colours you leave out (and quality tiers) keep the scheme's defaults — with a `background` of your own, the status
+ *   colours move in lightness just enough to stay readable as text on their own tint over the derived surfaces.
  */
 export function deriveTokens(base: DeriveTokensBase, scheme: PreuiScheme): PreuiTokens {
   const defaults = (scheme === "light" ? lightTokens : tokens) as Record<string, string>;
@@ -109,17 +145,24 @@ export function deriveTokens(base: DeriveTokensBase, scheme: PreuiScheme): Preui
 
   // Surfaces
   const bg = base.background ? parseHsl(base.background) : null;
+  // How much more (or less) colourful the background is than the default one. Text follows it only up to MAX_TEXT_TINT.
+  const tint = bg ? chroma(bg) / REFERENCE_CHROMA[scheme] : 1;
+  const textTint = Math.min(tint, MAX_TEXT_TINT);
   if (bg) {
     out["--pui-background"] = format(bg);
+    const bgChroma = chroma(bg);
     const reAnchor = (name: PreuiTokenName) => {
       const def = parseHsl(defaults[name]);
       if (!def) return; // references like var(--pui-background) stay
       const inverse = def.l > 50 !== ref.l > 50; // e.g. the dark tooltip in the light scheme
-      const s = ref.s > 0 ? def.s * (bg.s / ref.s) : bg.s;
+      const l = inverse ? def.l : bg.l + (def.l - ref.l);
       out[name] = format({
-        h: bg.h + (def.h - ref.h),
-        s,
-        l: inverse ? def.l : bg.l + (def.l - ref.l),
+        // A grey default (light card and popover: white) has no hue of its own and takes the background's.
+        h: def.s > 0 ? bg.h + (def.h - ref.h) : bg.h,
+        // An inverse surface (the light scheme's dark tooltip) is tinted like text. The others are at least as
+        // colourful as the background (light card and popover are white by default, on a cream page they are cream).
+        s: inverse ? scaledSaturation(def, textTint, l) : scaledSaturation(def, tint, l, bgChroma),
+        l,
       });
     };
     for (const name of SURFACES) reAnchor(name);
@@ -132,7 +175,7 @@ export function deriveTokens(base: DeriveTokensBase, scheme: PreuiScheme): Preui
     if (fg) foreground = format(fg);
     else {
       const def = parseHsl(defaults["--pui-foreground"])!;
-      foreground = format({ h: bg!.h + (def.h - ref.h), s: ref.s > 0 ? def.s * (bg!.s / ref.s) : bg!.s, l: def.l });
+      foreground = format({ h: bg!.h + (def.h - ref.h), s: def.s * textTint, l: def.l });
     }
     foreground = pickForeground(foreground, out["--pui-background"]);
     out["--pui-foreground"] = foreground;
@@ -151,11 +194,12 @@ export function deriveTokens(base: DeriveTokensBase, scheme: PreuiScheme): Preui
     const bgHsl = parseHsl(out["--pui-background"])!;
     const start = bg ? bgHsl.l + (defMuted.l - ref.l) : defMuted.l;
     const hue = bg ? bg.h + (defMuted.h - ref.h) : defMuted.h;
-    const sat = bg && ref.s > 0 ? defMuted.s * (bg.s / ref.s) : defMuted.s;
-    let muted = format({ h: hue, s: sat, l: start });
+    // Keeps its default chroma (× the text tint) while the lightness moves.
+    const sat = (l: number) => (bg ? scaledSaturation(defMuted, textTint, l) : defMuted.s);
+    let muted = format({ h: hue, s: sat(start), l: start });
     const step = fgHsl.l > start ? 1 : -1;
     for (let l = start; ; l += step) {
-      muted = format({ h: hue, s: sat, l });
+      muted = format({ h: hue, s: sat(l), l });
       if (surfaces.every((surface) => ratio(muted, surface) >= MIN_TEXT_CONTRAST)) break;
       if (l < 0 || l > 100) {
         muted = foreground;
@@ -180,6 +224,27 @@ export function deriveTokens(base: DeriveTokensBase, scheme: PreuiScheme): Preui
     if (name === "positive" || name === "negative") {
       // Charts use the status colour directly when it is customised.
       out[`--pui-chart-${name}`] = format(value);
+    }
+  }
+
+  // Status colours you left out, on a background of your own: their lightness moves (away from the background) just
+  // enough to stay readable as text on their own tint over the derived surfaces (badges, alerts, tinted buttons).
+  if (bg) {
+    const page = parseAnyColor(out["--pui-background"]);
+    // Destructive is a solid fill (destructive-foreground on it), never text on its tint.
+    for (const name of STATUS) {
+      const key = `--pui-${name}`;
+      if (name === "destructive" || base[name] || !page) continue;
+      const start = parseHsl(out[key]);
+      if (!start) continue;
+      const lighter = relativeLuminance(parseAnyColor(out[key])!) > relativeLuminance(page);
+      // No lightness works (a mid-grey page): the default stays, and checkTokenContrast reports it.
+      for (let l = start.l; l >= 0 && l <= 100; l += lighter ? 1 : -1) {
+        const candidate = format({ ...start, l });
+        if ((worstTintContrast(out, parseAnyColor(candidate)!)?.ratio ?? Infinity) < MIN_TEXT_CONTRAST) continue;
+        out[key] = candidate;
+        break;
+      }
     }
   }
 

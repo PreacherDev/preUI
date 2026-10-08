@@ -45,7 +45,7 @@ export const AccordionTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof B
           data-slot="accordion-trigger"
           className={mergeClassName(
             [
-              "group flex flex-1 items-center justify-between gap-4 rounded-pui-sm py-3 text-left text-sm font-medium text-pui-foreground select-none outline-none",
+              "group group/accordion-trigger flex flex-1 items-center justify-between gap-4 rounded-pui-sm py-3 text-left text-sm font-medium text-pui-foreground select-none outline-none",
               "transition-colors duration-pui-fast ease-pui",
               "focus-visible:ring-pui focus-visible:ring-pui-ring",
               "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -56,7 +56,7 @@ export const AccordionTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof B
         >
           {children}
           <ChevronDown
-            className="size-4 shrink-0 text-pui-muted-foreground transition-[transform,color] duration-pui-base ease-pui group-hover:text-pui-foreground group-data-[panel-open]:rotate-180"
+            className="size-4 shrink-0 text-pui-muted-foreground transition-[transform,color] duration-pui-base ease-pui group-hover/accordion-trigger:text-pui-foreground group-data-[panel-open]/accordion-trigger:rotate-180"
             aria-hidden="true"
           />
         </BaseAccordion.Trigger>

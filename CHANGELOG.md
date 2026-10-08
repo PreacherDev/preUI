@@ -3,6 +3,88 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.11.0 — 2026-10-08
+
+Fixes from a combination audit in Chromium 103: every component next to, inside and on top of the others, in dark and
+light, with every preset and in a transparent FiveM-like page.
+
+### Updating from 0.10
+
+- **Sidebar** is a named Tailwind group now: change your own `group-data-[collapsible=icon]:…` (and `[side=…]`,
+  `[variant=…]`, `[state=…]`) classes inside a sidebar to `group-data-[collapsible=icon]/sidebar:…`.
+- **Separator:** your classes replace the orientation defaults. A vertical separator with a height of its own
+  (`h-5`, or shadcn's `data-[orientation=vertical]:h-5`) is centred in its row; without one it stretches.
+- **Colours:** some default status colours, the dark `muted` surface and the Blue, Emerald and Amber preset primaries
+  changed slightly (see Changed). Themes with their own background derive a little differently. Re-run
+  `checkTokenContrast` on your themes: it now also checks tinted text and may report pairs it ignored before.
+- **KeybindHintBar** `variant="surface"` uses the theme radius; add `className="rounded-full"` for the old pill.
+
+### Added
+
+- `PortalContainerProvider`: the default portal container for every preUI popup below it (e.g. a scoped theme root),
+  so Select, menus, Popover, Tooltip, HoverCard, DatePicker, dialogs and toasts opened there render inside it and keep
+  its tokens. An explicit `container` prop still wins; popups inside popups follow their parent.
+- `rounded-pui-xs` (preset): `rounded-pui-sm` capped at 4px, for boxes up to about 20px.
+- `checkTokenContrast` checks every accent and status colour as text on its own tint (`text-pui-x` on
+  `bg-pui-x/tint`: default buttons, badges, alert titles) over background, card, popover, shell and muted, and
+  respects `--pui-tint-scale`. New exports `tintContrastColors`, `tintContrastSurfaces`, `worstTintContrast`; tinted
+  results carry `surface` and `tint`. The ThemeEditor lists them ("Primary text on its tint" …); an accent strength
+  above 100 % now shows as failing, because tinted text drops below 4.5:1.
+
+### Changed
+
+- **Popups stay opaque:** menus, selects, popovers, hover cards and toasts ignore `--pui-surface-opacity`; only panels
+  (page, window, card) become see-through. Text underneath no longer reads through a menu.
+- **Nested dialogs:** a Dialog or AlertDialog opened from a Dialog, AlertDialog, Sheet or Drawer dims its parent, so
+  it no longer looks like part of it (one scrim, plus a fading dim layer on the parent).
+- **Default colours** (tinted text now ≥ 4.5:1 everywhere): dark `--pui-negative` `3 92% 69%`, `--pui-muted`
+  `225 10% 14%`; light `--pui-positive` `156 71% 26%`, `--pui-negative` `0 81% 42%`, `--pui-warning` `29 89% 32%`,
+  `--pui-info` `203 85% 34%`. Presets: Blue `#529dff` / `#2456e0`, Emerald light `#047052`, Amber light `#9f4706`.
+- **`deriveTokens`** follows the background's real colourfulness (chroma) instead of HSL saturation, and tints text
+  at most 1.5× the default: a cream page no longer gives yellow surfaces and brown text, a navy page no longer blue
+  text. With your own background, the status colours you leave out are moved in lightness until they stay readable on
+  their tints.
+- **`--pui-border-opacity`** fades only structural lines (`border-pui-border`). Outline Buttons and Badges use the
+  field border (`border-pui-input`) and stay visible at 0.
+- **Sidebar** is `group/sidebar`: plain `group-hover:` classes inside it (e.g. Badge `reveal`) no longer react to
+  hovering anywhere in the sidebar. Collapsible and Accordion chevrons only react to their own trigger.
+- **KeybindHintBar** `variant="surface"` uses `rounded-pui`, so it still looks right when it wraps onto two lines.
+- **ProgressCircle** with `showValue` below 48px (`size="sm"`) shows the number without `%` so it fits the ring
+  (`aria-valuetext` keeps the percent; `format` overrides).
+- **Button** `loading` keeps the button's width: the spinner takes the left icon's place or sits over the label.
+
+### Fixed
+
+- **Checkbox and Kbd** keep small corners at any radius (a large `--pui-radius`, e.g. Amber and Glass, turned the
+  checkbox into a radio-like circle).
+- **Invalid fields show keyboard focus:** the negative border stays and a ring in the negative colour appears (Input,
+  Textarea, InputOTP, Select, NumberField, InputGroup, Combobox, Autocomplete, DatePicker, KeybindInput).
+- **ButtonGroup:** a focused Select, NumberField, InputGroup, Combobox, DatePicker or KeybindInput after a button
+  outlines the whole group like inputs do; the left focus edge is no longer missing.
+- **KeybindInput:** long bindings no longer squash the key caps or run under the clear button; they are clipped at the
+  start, so the main key stays visible.
+- **Sizes:** with `size="sm"` / `"lg"`, Select, Combobox, Autocomplete and NumberField use the same text size and
+  padding as Input.
+- **Field:** FieldItem aligns its checkbox or radio with the first line of a wrapping label; a Switch next to
+  FieldContent is centred on the label's first line.
+- **Button / Toggle:** a size class on an icon (`size-5`) is no longer overridden by the default 16px.
+- **Button** `secondary` has a visible hover in light and dark.
+- **Vertical Separator** stretches to its row's height (it was 0px tall in content-height flex rows); with its own
+  height it is centred.
+- **KeybindInput** follows a surrounding `<Field invalid>` like the other fields.
+- **ThemeEditor:** no "Fix" button for a colour that a raw `tokens` entry overrides (fixing the palette colour could
+  not change it).
+- **Table / DataTable:** long unbreakable text wraps inside its cell instead of covering the next columns; the
+  sticky header keeps its bottom line while scrolling; checkboxes and switches are centred in cells; tables keep the
+  card text colour inside muted containers such as `AccordionContent`.
+- **DataTable** can fill a fixed-height parent: `className="min-h-0 flex-1" containerClassName="min-h-0 flex-1"`
+  scrolls the rows while toolbar and pagination stay visible.
+- **Long words** (URLs, ids) wrap in Card (header actions stay in place), Item, Empty, Breadcrumb, KanbanCard and
+  toasts instead of overflowing.
+- **Alert:** descriptions in tinted alerts use foreground at 85 % (muted text fell below 4.5:1 on warning and info).
+- **Badge** `surface="solid"` follows `--pui-tint-scale` like every other tint.
+- **ThemeEditor:** popups inside `previewSlot` show the edited theme and scheme instead of the page's.
+
 ## 0.10.0 — 2026-10-08
 
 ### Removed
@@ -344,6 +426,10 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.2.2 — 2026-10-08
+
+- New resources depend on `@pre_scripts/preui` `^0.11.0`.
 
 ### 0.2.1 — 2026-10-08
 

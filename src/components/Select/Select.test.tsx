@@ -158,3 +158,43 @@ describe("Select", () => {
     expect(screen.getByRole("combobox")).toHaveAttribute("data-disabled");
   });
 });
+
+describe("SelectTrigger sizes and invalid focus", () => {
+  it("matches the Input text size and inset per size", () => {
+    render(
+      <>
+        <Select items={items}>
+          <SelectTrigger size="sm" aria-label="Klein">
+            <SelectValue />
+          </SelectTrigger>
+        </Select>
+        <Select items={items}>
+          <SelectTrigger size="lg" aria-label="Groß">
+            <SelectValue />
+          </SelectTrigger>
+        </Select>
+      </>,
+    );
+    const sm = screen.getByRole("combobox", { name: "Klein" });
+    expect(sm).toHaveClass("h-pui-control-sm", "text-xs", "px-2.5");
+    expect(sm).not.toHaveClass("text-sm", "px-3");
+    const lg = screen.getByRole("combobox", { name: "Groß" });
+    expect(lg).toHaveClass("h-pui-control-lg", "text-sm", "px-3.5");
+    expect(lg).not.toHaveClass("px-3");
+  });
+
+  it("shows focus on an invalid trigger with a ring in the negative colour", () => {
+    render(
+      <Select items={items}>
+        <SelectTrigger aria-label="Kategorie">
+          <SelectValue />
+        </SelectTrigger>
+      </Select>,
+    );
+    expect(screen.getByRole("combobox", { name: "Kategorie" })).toHaveClass(
+      "data-[invalid]:border-pui-negative",
+      "data-[invalid]:focus-visible:ring-pui",
+      "data-[invalid]:focus-visible:ring-pui-negative",
+    );
+  });
+});

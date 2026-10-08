@@ -43,7 +43,8 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
       ref={containerRef}
       data-slot="table-container"
       className={cn(
-        "relative flex w-full flex-col overflow-hidden rounded-pui border border-pui-border bg-pui-card",
+        // Own text colour: inside a muted parent (e.g. AccordionContent) the cells would otherwise turn grey.
+        "relative flex w-full flex-col overflow-hidden rounded-pui border border-pui-border bg-pui-card text-pui-card-foreground",
         containerClassName,
       )}
     >
@@ -105,7 +106,14 @@ export const TableHeader = /* @__PURE__ */ forwardRef<HTMLTableSectionElement, T
     <thead
       ref={ref}
       data-slot="table-header"
-      className={cn("sticky top-0 z-10 bg-pui-card hover:[&_tr]:bg-transparent", className)}
+      className={cn(
+        "sticky top-0 z-10 bg-pui-card hover:[&_tr]:bg-transparent",
+        // With border-collapse the row's bottom border is painted by the table and scrolls away under the sticky
+        // header. The header rows draw their divider as an inset shadow on their cells instead, which sticks with
+        // them (same colour and --pui-border-opacity fade as `border-pui-border`).
+        "[&>tr]:border-b-0 [&>tr>*]:shadow-[inset_0_-1px_0_hsl(var(--pui-border)/var(--pui-border-opacity,1))]",
+        className,
+      )}
       {...props}
     />
   );
@@ -157,6 +165,14 @@ export const TableRow = /* @__PURE__ */ forwardRef<HTMLTableRowElement, TableRow
   );
 });
 
+/**
+ * Centres a checkbox / switch that is a direct child of a cell. On the baseline (or with `align-middle`) the 16px
+ * checkbox sits ~2px off the centre of the 20px line, depending on the font. Aligned to the top of the line box
+ * (plus 2px margin for the 16px checkbox, which makes it as tall as the line) it is centred for any font.
+ */
+const cellControlAlign =
+  "[&>[role=checkbox]]:my-0.5 [&>[role=checkbox]]:align-top [&>[role=switch]]:align-top";
+
 export type TableHeadProps = ThHTMLAttributes<HTMLTableCellElement>;
 
 export const TableHead = /* @__PURE__ */ forwardRef<HTMLTableCellElement, TableHeadProps>(function TableHead(
@@ -171,6 +187,7 @@ export const TableHead = /* @__PURE__ */ forwardRef<HTMLTableCellElement, TableH
         "h-10 whitespace-nowrap px-4 text-left align-middle",
         "text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground",
         "[&:has([role=checkbox])]:pr-0 data-[has-checkbox]:pr-0",
+        cellControlAlign,
         className,
       )}
       {...props}
@@ -188,7 +205,15 @@ export const TableCell = /* @__PURE__ */ forwardRef<HTMLTableCellElement, TableC
     <td
       ref={ref}
       data-slot="table-cell"
-      className={cn("px-4 py-2.5 align-middle tabular-nums [&:has([role=checkbox])]:pr-0 data-[has-checkbox]:pr-0", className)}
+      className={cn(
+        "px-4 py-2.5 align-middle tabular-nums [&:has([role=checkbox])]:pr-0 data-[has-checkbox]:pr-0",
+        // Long unbreakable strings (ids, URLs) wrap instead of spilling into the next column in a fixed layout.
+        // break-word (not `anywhere`) leaves the min-content width alone, so auto-layout tables still size columns
+        // by whole words. No effect on `whitespace-nowrap` cells.
+        "break-words",
+        cellControlAlign,
+        className,
+      )}
       {...props}
     />
   );

@@ -27,6 +27,9 @@ export const Textarea = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField
           "text-sm leading-snug text-pui-foreground placeholder:text-pui-muted-foreground",
           "outline-none transition-colors duration-pui-fast ease-pui focus-visible:border-pui-ring",
           "data-[invalid]:border-pui-negative aria-[invalid=true]:border-pui-negative",
+          // Focused + invalid: the negative border stays, a ring in the same colour shows the focus.
+          "data-[invalid]:focus-visible:ring-pui data-[invalid]:focus-visible:ring-pui-negative",
+          "aria-[invalid=true]:focus-visible:ring-pui aria-[invalid=true]:focus-visible:ring-pui-negative",
           "disabled:cursor-not-allowed disabled:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
         ],
         className,

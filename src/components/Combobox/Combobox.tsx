@@ -2,11 +2,15 @@ import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type ReactNode } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   bareInputClass,
   emptyClass,
   fieldClass,
   fieldIconButtonClass,
+  fieldInvalidFocusWithinClass,
+  fieldPaddingEndClass,
+  fieldPaddingStartClass,
   fieldSizeClass,
   groupLabelClass,
   listClass,
@@ -82,8 +86,10 @@ export const ComboboxInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof Base
           [
             fieldClass,
             fieldSizeClass[size],
-            "flex items-center gap-2 pl-3 focus-within:border-pui-ring",
-            showClear || showTrigger ? "pr-1.5" : "pr-3",
+            fieldPaddingStartClass[size],
+            "flex items-center gap-2 focus-within:border-pui-ring",
+            fieldInvalidFocusWithinClass,
+            showClear || showTrigger ? "pr-1.5" : fieldPaddingEndClass[size],
           ],
           className,
         )}
@@ -126,14 +132,15 @@ export interface ComboboxChipsProps extends ComponentPropsWithoutRef<typeof Base
  */
 export const ComboboxChips = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.InputGroup>, ComboboxChipsProps>(
   function ComboboxChips({ className, size = "default", children, ...props }, ref) {
-    const minHeight = { sm: "min-h-pui-control-sm", default: "min-h-pui-control", lg: "min-h-pui-control-lg" }[size];
+    // Min height + text size per size (like `fieldSizeClass`, but the chips may wrap onto more lines).
+    const sizeClass = { sm: "min-h-pui-control-sm text-xs", default: "min-h-pui-control text-sm", lg: "min-h-pui-control-lg text-sm" }[size];
     return (
       <BaseCombobox.InputGroup
         ref={ref}
         data-slot="combobox-chips"
         data-size={size}
         className={mergeClassName(
-          [fieldClass, minHeight, "flex cursor-text items-center px-1.5 py-1 focus-within:border-pui-ring"],
+          [fieldClass, sizeClass, "flex cursor-text items-center px-1.5 py-1 focus-within:border-pui-ring", fieldInvalidFocusWithinClass],
           className,
         )}
         {...props}
@@ -185,7 +192,7 @@ export const ComboboxChip = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseC
       {!hideRemove && (
         <BaseCombobox.ChipRemove
           data-slot="combobox-chip-remove"
-          className="inline-flex size-4 items-center justify-center rounded-pui-sm text-pui-muted-foreground transition-colors duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-foreground"
+          className="inline-flex size-4 items-center justify-center rounded-pui-xs text-pui-muted-foreground transition-colors duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-foreground"
           aria-label={removeLabel}
         >
           <Close className="size-3" aria-hidden="true" />
@@ -203,7 +210,7 @@ export interface ComboboxContentProps extends ComponentPropsWithoutRef<typeof Ba
   sideOffset?: PositionerProps["sideOffset"];
   alignOffset?: PositionerProps["alignOffset"];
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseCombobox.Portal.Props["container"];
 }
 
@@ -214,18 +221,20 @@ export const ComboboxContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof Ba
     ref,
   ) {
     return (
-      <BaseCombobox.Portal container={container}>
-        <BaseCombobox.Positioner
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          data-slot="combobox-positioner"
-          {...positionerProps}
-          className={mergeClassName(listPositionerClass, positionerProps?.className)}
-        >
-          <BaseCombobox.Popup ref={ref} data-slot="combobox-content" className={mergeClassName(listPopupClass, className)} {...props} />
-        </BaseCombobox.Positioner>
+      <BaseCombobox.Portal container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BaseCombobox.Positioner
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            data-slot="combobox-positioner"
+            {...positionerProps}
+            className={mergeClassName(listPositionerClass, positionerProps?.className)}
+          >
+            <BaseCombobox.Popup ref={ref} data-slot="combobox-content" className={mergeClassName(listPopupClass, className)} {...props} />
+          </BaseCombobox.Positioner>
+        </PortalContainerScope>
       </BaseCombobox.Portal>
     );
   },

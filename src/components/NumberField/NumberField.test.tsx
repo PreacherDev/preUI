@@ -75,3 +75,22 @@ describe("NumberField data attributes", () => {
     expect(screen.getByRole("textbox", { name: "Menge" })).toHaveAttribute("data-slot", "number-field-input");
   });
 });
+
+describe("NumberField sizes and invalid focus", () => {
+  it("uses the Input text size per size; the input inherits it", () => {
+    const { container } = render(<NumberField size="sm" inputProps={{ "aria-label": "Menge" }} />);
+    expect(container.firstChild).toHaveClass("h-pui-control-sm", "text-xs");
+    expect(container.firstChild).not.toHaveClass("text-sm");
+    const input = screen.getByRole("textbox", { name: "Menge" });
+    expect(input).toHaveClass("text-[length:inherit]");
+    expect(input).not.toHaveClass("text-sm");
+  });
+
+  it("shows focus on an invalid field with a ring in the negative colour", () => {
+    const { container } = render(<NumberField inputProps={{ "aria-label": "Menge" }} />);
+    expect(container.firstChild).toHaveClass(
+      "data-[invalid]:focus-within:ring-pui",
+      "data-[invalid]:focus-within:ring-pui-negative",
+    );
+  });
+});

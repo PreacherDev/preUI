@@ -135,6 +135,10 @@ describe("Sidebar", () => {
     expect(root).toHaveAttribute("data-side", "left");
     expect(root).toHaveAttribute("data-variant", "sidebar");
     expect(root).toHaveAttribute("data-collapsible", "");
+    // A named group: a plain `group` would make every `group-hover:` inside the sidebar (Badge reveal, chevrons)
+    // react to hovering anywhere in the sidebar.
+    expect(root).toHaveClass("group/sidebar");
+    expect(root).not.toHaveClass("group");
     expect(screen.getByTestId("sidebar")).toHaveAttribute("data-slot", "sidebar-container");
     expect(document.querySelector('[data-sidebar="sidebar"]')).toHaveClass("bg-pui-shell");
 
@@ -144,10 +148,10 @@ describe("Sidebar", () => {
     expect(screen.getByText("Betrieb")).toHaveClass("text-pui-eyebrow", "uppercase");
     expect(screen.getByText("3")).toHaveClass("rounded-full", "bg-pui-primary", "text-pui-2xs");
     // Handoff NavRail: the counter stays visible in the icon rail (top-right of the icon), it is not hidden.
-    expect(screen.getByText("3")).not.toHaveClass("group-data-[collapsible=icon]:hidden");
-    expect(screen.getByText("3")).toHaveClass("group-data-[collapsible=icon]:!left-6", "group-data-[collapsible=icon]:!top-1");
+    expect(screen.getByText("3")).not.toHaveClass("group-data-[collapsible=icon]/sidebar:hidden");
+    expect(screen.getByText("3")).toHaveClass("group-data-[collapsible=icon]/sidebar:!left-6", "group-data-[collapsible=icon]/sidebar:!top-1");
     expect(document.querySelector('[data-sidebar="separator"]')).toHaveClass(
-      "group-data-[collapsible=icon]:data-[orientation=horizontal]:w-6",
+      "group-data-[collapsible=icon]/sidebar:data-[orientation=horizontal]:w-6",
     );
     expect(screen.getByRole("button", { name: "Eintrag hinzufügen" })).toHaveAttribute("type", "button");
     expect(screen.getByRole("button", { name: "Mehr" })).toHaveClass("md:opacity-0");

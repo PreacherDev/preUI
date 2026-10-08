@@ -608,7 +608,8 @@ export const KanbanCard = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanCardP
       aria-describedby={draggable ? instructionsId : undefined}
       aria-pressed={draggable ? dragging : undefined}
       className={cn(
-        "relative shrink-0 rounded-pui-md border border-pui-border bg-pui-background p-3 text-sm text-pui-foreground",
+        // min-w-0 + overflow-wrap:anywhere: long unbreakable text wraps inside the card instead of widening it.
+        "relative min-w-0 shrink-0 rounded-pui-md border border-pui-border bg-pui-background p-3 text-sm text-pui-foreground [overflow-wrap:anywhere]",
         "outline-none transition-colors duration-pui-fast ease-pui hover:border-pui-input",
         "focus-visible:ring-pui focus-visible:ring-pui-ring",
         draggable && "cursor-grab touch-none",

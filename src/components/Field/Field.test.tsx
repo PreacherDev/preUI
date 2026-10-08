@@ -8,6 +8,7 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldItem,
   FieldLabel,
   FieldLegend,
   FieldSeparator,
@@ -243,5 +244,25 @@ describe("FieldLabel next to a disabled control", () => {
   it("dims like Label (peer-disabled / peer-data-disabled)", () => {
     render(<FieldLabel>Option</FieldLabel>);
     expect(screen.getByText("Option")).toHaveClass("peer-data-[disabled]:opacity-50", "peer-disabled:opacity-50");
+  });
+});
+
+describe("Field alignment", () => {
+  it("top-aligns a FieldItem, so the control lines up with the first label line", () => {
+    render(
+      <Field>
+        <FieldItem data-testid="item" />
+      </Field>,
+    );
+    expect(screen.getByTestId("item")).toHaveClass("flex", "items-start");
+    expect(screen.getByTestId("item")).not.toHaveClass("items-center");
+  });
+
+  it("centres a switch on the first label line next to a FieldContent", () => {
+    const { container } = render(<Field orientation="horizontal" />);
+    expect(container.firstChild).toHaveClass(
+      "[&:has(>[data-slot=field-content])>[data-slot=switch]]:-my-0.5",
+      "[&[data-has-content]>[data-slot=switch]]:-my-0.5",
+    );
   });
 });

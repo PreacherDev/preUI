@@ -3,14 +3,18 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "re
 import { cn, mergeClassName } from "../../utils/cn";
 import { buttonVariants, type ButtonSize, type ButtonVariant } from "../Button/Button";
 import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   containedAttr,
   ModalContainedContext,
   ModalSections,
+  modalNestedDimClassName,
   modalOverlayClassName,
   modalPopupClassName,
   modalPopupContainedClassName,
+  NestedModalContext,
   useModalContained,
+  useNestedModalReport,
   type ModalContentOptions,
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
@@ -30,10 +34,12 @@ export const AlertDialogTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, 
 
 /** Renders overlay and popup into `container` (default `document.body`); contained in it when set. */
 export const AlertDialogPortal = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertDialogPortalProps>(
-  function AlertDialogPortal({ contained, ...props }, ref) {
+  function AlertDialogPortal({ contained, container, children, ...props }, ref) {
     return (
-      <ModalContainedContext.Provider value={contained ?? props.container != null}>
-        <BaseAlertDialog.Portal ref={ref} data-slot="alert-dialog-portal" {...props} />
+      <ModalContainedContext.Provider value={contained ?? container != null}>
+        <BaseAlertDialog.Portal ref={ref} data-slot="alert-dialog-portal" container={usePortalContainer(container)} {...props}>
+          <PortalContainerScope>{children}</PortalContainerScope>
+        </BaseAlertDialog.Portal>
       </ModalContainedContext.Provider>
     );
   },
@@ -67,18 +73,24 @@ export const AlertDialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof B
   function AlertDialogPopup({ className, children, initialFocus, ...props }, ref) {
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref);
+    const popupRef = useNestedModalReport(focus.ref);
     return (
       <BaseAlertDialog.Popup
-        ref={focus.ref}
+        ref={popupRef}
         initialFocus={focus.initialFocus}
         data-slot="alert-dialog-popup"
         data-contained={containedAttr(contained)}
-        className={mergeClassName([modalPopupClassName, "max-w-md", contained && modalPopupContainedClassName], className)}
+        className={mergeClassName(
+          [modalPopupClassName, modalNestedDimClassName, "max-w-md", contained && modalPopupContainedClassName],
+          className,
+        )}
         {...props}
       >
-        <ModalSections header={[AlertDialogHeader]} footer={[AlertDialogFooter]}>
-          {children}
-        </ModalSections>
+        <NestedModalContext.Provider value={null}>
+          <ModalSections header={[AlertDialogHeader]} footer={[AlertDialogFooter]}>
+            {children}
+          </ModalSections>
+        </NestedModalContext.Provider>
       </BaseAlertDialog.Popup>
     );
   },

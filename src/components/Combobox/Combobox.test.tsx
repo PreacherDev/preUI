@@ -137,3 +137,37 @@ describe("ComboboxInput icon", () => {
     expect(second.container.querySelector('[data-slot="combobox-icon"] svg')).not.toBeNull();
   });
 });
+
+describe("ComboboxInput sizes and invalid focus", () => {
+  it("matches the Input text size and inset per size; the input takes the field's text size", () => {
+    render(
+      <>
+        <Combobox items={cities}>
+          <ComboboxInput aria-label="Klein" size="sm" />
+        </Combobox>
+        <Combobox items={cities}>
+          <ComboboxInput aria-label="Groß" size="lg" showClear={false} showTrigger={false} />
+        </Combobox>
+      </>,
+    );
+    const sm = document.querySelectorAll('[data-slot="combobox-input-group"]')[0];
+    expect(sm).toHaveClass("h-pui-control-sm", "text-xs", "pl-2.5", "pr-1.5");
+    expect(sm).not.toHaveClass("text-sm", "pl-3");
+    const lg = document.querySelectorAll('[data-slot="combobox-input-group"]')[1];
+    expect(lg).toHaveClass("h-pui-control-lg", "text-sm", "pl-3.5", "pr-3.5");
+    expect(screen.getByRole("combobox", { name: "Klein" })).toHaveClass("text-[length:inherit]");
+    expect(screen.getByRole("combobox", { name: "Klein" })).not.toHaveClass("text-sm");
+  });
+
+  it("shows focus on an invalid field with a ring in the negative colour", () => {
+    render(
+      <Combobox items={cities}>
+        <ComboboxInput aria-label="Stadt" />
+      </Combobox>,
+    );
+    expect(document.querySelector('[data-slot="combobox-input-group"]')).toHaveClass(
+      "data-[invalid]:focus-within:ring-pui",
+      "data-[invalid]:focus-within:ring-pui-negative",
+    );
+  });
+});

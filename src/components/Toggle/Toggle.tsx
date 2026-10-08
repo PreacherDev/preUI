@@ -21,7 +21,8 @@ export const toggleVariants = /* @__PURE__ */ cva(
     "focus-visible:outline-none focus-visible:ring-pui focus-visible:ring-pui-ring",
     "data-[pressed]:bg-pui-accent data-[pressed]:text-pui-foreground",
     "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-    "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+    // Default icon size without specificity (`:where`), so a size class on the icon (`size-5`) wins.
+    "[&_svg]:pointer-events-none [:where(&)_svg]:size-4 [&_svg]:shrink-0",
   ],
   {
     variants: {
@@ -38,7 +39,7 @@ export const toggleVariants = /* @__PURE__ */ cva(
         icon: "size-pui-control p-0",
         "icon-sm": "size-pui-control-sm p-0",
         /** Compact item of the segmented ToggleGroup. */
-        segment: "h-6 gap-1.5 rounded-pui-sm px-2.5 text-xs hover:bg-transparent [&_svg]:size-3.5",
+        segment: "h-6 gap-1.5 rounded-pui-sm px-2.5 text-xs hover:bg-transparent [:where(&)_svg]:size-3.5",
       },
     },
     defaultVariants: {

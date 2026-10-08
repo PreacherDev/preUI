@@ -1,6 +1,7 @@
 import { ContextMenu as BaseContextMenu } from "@base-ui/react/context-menu";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   DropdownMenuCheckboxItem,
   DropdownMenuGroup,
@@ -68,7 +69,7 @@ export interface ContextMenuContentProps extends ComponentPropsWithoutRef<typeof
   alignOffset?: PositionerProps["alignOffset"];
   /** Props for the positioner element (e.g. `anchor`, `collisionPadding`, `className`). */
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseContextMenu.Portal.Props["container"];
 }
 
@@ -80,25 +81,27 @@ export const ContextMenuContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof
   ) {
     return (
       <MenuSlotContext.Provider value="context-menu">
-        <BaseContextMenu.Portal container={container}>
-          <BaseContextMenu.Positioner
-            side={side}
-            align={align}
-            sideOffset={sideOffset}
-            alignOffset={alignOffset}
-            data-slot="context-menu-positioner"
-            {...positionerProps}
-            className={mergeClassName(menuPositionerClass, positionerProps?.className)}
-          >
-            <BaseContextMenu.Popup
-              ref={ref}
-              data-slot="context-menu-content"
-              className={mergeClassName(menuPopupClass, className)}
-              {...props}
+        <BaseContextMenu.Portal container={usePortalContainer(container)}>
+          <PortalContainerScope>
+            <BaseContextMenu.Positioner
+              side={side}
+              align={align}
+              sideOffset={sideOffset}
+              alignOffset={alignOffset}
+              data-slot="context-menu-positioner"
+              {...positionerProps}
+              className={mergeClassName(menuPositionerClass, positionerProps?.className)}
             >
-              <MenuScrollArea>{children}</MenuScrollArea>
-            </BaseContextMenu.Popup>
-          </BaseContextMenu.Positioner>
+              <BaseContextMenu.Popup
+                ref={ref}
+                data-slot="context-menu-content"
+                className={mergeClassName(menuPopupClass, className)}
+                {...props}
+              >
+                <MenuScrollArea>{children}</MenuScrollArea>
+              </BaseContextMenu.Popup>
+            </BaseContextMenu.Positioner>
+          </PortalContainerScope>
         </BaseContextMenu.Portal>
       </MenuSlotContext.Provider>
     );

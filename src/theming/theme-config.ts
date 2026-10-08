@@ -142,14 +142,14 @@ export const defaultThemePresets: readonly ThemePreset[] = [
   {
     id: "blue",
     label: "Blue",
-    description: "Blue accent (preUI's default before 0.8)",
-    config: { v: 1, palette: { dark: { primary: "#4b8df7" }, light: { primary: "#2463eb" } } },
+    description: "Blue accent, like preUI's default before 0.8",
+    config: { v: 1, palette: { dark: { primary: "#529dff" }, light: { primary: "#2456e0" } } },
   },
   {
     id: "emerald",
     label: "Emerald",
     description: "Green accent on neutral surfaces",
-    config: { v: 1, palette: { dark: { primary: "#34d399" }, light: { primary: "#047857" } } },
+    config: { v: 1, palette: { dark: { primary: "#34d399" }, light: { primary: "#047052" } } },
   },
   {
     id: "police",
@@ -178,7 +178,7 @@ export const defaultThemePresets: readonly ThemePreset[] = [
       v: 1,
       palette: {
         dark: { primary: "#fbbf24", background: "#15120d" },
-        light: { primary: "#b45309", background: "#fffdf8" },
+        light: { primary: "#9f4706", background: "#fffdf8" },
       },
       tokens: { shared: { radius: "0.75rem" } },
     },

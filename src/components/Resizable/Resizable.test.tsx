@@ -89,7 +89,7 @@ describe("Resizable", () => {
     const grip = screen.getByRole("separator").querySelector("[data-slot=resizable-grip]");
     expect(grip).not.toBeNull();
     expect(grip).toHaveAttribute("aria-hidden", "true");
-    expect(grip).toHaveClass("rounded-pui-sm", "border-pui-border", "bg-pui-border");
+    expect(grip).toHaveClass("rounded-pui-xs", "border-pui-border", "bg-pui-border");
   });
 
   it("exposes value attributes and can be focused and resized with the keyboard", async () => {

@@ -15,6 +15,14 @@ import {
   SheetTrigger,
 } from "./Sheet";
 import type { SheetContentProps } from "./Sheet";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../AlertDialog/AlertDialog";
 
 function Example(props: SheetContentProps) {
   return (
@@ -209,5 +217,38 @@ describe("Sheet in a container", () => {
     expect(sheet).toHaveAttribute("data-slot", "sheet-popup");
     expect(sheet).toHaveAttribute("data-side", "left");
     expect(sheet).toHaveClass("fixed", "left-0");
+  });
+});
+
+describe("nested modals in a sheet", () => {
+  it("dims the sheet while an alert dialog opened from it is open", async () => {
+    const user = userEvent.setup();
+    render(
+      <Sheet defaultOpen>
+        <SheetContent>
+          <SheetTitle>Einstellungen</SheetTitle>
+          <AlertDialog>
+            <AlertDialogTrigger>Zurücksetzen</AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogTitle>Alles zurücksetzen?</AlertDialogTitle>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </SheetContent>
+      </Sheet>,
+    );
+    const sheet = await screen.findByRole("dialog", { name: "Einstellungen" });
+    expect(sheet).toHaveClass("after:bg-pui-scrim/scrim", "data-[nested-dialog-open]:after:opacity-100");
+
+    await user.click(screen.getByRole("button", { name: "Zurücksetzen" }));
+    const alert = await screen.findByRole("alertdialog", { name: "Alles zurücksetzen?" });
+    await waitFor(() => expect(sheet).toHaveAttribute("data-nested-dialog-open"));
+    // The alert dialog is dimmable itself (e.g. when it opens another dialog).
+    expect(alert).toHaveClass("after:bg-pui-scrim/scrim");
+
+    await user.click(screen.getByRole("button", { name: "Abbrechen" }));
+    await waitFor(() => expect(sheet).not.toHaveAttribute("data-nested-dialog-open"));
   });
 });

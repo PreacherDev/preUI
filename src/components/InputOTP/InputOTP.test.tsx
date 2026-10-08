@@ -86,3 +86,13 @@ describe("InputOTP data attributes", () => {
     expect(container.querySelector("[data-slot=input-otp-separator]")).not.toBeNull();
   });
 });
+
+describe("InputOTP invalid focus", () => {
+  it("shows focus on an invalid slot with a ring in the negative colour", () => {
+    render(<InputOTP length={4} aria-label="Code" />);
+    expect(screen.getAllByRole("textbox")[0]).toHaveClass(
+      "data-[invalid]:focus-visible:ring-pui",
+      "data-[invalid]:focus-visible:ring-pui-negative",
+    );
+  });
+});

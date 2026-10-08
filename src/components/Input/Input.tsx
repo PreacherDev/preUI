@@ -10,6 +10,9 @@ export const inputVariants = /* @__PURE__ */ cva(
     "placeholder:text-pui-muted-foreground",
     "outline-none transition-colors duration-pui-fast ease-pui focus-visible:border-pui-ring",
     "data-[invalid]:border-pui-negative aria-[invalid=true]:border-pui-negative",
+    // The invalid border outranks the focus border, so a focused invalid field adds a ring in the negative colour.
+    "data-[invalid]:focus-visible:ring-pui data-[invalid]:focus-visible:ring-pui-negative",
+    "aria-[invalid=true]:focus-visible:ring-pui aria-[invalid=true]:focus-visible:ring-pui-negative",
     "disabled:cursor-not-allowed disabled:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
     // File picker: the button fills the field height so its label is centred, and starts at the text inset.
     "file:mr-3 file:h-full file:border-0 file:bg-transparent file:p-0 file:text-sm file:font-medium file:text-pui-foreground",

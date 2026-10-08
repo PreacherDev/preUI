@@ -308,7 +308,7 @@ export const Sidebar = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProps>(
 
   return (
     <div
-      className="group peer hidden text-pui-foreground md:block"
+      className="group/sidebar peer hidden text-pui-foreground md:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -320,11 +320,11 @@ export const Sidebar = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProps>(
         data-slot="sidebar-gap"
         className={cn(
           "relative w-[var(--sidebar-width)] bg-transparent transition-[width] duration-pui-base ease-pui",
-          "group-data-[collapsible=offcanvas]:w-0",
-          "group-data-[side=right]:rotate-180",
+          "group-data-[collapsible=offcanvas]/sidebar:w-0",
+          "group-data-[side=right]/sidebar:rotate-180",
           detached
-            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
-            : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
+            ? "group-data-[collapsible=icon]/sidebar:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
+            : "group-data-[collapsible=icon]/sidebar:w-[var(--sidebar-width-icon)]",
         )}
       />
       <div
@@ -333,12 +333,12 @@ export const Sidebar = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProps>(
         className={cn(
           "fixed inset-y-0 z-10 hidden h-[var(--pui-viewport-height,100vh)] w-[var(--sidebar-width)] transition-[left,right,width] duration-pui-base ease-pui md:flex",
           side === "left"
-            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+            ? "left-0 group-data-[collapsible=offcanvas]/sidebar:left-[calc(var(--sidebar-width)*-1)]"
+            : "right-0 group-data-[collapsible=offcanvas]/sidebar:right-[calc(var(--sidebar-width)*-1)]",
           detached
-            ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+_2px)]"
-            : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
-          variant === "sidebar" && "border-pui-border group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            ? "p-2 group-data-[collapsible=icon]/sidebar:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+_2px)]"
+            : "group-data-[collapsible=icon]/sidebar:w-[var(--sidebar-width-icon)]",
+          variant === "sidebar" && "border-pui-border group-data-[side=left]/sidebar:border-r group-data-[side=right]/sidebar:border-l",
           className,
         )}
         style={style}
@@ -349,7 +349,7 @@ export const Sidebar = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProps>(
           data-slot="sidebar-inner"
           className={cn(
             "flex h-full w-full flex-col bg-pui-shell",
-            "group-data-[variant=floating]:rounded-pui group-data-[variant=floating]:border group-data-[variant=floating]:border-pui-border group-data-[variant=floating]:shadow-pui-floating",
+            "group-data-[variant=floating]/sidebar:rounded-pui group-data-[variant=floating]/sidebar:border group-data-[variant=floating]/sidebar:border-pui-border group-data-[variant=floating]/sidebar:shadow-pui-floating",
           )}
         >
           {children}
@@ -420,11 +420,11 @@ export const SidebarRail = /* @__PURE__ */ forwardRef<HTMLButtonElement, Sidebar
       }}
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 outline-none transition-all duration-pui-base ease-pui sm:flex",
-        "group-data-[side=left]:-right-4 group-data-[side=right]:left-0",
+        "group-data-[side=left]/sidebar:-right-4 group-data-[side=right]/sidebar:left-0",
         "after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] after:transition-colors after:duration-pui-fast hover:after:bg-pui-border",
         "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-pui-shell",
+        "group-data-[collapsible=offcanvas]/sidebar:translate-x-0 group-data-[collapsible=offcanvas]/sidebar:after:left-full group-data-[collapsible=offcanvas]/sidebar:hover:bg-pui-shell",
         "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2 [[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
         className,
       )}
@@ -524,7 +524,7 @@ export const SidebarSeparator = /* @__PURE__ */ forwardRef<ComponentRef<typeof S
         data-sidebar="separator"
         className={mergeClassName(
           // In the icon rail the hairline shrinks to 24px, centred (handoff NavRail divider).
-          "mx-2 my-0.5 bg-pui-border data-[orientation=horizontal]:w-auto group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:data-[orientation=horizontal]:w-6",
+          "mx-2 my-0.5 bg-pui-border data-[orientation=horizontal]:w-auto group-data-[collapsible=icon]/sidebar:mx-auto group-data-[collapsible=icon]/sidebar:data-[orientation=horizontal]:w-6",
           className,
         )}
         {...props}
@@ -600,7 +600,7 @@ export const SidebarGroupLabel = /* @__PURE__ */ forwardRef<HTMLElement, Sidebar
         "flex h-8 shrink-0 items-center rounded-pui-md px-[11px] text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground outline-none",
         "transition-[margin,opacity] duration-pui-base ease-pui focus-visible:ring-pui focus-visible:ring-pui-ring",
         "[&>svg]:size-4 [&>svg]:shrink-0",
-        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+        "group-data-[collapsible=icon]/sidebar:-mt-8 group-data-[collapsible=icon]/sidebar:opacity-0",
         className,
       ),
       ...props,
@@ -624,11 +624,11 @@ export const SidebarGroupAction = /* @__PURE__ */ forwardRef<HTMLElement, Sideba
       "data-sidebar": "group-action",
       type: render ? undefined : "button",
       className: cn(
-        "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-pui-sm p-0 text-pui-muted-foreground outline-none",
+        "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-pui-xs p-0 text-pui-muted-foreground outline-none",
         "transition-colors duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-foreground focus-visible:ring-pui focus-visible:ring-pui-ring",
         "[&>svg]:size-4 [&>svg]:shrink-0",
         "after:absolute after:-inset-2 md:after:hidden",
-        "group-data-[collapsible=icon]:hidden",
+        "group-data-[collapsible=icon]/sidebar:hidden",
         className,
       ),
       ...props,
@@ -718,9 +718,9 @@ export const sidebarMenuButtonVariants = /* @__PURE__ */ cva(
       },
       size: {
         default:
-          "h-pui-control-lg gap-3 px-[11px] text-sm [&>svg]:size-[18px] group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-[11px]",
-        sm: "h-pui-control-sm gap-2 px-2 text-xs [&>svg]:size-4 group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-3",
-        lg: "h-12 gap-3 px-2 text-sm [&>svg]:size-[18px] group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-1",
+          "h-pui-control-lg gap-3 px-[11px] text-sm [&>svg]:size-[18px] group-data-[collapsible=icon]/sidebar:!size-10 group-data-[collapsible=icon]/sidebar:!p-[11px]",
+        sm: "h-pui-control-sm gap-2 px-2 text-xs [&>svg]:size-4 group-data-[collapsible=icon]/sidebar:!size-10 group-data-[collapsible=icon]/sidebar:!p-3",
+        lg: "h-12 gap-3 px-2 text-sm [&>svg]:size-[18px] group-data-[collapsible=icon]/sidebar:!size-10 group-data-[collapsible=icon]/sidebar:!p-1",
       },
     },
     defaultVariants: {
@@ -797,13 +797,13 @@ export const SidebarMenuAction = /* @__PURE__ */ forwardRef<HTMLElement, Sidebar
       "data-sidebar": "menu-action",
       type: render ? undefined : "button",
       className: cn(
-        "absolute right-2 top-[calc((var(--pui-control-h-lg)_-_1.25rem)/2)] flex aspect-square w-5 items-center justify-center rounded-pui-sm p-0 text-pui-muted-foreground outline-none",
+        "absolute right-2 top-[calc((var(--pui-control-h-lg)_-_1.25rem)/2)] flex aspect-square w-5 items-center justify-center rounded-pui-xs p-0 text-pui-muted-foreground outline-none",
         "transition-[color,background-color,opacity] duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-foreground focus-visible:ring-pui focus-visible:ring-pui-ring",
         "peer-hover/menu-button:text-pui-foreground [&>svg]:size-4 [&>svg]:shrink-0",
         "after:absolute after:-inset-2 md:after:hidden",
         // Centred on the menu button; follows the control-height tokens (default 40px → 10px).
         "peer-data-[size=sm]/menu-button:top-[calc((var(--pui-control-h-sm)_-_1.25rem)/2)] peer-data-[size=default]/menu-button:top-[calc((var(--pui-control-h-lg)_-_1.25rem)/2)] peer-data-[size=lg]/menu-button:top-3.5",
-        "group-data-[collapsible=icon]:hidden",
+        "group-data-[collapsible=icon]/sidebar:hidden",
         showOnHover &&
           "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-[active=true]/menu-button:text-pui-foreground data-[popup-open]:opacity-100 md:opacity-0",
         className,
@@ -860,7 +860,7 @@ export const SidebarMenuBadge = /* @__PURE__ */ forwardRef<HTMLDivElement, Sideb
         sidebarMenuBadgeVariants({ variant }),
         "peer-data-[size=sm]/menu-button:top-[calc((var(--pui-control-h-sm)_-_1rem)/2)] peer-data-[size=default]/menu-button:top-[calc((var(--pui-control-h-lg)_-_1rem)/2)] peer-data-[size=lg]/menu-button:top-4",
         // Icon rail (handoff): the counter stays visible, pinned to the icon's top-right corner.
-        "group-data-[collapsible=icon]:!left-6 group-data-[collapsible=icon]:!right-auto group-data-[collapsible=icon]:!top-1",
+        "group-data-[collapsible=icon]/sidebar:!left-6 group-data-[collapsible=icon]/sidebar:!right-auto group-data-[collapsible=icon]/sidebar:!top-1",
         className,
       )}
       {...props}
@@ -903,7 +903,7 @@ export const SidebarMenuSkeleton = /* @__PURE__ */ forwardRef<HTMLDivElement, Si
         {...props}
       >
         {showIcon && (
-          <Skeleton data-sidebar="menu-skeleton-icon" className="size-[18px] shrink-0 rounded-pui-sm" />
+          <Skeleton data-sidebar="menu-skeleton-icon" className="size-[18px] shrink-0 rounded-pui-xs" />
         )}
         <Skeleton
           data-sidebar="menu-skeleton-text"
@@ -929,7 +929,7 @@ export const SidebarMenuSub = /* @__PURE__ */ forwardRef<HTMLUListElement, Sideb
       data-sidebar="menu-sub"
       className={cn(
         "mx-5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-pui-border px-2.5 py-0.5",
-        "group-data-[collapsible=icon]:hidden",
+        "group-data-[collapsible=icon]/sidebar:hidden",
         className,
       )}
       {...props}
@@ -979,7 +979,7 @@ export const SidebarMenuSubButton = /* @__PURE__ */ forwardRef<HTMLElement, Side
           "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
           "data-[active=true]:bg-pui-rail-active data-[active=true]:text-pui-foreground",
           size === "sm" ? "text-xs" : "text-sm",
-          "group-data-[collapsible=icon]:hidden",
+          "group-data-[collapsible=icon]/sidebar:hidden",
           className,
         ),
         ...props,

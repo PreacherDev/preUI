@@ -24,6 +24,7 @@ import {
 import { renderTokenOverrides, sharedTokenSet, tokenOverridesHeader } from "../../theming/token-css";
 import { lightTokens, tokens, type PreuiScheme, type PreuiTokenName } from "../../tailwind/tokens";
 import { cn } from "../../utils/cn";
+import { PortalContainerProvider } from "../../utils/portal-container";
 import { Button } from "../Button/Button";
 import type { ColorPickerLabels } from "../ColorPicker/ColorPicker";
 import { ColorPicker } from "../ColorPicker/ColorPicker";
@@ -38,6 +39,7 @@ import {
   deriveLightFromDark,
   fieldProblems,
   fixFieldContrast,
+  hasRawColorToken,
   hasOverrides,
   importantPairs,
   matchesPreset,
@@ -190,6 +192,11 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
     "negative/background": "Negative as text",
     "warning/background": "Warning as text",
     "info/background": "Info as text",
+    "primary/primary": "Primary text on its tint",
+    "positive/positive": "Positive text on its tint",
+    "negative/negative": "Negative text on its tint",
+    "warning/warning": "Warning text on its tint",
+    "info/info": "Info text on its tint",
   },
   shared: "Font",
   radius: "Corner radius",
@@ -597,6 +604,9 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
 
   // ---- actions ----------------------------------------------------------------------------------
   const [saving, setSaving] = useState(false);
+  // Popups opened in the preview (Select, menus, Tooltip, Dialog …) portal into this layer inside the scoped wrapper,
+  // so they inherit the edited tokens and `data-scheme` instead of the page's.
+  const [portalLayer, setPortalLayer] = useState<HTMLDivElement | null>(null);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -791,7 +801,11 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
                         labels={labels}
                         locale={locale}
                         onValue={(next) => update((current) => setPaletteColor(current, scheme, key, next))}
-                        onFix={() => update((current) => fixFieldContrast(current, scheme, key, minContrast) ?? current)}
+                        onFix={
+                          hasRawColorToken(config, scheme, key)
+                            ? undefined
+                            : () => update((current) => fixFieldContrast(current, scheme, key, minContrast) ?? current)
+                        }
                       />
                     ))}
                   </ul>
@@ -825,7 +839,8 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
                 style={effective[editing] as CSSProperties}
                 className="flex flex-col gap-3 rounded-pui border border-pui-border bg-pui-background p-3 font-sans text-pui-foreground"
               >
-                {previewSlot}
+                <PortalContainerProvider container={portalLayer}>{previewSlot}</PortalContainerProvider>
+                <PreviewPortalLayer ref={setPortalLayer} />
               </div>
             </section>
           )}
@@ -897,8 +912,11 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
             >
               {seeThrough && <PreviewBackdrop />}
               <ScrollArea className="relative min-h-0 flex-1 bg-pui-background" contentClassName="p-4 lg:p-6">
-                {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
+                <PortalContainerProvider container={portalLayer}>
+                  {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
+                </PortalContainerProvider>
               </ScrollArea>
+              <PreviewPortalLayer ref={setPortalLayer} />
             </div>
           </section>
         )}
@@ -964,6 +982,15 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
  * Stand-in for what lies behind see-through panels (the game in FiveM): flat shapes in the theme's own colours, no
  * gradients. Without it a translucent dark panel on a dark pane looks exactly like an opaque one.
  */
+/**
+ * Portal target for popups opened in the preview: a child of the scoped wrapper (inherits its tokens, `data-scheme`
+ * and font) but `fixed` at the viewport origin with no size, so it sits outside the preview's `overflow` clipping and
+ * `fixed`/`absolute` popups position against the viewport as usual. Takes no space and catches no pointer events.
+ */
+const PreviewPortalLayer = /* @__PURE__ */ forwardRef<HTMLDivElement>(function PreviewPortalLayer(_props, ref) {
+  return <div ref={ref} data-slot="theme-editor-portal" className="fixed left-0 top-0 z-50 size-0" />;
+});
+
 function PreviewBackdrop() {
   const shape = (token: string) => ({ fill: `hsl(var(--pui-${token}))` });
   return (
@@ -1104,7 +1131,8 @@ function ColorField({
   locale: string;
   onValue: (value: string | undefined) => void;
   /** Nudges the colour's lightness until its pairs are readable. */
-  onFix: () => void;
+  /** Missing when the colour can't be fixed here (a raw token overrides it): no Fix button then. */
+  onFix?: () => void;
 }) {
   const Undo = useIcon("undo");
   const label = labels.fields[fieldKey];
@@ -1144,7 +1172,7 @@ function ColorField({
           className="shrink-0"
         />
       )}
-      {worst && (
+      {worst && onFix && (
         <Button
           variant="outline"
           size="sm"

@@ -4,13 +4,17 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "re
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
 import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   containedAttr,
   ModalContainedContext,
   ModalSections,
   modalCloseClassName,
+  modalNestedDimClassName,
   modalOverlayClassName,
+  NestedModalContext,
   useModalContained,
+  useNestedModalReport,
   type ModalContentOptions,
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
@@ -37,12 +41,14 @@ export const SheetClose = /* @__PURE__ */ forwardRef<HTMLButtonElement, SheetClo
  * container's edge and the overlay only covers the container (see `contained`).
  */
 export const SheetPortal = /* @__PURE__ */ forwardRef<HTMLDivElement, SheetPortalProps>(function SheetPortal(
-  { contained, ...props },
+  { contained, container, children, ...props },
   ref,
 ) {
   return (
-    <ModalContainedContext.Provider value={contained ?? props.container != null}>
-      <BaseDialog.Portal ref={ref} data-slot="sheet-portal" {...props} />
+    <ModalContainedContext.Provider value={contained ?? container != null}>
+      <BaseDialog.Portal ref={ref} data-slot="sheet-portal" container={usePortalContainer(container)} {...props}>
+        <PortalContainerScope>{children}</PortalContainerScope>
+      </BaseDialog.Portal>
     </ModalContainedContext.Provider>
   );
 });
@@ -109,22 +115,29 @@ export const SheetPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDia
   const CloseIcon = useIcon("close");
   const contained = useModalContained();
   const focus = useInitialFocusWithoutScroll(initialFocus, ref);
+  const popupRef = useNestedModalReport(focus.ref);
   return (
     <BaseDialog.Popup
-      ref={focus.ref}
+      ref={popupRef}
       initialFocus={focus.initialFocus}
       data-slot="sheet-popup"
       data-side={side}
       data-contained={containedAttr(contained)}
       className={mergeClassName(
-        [sheetVariants({ side }), contained && ["absolute", (side === "top" || side === "bottom") && "max-h-[80%]"]],
+        [
+          sheetVariants({ side }),
+          modalNestedDimClassName,
+          contained && ["absolute", (side === "top" || side === "bottom") && "max-h-[80%]"],
+        ],
         className,
       )}
       {...props}
     >
-      <ModalSections header={[SheetHeader]} footer={[SheetFooter]}>
-        {children}
-      </ModalSections>
+      <NestedModalContext.Provider value={null}>
+        <ModalSections header={[SheetHeader]} footer={[SheetFooter]}>
+          {children}
+        </ModalSections>
+      </NestedModalContext.Provider>
       {showCloseButton && (
         <BaseDialog.Close aria-label={closeLabel} data-slot="sheet-close" className={cn(modalCloseClassName)}>
           <CloseIcon className="size-4" aria-hidden="true" />

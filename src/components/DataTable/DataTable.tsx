@@ -107,7 +107,11 @@ export interface DataTableProps<TData extends RowData> {
   getRowId?: TableOptions<DataTableFeatures, TData>["getRowId"];
   initialSorting?: SortingState;
   initialColumnVisibility?: ColumnVisibilityState;
-  /** Classes for the outer wrapper. */
+  /**
+   * Classes for the outer wrapper (a flex column). To fill a fixed-height parent and scroll the rows inside it,
+   * pass `className="min-h-0 flex-1"` (parent: `flex flex-col` with a height) together with
+   * `containerClassName="min-h-0 flex-1"` — toolbar and pagination stay visible, only the table scrolls.
+   */
   className?: string;
   /** Classes for the `<table>`. */
   tableClassName?: string;
@@ -118,7 +122,10 @@ export interface DataTableProps<TData extends RowData> {
    * current content.
    */
   layout?: "fixed" | "auto";
-  /** Classes for the table's bordered, scrolling container. */
+  /**
+   * Classes for the table's bordered, scrolling container, e.g. `max-h-96`, or `min-h-0 flex-1` to fill the
+   * height of the DataTable (see `className`).
+   */
   containerClassName?: string;
   /** Reserve room for a scrollbar instead of letting it float over the cells (see `Table`). @default false */
   reserveTrack?: TableProps["reserveTrack"];
@@ -305,7 +312,9 @@ export function DataTable<TData extends RowData>({
           {toolbar}
         </DataTableToolbar>
       )}
-      <div data-slot="data-table-content">
+      {/* A flex column, so the table container can shrink / grow (`containerClassName="min-h-0 flex-1"`) when the
+          DataTable has a fixed height; with an auto height it changes nothing. */}
+      <div data-slot="data-table-content" className="flex min-h-0 flex-1 flex-col">
         <Table
           className={cn(layout === "fixed" && "table-fixed", tableClassName)}
           style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
@@ -353,6 +362,7 @@ export function DataTable<TData extends RowData>({
           pageSizeOptions={pageSizeOptions}
           showSelectedCount={selectable}
           {...paginationProps}
+          className={cn("shrink-0", paginationProps?.className)}
         />
       </div>
     </div>

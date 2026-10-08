@@ -48,6 +48,22 @@ describe("Collapsible", () => {
     expect(container.querySelector("svg")).toBeNull();
   });
 
+  it("ties the chevron to its own trigger through a named group", () => {
+    // A plain `group-hover:` would also react to any outer `group` (e.g. hovering anywhere in a sidebar).
+    const { container } = render(
+      <Collapsible>
+        <CollapsibleTrigger>Details</CollapsibleTrigger>
+      </Collapsible>,
+    );
+    expect(screen.getByRole("button", { name: "Details" })).toHaveClass("group/collapsible-trigger");
+    const chevron = container.querySelector("svg")!;
+    expect(chevron).toHaveClass(
+      "group-hover/collapsible-trigger:text-pui-foreground",
+      "group-data-[panel-open]/collapsible-trigger:rotate-180",
+    );
+    expect(chevron.getAttribute("class")!.split(" ").some((name) => /^group-[^/]*:/.test(name))).toBe(false);
+  });
+
   it("merges className, including the function form", () => {
     render(
       <Collapsible defaultOpen>

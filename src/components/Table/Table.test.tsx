@@ -64,6 +64,35 @@ describe("Table", () => {
     expect(within(screen.getByText("Summe").closest("tfoot")!).getByText("$1.540")).toBeInTheDocument();
   });
 
+  it("keeps the header divider on the sticky header (inset shadow, not the scrolling row border)", () => {
+    renderTable();
+    const thead = screen.getByRole("columnheader", { name: "Datum" }).closest("thead")!;
+    expect(thead).toHaveClass(
+      "[&>tr]:border-b-0",
+      "[&>tr>*]:shadow-[inset_0_-1px_0_hsl(var(--pui-border)/var(--pui-border-opacity,1))]",
+    );
+  });
+
+  it("gives the container the card text colour (not inherited, e.g. muted in AccordionContent)", () => {
+    renderTable();
+    expect(screen.getByRole("table").closest("[data-slot=table-container]")).toHaveClass("text-pui-card-foreground");
+  });
+
+  it("wraps long unbreakable cell text without changing the auto-layout min-content", () => {
+    renderTable();
+    const cell = screen.getByRole("cell", { name: "$1.200" });
+    expect(cell).toHaveClass("break-words");
+    expect(cell.className).not.toContain("anywhere");
+    expect(screen.getByRole("columnheader", { name: "Datum" })).toHaveClass("whitespace-nowrap");
+  });
+
+  it("centres checkboxes and switches in cells and headers", () => {
+    renderTable();
+    for (const el of [screen.getByRole("cell", { name: "$1.200" }), screen.getByRole("columnheader", { name: "Datum" })]) {
+      expect(el).toHaveClass("[&>[role=checkbox]]:align-top", "[&>[role=checkbox]]:my-0.5", "[&>[role=switch]]:align-top");
+    }
+  });
+
   it("merges className on table and container and forwards refs", () => {
     const ref = createRef<HTMLTableElement>();
     render(

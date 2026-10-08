@@ -12,6 +12,8 @@ export const Empty = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyProps>(func
       data-slot="empty"
       className={cn(
         "flex min-w-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center text-sm text-pui-muted-foreground",
+        // Centred children size to their content; `anywhere` lets a long unbreakable word wrap instead of overflowing.
+        "[overflow-wrap:anywhere]",
         className,
       )}
       {...props}
@@ -29,7 +31,7 @@ export const EmptyHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyHeade
     <div
       ref={ref}
       data-slot="empty-header"
-      className={cn("flex max-w-sm flex-col items-center gap-2 text-center", className)}
+      className={cn("flex max-w-sm flex-col items-center gap-2 text-center [overflow-wrap:anywhere]", className)}
       {...props}
     />
   );

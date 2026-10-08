@@ -40,7 +40,8 @@ works as well — the CJS module is a callable preset that Tailwind invokes.
 The `/tailwind` entry also exports `tokens` (dark defaults), `lightTokens` (light defaults, same keys), `schemes`
 (`{ dark, light }`), `schemeTokens(scheme)`, `sharedTokenNames`, `schemeSelectors`, `tokensToCss()` and `tokensHeader`
 (used by `npx preui init`), plus the build-time helpers of [Runtime theming](#runtime-theming): `deriveTokens`,
-`getContrast`, `getContrastLevel`, `checkTokenContrast`, `contrastPairs`, `runtimeTokenSelectors` and `toHslChannels`.
+`getContrast`, `getContrastLevel`, `checkTokenContrast`, `contrastPairs`, `tintContrastColors`, `tintContrastSurfaces`,
+`worstTintContrast`, `runtimeTokenSelectors` and `toHslChannels`.
 
 The preset sets the dark tokens on `:root` and the light ones under `[data-scheme="light"]` (see
 [Theming: scheme & themes](#theming-scheme--themes)), enables tabular figures and makes `font-sans` / `font-mono` use
@@ -104,11 +105,12 @@ Besides the components, the main package exports:
 
 | Export | Purpose |
 |---|---|
-| `buttonVariants`, `badgeVariants`, `alertVariants`, `avatarVariants`, `buttonGroupVariants`, `toggleVariants`, `toggleGroupVariants`, `toolbarVariants`, `inputVariants`, `inputGroupAddonVariants`, `inputGroupButtonVariants`, `numberFieldVariants`, `itemVariants`, `itemMediaVariants`, `emptyMediaVariants`, `progressIndicatorVariants`, `meterIndicatorVariants`, `navigationMenuTriggerStyle`, `sidebarMenuButtonVariants`, `progressCircleIndicatorVariants`, `keybindHintBarVariants`, `keybindHintVariants`, `hudStatusGroupVariants`, `listMenuItemVariants`, `listMenuItemIconVariants`, `sidebarMenuBadgeVariants` | Style helpers (cva), e.g. to style a plain `<a>` like a button |
+| `buttonVariants`, `badgeVariants`, `alertVariants`, `avatarVariants`, `buttonGroupVariants`, `toggleVariants`, `toggleGroupVariants`, `toolbarVariants`, `inputVariants`, `inputGroupAddonVariants`, `inputGroupButtonVariants`, `numberFieldVariants`, `itemVariants`, `itemMediaVariants`, `emptyMediaVariants`, `progressIndicatorVariants`, `meterIndicatorVariants`, `navigationMenuTriggerStyle`, `sidebarMenuButtonVariants`, `progressCircleIndicatorVariants`, `keybindHintBarVariants`, `keybindHintVariants`, `sidebarMenuBadgeVariants` | Style helpers (cva), e.g. to style a plain `<a>` like a button |
 | `cn`, `mergeClassName` | Class merging (tailwind-merge); `mergeClassName` also accepts Base UI's function-form `className` |
 | `IconProvider`, `useIcon`, `defaultIcons` | Icon slots (see [Icons](#icons)) |
+| `PortalContainerProvider` | Default portal container for every preUI popup below it (see [Scoped themes and portals](#scoped-themes-and-portals)) |
 | `ThemeProvider`, `useTheme`, `ThemeScript`, `getThemeScript`, `ThemeToggle`, `ThemeSelect` | Light/dark scheme + your named themes (see [Theming: scheme & themes](#theming-scheme--themes)); types `ThemeStorage`, `ThemeStorageValue` |
-| `applyTokens`, `clearTokens`, `deriveTokens`, `getContrast`, `getContrastLevel`, `checkTokenContrast`, `contrastPairs`, `runtimeTokenSelectors`, `toHslChannels`, `ContrastBadge` | Runtime theming: set tokens live, derive palettes, check contrast (see [Runtime theming](#runtime-theming)); types `TokenInput`, `TokenOverrides`, `DeriveTokensBase`, `TokenContrastResult`, `ContrastLevel`, `PreuiTokens`, `PreuiTokenName` |
+| `applyTokens`, `clearTokens`, `deriveTokens`, `getContrast`, `getContrastLevel`, `checkTokenContrast`, `contrastPairs`, `tintContrastColors`, `tintContrastSurfaces`, `worstTintContrast`, `runtimeTokenSelectors`, `toHslChannels`, `ContrastBadge` | Runtime theming: set tokens live, derive palettes, check contrast (see [Runtime theming](#runtime-theming)); types `TokenInput`, `TokenOverrides`, `DeriveTokensBase`, `TokenContrastResult`, `ContrastLevel`, `PreuiTokens`, `PreuiTokenName` |
 | `formatKeybind`, `keybindFromEvent`, `matchesKeybind`, default labels (`defaultKeybindInputLabels`, `defaultContrastBadgeLabels`) | Keybind and badge helpers (see [Game UI](#game-ui)) |
 | `moveKanbanItem`, `defaultKanbanLabels` | Kanban state helper and screen-reader texts (see [Kanban](#kanban)) |
 | `useListNavigation` | Keyboard-driven lists (see [useListNavigation](#uselistnavigation)) |
@@ -259,6 +261,27 @@ first and can stop the activation with `event.preventDefault()`.
   getRowProps={(row) => ({ className: row.original.wanted ? "text-pui-negative" : undefined })}
 />
 ```
+
+### DataTable in a fixed height
+
+To fill a fixed-height parent (a card, a tab, a window) and scroll the rows inside while toolbar and pagination stay
+visible, give the parent a flex column and the table `min-h-0 flex-1` twice:
+
+```tsx
+<Card className="flex h-[420px] flex-col">
+  <CardContent className="flex min-h-0 flex-1 flex-col">
+    <DataTable columns={columns} data={rows} className="min-h-0 flex-1" containerClassName="min-h-0 flex-1" />
+  </CardContent>
+</Card>
+```
+
+Long unbreakable cell text (ids, URLs) wraps inside its cell.
+
+### Sidebar: named group
+
+The sidebar root is the Tailwind group `group/sidebar`, so plain `group-hover:` classes inside it (Badge `reveal`,
+your own cards) only react to their own group. Style things by the sidebar's state with the name:
+`group-data-[collapsible=icon]/sidebar:hidden`, `group-data-[side=right]/sidebar:…` (before 0.11 without `/sidebar`).
 
 ### Sidebar badges
 
@@ -568,7 +591,7 @@ import { ProgressCircle, ProgressCircleValue } from "@pre_scripts/preui";
 | `tone` | `"primary" \| "positive" \| "warning" \| "negative" \| "muted"` | `"primary"` |
 | `size` | `"sm"` (32px) `\| "default"` (48px) `\| "lg"` (64px) `\| number` (px) | `"default"` |
 | `thickness` | `number` (px) | `3` / `4` / `5` (`4` for numeric sizes) |
-| `showValue` | `boolean` — formatted value in the centre; `children` replace it | `false` |
+| `showValue` | `boolean` — formatted value in the centre; `children` replace it. Rings under 48px (`size="sm"`) show the number without `%` so it fits; `format` overrides | `false` |
 | `trackClassName` / `indicatorClassName` | `string` | |
 
 #### KeybindHint
@@ -589,7 +612,8 @@ import { KeybindHint, KeybindHintBar } from "@pre_scripts/preui";
 ```
 
 `KeybindHintBar` takes `orientation` (`"horizontal"` | `"vertical"`), `variant` (`"default"` plain | `"surface"`, a
-card-coloured pill or panel) and `gap` (px). `KeybindHint` takes `keys` (`ReactNode | ReactNode[]`), `label`,
+card-coloured panel with the theme radius, which still looks right when the row wraps — `className="rounded-full"`
+for a one-line pill) and `gap` (px). `KeybindHint` takes `keys` (`ReactNode | ReactNode[]`), `label`,
 `separator` (default `"+"`) and `keyClassName`.
 
 **Clickable hints and compact size.** Make a hint a button with `render`. It then gets padding, a hover background, a
@@ -1029,7 +1053,9 @@ server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or y
   edits every colour token of the scheme.
 - **Style**: corner radius, **panel opacity** (see-through panels, e.g. over the game), **accent strength**,
   **borders**, **shadows** — one shared token each (`--pui-radius`, `--pui-surface-opacity`, `--pui-tint-scale`,
-  `--pui-border-opacity`, `--pui-shadow-scale`)
+  `--pui-border-opacity`, `--pui-shadow-scale`). Panel opacity affects panels only (page, window, card); menus,
+  selects, popovers and toasts stay opaque. Border opacity fades structural lines; field borders and outline
+  buttons/badges stay. Accent strength above 100 % makes tinted text fail the contrast check.
 - **Font** (`fonts`), optionally with a file: `{ label, value, src: "fonts/rajdhani.woff2" }` is loaded on demand and
   stored in the theme (`fonts.sans`), so every UI that receives the theme loads it too (`loadThemeFonts`,
   `NuiThemeBridge`) — no import in code
@@ -1101,6 +1127,27 @@ export function App() {
 
 Helpers: `resolveThemeConfig(config)` (→ `applyTokens` / `tokensToCss({ tokens })` input),
 `resolveThemeConfigTokens(config, scheme)`, `checkThemeConfigContrast(config, scheme)`, `defaultThemePresets`.
+
+### Scoped themes and portals
+
+Popups (Select, menus, Popover, Tooltip, HoverCard, DatePicker, dialogs, toasts) render into `document.body` by
+default, so inside an element with its own tokens or `data-scheme` they would show the page theme.
+`PortalContainerProvider` sets the default container for every preUI popup below it; an explicit `container` prop
+still wins, and popups opened inside another popup follow their parent. The ThemeEditor uses it for `previewSlot`.
+
+```tsx
+const [layer, setLayer] = useState<HTMLDivElement | null>(null);
+
+<div data-scheme="light" style={scopedTokens}>
+  {/* fixed and zero-sized: outside overflow clipping, takes no space, catches no clicks */}
+  <div ref={setLayer} className="fixed left-0 top-0 z-50 size-0" />
+  <PortalContainerProvider container={layer}>{children}</PortalContainerProvider>
+</div>
+```
+
+Pass the element (state + callback ref), not a ref object. The container must not sit under a `transform` or `filter`
+(it would become the popups' positioning frame) or inside `overflow` clipping. Modals still centre in the viewport.
+Types: `PortalContainer`, `PortalContainerProviderProps`.
 
 ### Runtime theming
 
@@ -1179,7 +1226,9 @@ Levels: `AAA` ≥ 7, `AA` ≥ 4.5, `AA-large` ≥ 3 (large or bold text only), e
 fixed list (`contrastPairs`): text on its surface (foreground/background, card, popover, tooltip, primary, secondary,
 accent, muted text on background/card/muted, each status colour's foreground) and the status colours as text on the
 background (`text-pui-primary`, `-positive`, `-negative`, `-warning`, `-info` — the components mostly use them that
-way). Missing tokens are skipped and `var(--pui-…)` references are followed. Nothing is blocked — show the result:
+way). On top, each of those colours is checked as text on its own tint (`text-pui-x` on `bg-pui-x/tint` — default
+buttons, badges, alert titles) over background, card, popover, shell and muted, at `--pui-tint-rest` ×
+`--pui-tint-scale`; only the worst surface is reported (`surface`, `tint` on the result, `fg` = `bg` = the colour). Missing tokens are skipped and `var(--pui-…)` references are followed. Nothing is blocked — show the result:
 
 ```tsx
 import { ContrastBadge } from "@pre_scripts/preui";
@@ -1206,7 +1255,7 @@ For one-off changes pass `className` — it is merged with the defaults and wins
 All tokens are available as Tailwind classes: surfaces (`bg-pui-shell`, `bg-pui-background`, `bg-pui-card`,
 `bg-pui-popover`), text (`text-pui-foreground`, `text-pui-muted-foreground`), semantic colours, tints
 (`bg-pui-primary/tint`, `hover:bg-pui-primary/tint-hover`), sizes (`h-pui-control`, `size-pui-control-sm`),
-radii (`rounded-pui`, `rounded-pui-md`, `rounded-pui-sm`, `rounded-pui-window`), shadows (`shadow-pui-floating`),
+radii (`rounded-pui`, `rounded-pui-md`, `rounded-pui-sm`, `rounded-pui-xs` — capped at 4px for small boxes, `rounded-pui-window`), shadows (`shadow-pui-floating`),
 motion (`duration-pui-fast`, `ease-pui`), `ring-pui` and the `text-pui-eyebrow` label size.
 
 ## Versioning

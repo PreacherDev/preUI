@@ -10,13 +10,18 @@ export const buttonGroupVariants = /* @__PURE__ */ cva(
     "flex w-fit items-stretch",
     "[&>*:focus-visible]:relative [&>*:focus-visible]:z-10",
     "[&>input]:flex-1",
-    // A focused field outlines the whole group (its own left/top edge is covered by the neighbour).
+    // A focused field outlines the whole group (its own left/top edge is covered by the neighbour). A "field" is
+    // any child that is not a button (Button / Toggle carry data-variant and draw their own ring) or a nested
+    // group: Input, Textarea, SelectTrigger, NumberField, InputGroup, Combobox, DatePicker, KeybindInput … — while it
+    // holds the focus or its popup is open.
     "rounded-pui-md transition-shadow duration-pui-fast ease-pui",
-    "has-[>input:focus-visible]:ring-pui has-[>input:focus-visible]:ring-pui-ring",
-    "has-[>textarea:focus-visible]:ring-pui has-[>textarea:focus-visible]:ring-pui-ring",
+    "has-[>:is(:focus-within,[data-popup-open]):not([data-variant]):not([data-slot=button-group])]:ring-pui",
+    "has-[>:is(:focus-within,[data-popup-open]):not([data-variant]):not([data-slot=button-group])]:ring-pui-ring",
     // Same without :has() (Chromium < 105), attribute set by useHasFallback.
     "data-[has-focused-field]:ring-pui data-[has-focused-field]:ring-pui-ring",
-    "[&>input:focus-visible]:border-pui-input [&>textarea:focus-visible]:border-pui-input",
+    // The field's own focus border would be open on the covered side: keep its normal border instead
+    // (an invalid field keeps its negative border).
+    "[&>:is(:focus-within,[data-popup-open]):not([data-variant]):not([data-invalid]):not([aria-invalid=true])]:border-pui-input",
     // Nested groups sit apart instead of merging.
     "has-[>[data-slot=button-group]]:gap-2 data-[has-nested-group]:gap-2",
   ],
@@ -47,7 +52,12 @@ export interface ButtonGroupProps extends ComponentPropsWithoutRef<"div"> {
 }
 
 const buttonGroupHasRules: HasFallbackRule[] = [
-  { attr: "data-has-focused-field", has: ":scope > input:focus-visible, :scope > textarea:focus-visible" },
+  {
+    attr: "data-has-focused-field",
+    // Focus inside, or its popup (Select, DatePicker) is open and holds the focus. (`:is()` before the `:not()`s:
+    // jsdom's selector engine mismatches the other order.)
+    has: ":scope > :is(:focus-within, [data-popup-open]):not([data-variant]):not([data-slot=button-group])",
+  },
   { attr: "data-has-nested-group", has: ":scope > [data-slot=button-group]" },
 ];
 

@@ -2,8 +2,10 @@ import { Select as BaseSelect } from "@base-ui/react/select";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   fieldClass,
+  fieldPaddingClass,
   fieldSizeClass,
   groupLabelClass,
   listClass,
@@ -44,8 +46,11 @@ export const SelectTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof Base
           [
             fieldClass,
             fieldSizeClass[size],
-            "flex cursor-default select-none items-center justify-between gap-2 px-3 text-left",
+            fieldPaddingClass[size],
+            "flex cursor-default select-none items-center justify-between gap-2 text-left",
             "focus-visible:border-pui-ring data-[popup-open]:border-pui-ring",
+            // The invalid border outranks the focus border: a ring in the negative colour shows the focus instead.
+            "data-[invalid]:focus-visible:ring-pui data-[invalid]:focus-visible:ring-pui-negative",
             "data-[placeholder]:text-pui-muted-foreground",
           ],
           className,
@@ -95,7 +100,7 @@ export interface SelectContentProps extends ComponentPropsWithoutRef<typeof Base
    * Off by default — the list scrolls with the preUI ScrollArea thumb, wheel and keyboard.
    */
   scrollButtons?: boolean;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseSelect.Portal.Props["container"];
 }
 
@@ -122,29 +127,31 @@ export const SelectContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof Base
     ref,
   ) {
     return (
-      <BaseSelect.Portal container={container}>
-        <BaseSelect.Positioner
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          alignItemWithTrigger={alignItemWithTrigger}
-          data-slot="select-positioner"
-          {...positionerProps}
-          className={mergeClassName(listPositionerClass, positionerProps?.className)}
-        >
-          <BaseSelect.Popup ref={ref} data-slot="select-content" className={mergeClassName([listPopupClass, "relative"], className)} {...props}>
-            {scrollButtons && <SelectScrollUpButton />}
-            {/* scroll-py-6 keeps highlighted/selected items clear of the 1.5rem scroll arrows. */}
-            <BaseSelect.List
-              className={mergeClassName([listClass, scrollButtons && "scroll-py-6"], listClassName)}
-              render={renderListInScrollArea}
-            >
-              {children}
-            </BaseSelect.List>
-            {scrollButtons && <SelectScrollDownButton />}
-          </BaseSelect.Popup>
-        </BaseSelect.Positioner>
+      <BaseSelect.Portal container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BaseSelect.Positioner
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            alignItemWithTrigger={alignItemWithTrigger}
+            data-slot="select-positioner"
+            {...positionerProps}
+            className={mergeClassName(listPositionerClass, positionerProps?.className)}
+          >
+            <BaseSelect.Popup ref={ref} data-slot="select-content" className={mergeClassName([listPopupClass, "relative"], className)} {...props}>
+              {scrollButtons && <SelectScrollUpButton />}
+              {/* scroll-py-6 keeps highlighted/selected items clear of the 1.5rem scroll arrows. */}
+              <BaseSelect.List
+                className={mergeClassName([listClass, scrollButtons && "scroll-py-6"], listClassName)}
+                render={renderListInScrollArea}
+              >
+                {children}
+              </BaseSelect.List>
+              {scrollButtons && <SelectScrollDownButton />}
+            </BaseSelect.Popup>
+          </BaseSelect.Positioner>
+        </PortalContainerScope>
       </BaseSelect.Portal>
     );
   },

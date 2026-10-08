@@ -28,7 +28,7 @@ export const CollapsibleTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof
         data-slot="collapsible-trigger"
         className={mergeClassName(
           [
-            "group inline-flex items-center gap-2 rounded-pui-sm text-sm font-medium text-pui-foreground select-none outline-none",
+            "group group/collapsible-trigger inline-flex items-center gap-2 rounded-pui-sm text-sm font-medium text-pui-foreground select-none outline-none",
             "transition-colors duration-pui-fast ease-pui",
             "focus-visible:ring-pui focus-visible:ring-pui-ring",
             "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -40,7 +40,7 @@ export const CollapsibleTrigger = /* @__PURE__ */ forwardRef<ComponentRef<typeof
         {children}
         {!hideChevron && (
           <ChevronDown
-            className="size-4 shrink-0 text-pui-muted-foreground transition-[transform,color] duration-pui-base ease-pui group-hover:text-pui-foreground group-data-[panel-open]:rotate-180"
+            className="size-4 shrink-0 text-pui-muted-foreground transition-[transform,color] duration-pui-base ease-pui group-hover/collapsible-trigger:text-pui-foreground group-data-[panel-open]/collapsible-trigger:rotate-180"
             aria-hidden="true"
           />
         )}

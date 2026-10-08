@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   menuCheckableItemClass,
   menuDestructiveItemClass,
@@ -71,7 +72,7 @@ export interface DropdownMenuContentProps extends ComponentPropsWithoutRef<typeo
   alignOffset?: PositionerProps["alignOffset"];
   /** Props for the positioner element (e.g. `collisionPadding`, `className`). */
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseMenu.Portal.Props["container"];
 }
 
@@ -110,25 +111,27 @@ export const MenuContent = /* @__PURE__ */ forwardRef<
 ) {
   return (
     <MenuSlotContext.Provider value={slotPrefix}>
-      <BaseMenu.Portal container={container}>
-        <BaseMenu.Positioner
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          data-slot={`${slotPrefix}-positioner`}
-          {...positionerProps}
-          className={mergeClassName(menuPositionerClass, positionerProps?.className)}
-        >
-          <BaseMenu.Popup
-            ref={ref}
-            data-slot={`${slotPrefix}-${slotPart}`}
-            className={mergeClassName(menuPopupClass, className)}
-            {...props}
+      <BaseMenu.Portal container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BaseMenu.Positioner
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            data-slot={`${slotPrefix}-positioner`}
+            {...positionerProps}
+            className={mergeClassName(menuPositionerClass, positionerProps?.className)}
           >
-            <MenuScrollArea>{children}</MenuScrollArea>
-          </BaseMenu.Popup>
-        </BaseMenu.Positioner>
+            <BaseMenu.Popup
+              ref={ref}
+              data-slot={`${slotPrefix}-${slotPart}`}
+              className={mergeClassName(menuPopupClass, className)}
+              {...props}
+            >
+              <MenuScrollArea>{children}</MenuScrollArea>
+            </BaseMenu.Popup>
+          </BaseMenu.Positioner>
+        </PortalContainerScope>
       </BaseMenu.Portal>
     </MenuSlotContext.Provider>
   );

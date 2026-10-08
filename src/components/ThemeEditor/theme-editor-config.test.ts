@@ -33,6 +33,11 @@ describe("presets set the whole look", () => {
 });
 
 describe("fixFieldContrast", () => {
+  it("gives up when a raw token overrides the colour (the palette can't change it)", () => {
+    const config = { v: 1, tokens: { light: { primary: "#d21459" } }, palette: { light: { background: "#fff4d6" } } } as const;
+    expect(fixFieldContrast(config as never, "light", "primary", 4.5)).toBeNull();
+  });
+
   it("finds the smallest lightness change that makes a field readable", () => {
     const unreadable: ThemeConfig = { v: 1, palette: { light: { primary: "#fde68a" } } }; // pale yellow on white
     expect(problems(unreadable, "light", "primary").length).toBeGreaterThan(0);

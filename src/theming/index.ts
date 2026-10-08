@@ -5,6 +5,9 @@ export {
   contrastPairs,
   getContrast,
   getContrastLevel,
+  tintContrastColors,
+  tintContrastSurfaces,
+  worstTintContrast,
 } from "./contrast";
 export type { ContrastLevel, TokenContrastResult } from "./contrast";
 export { deriveTokens } from "./derive";

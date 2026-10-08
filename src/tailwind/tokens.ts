@@ -23,7 +23,7 @@ const baseTokens = {
   "--pui-primary-foreground": "225 12% 9%",
   "--pui-secondary": "225 10% 16%",
   "--pui-secondary-foreground": "225 12% 92%",
-  "--pui-muted": "225 10% 15%",
+  "--pui-muted": "225 10% 14%",
   "--pui-muted-foreground": "223 7% 58%",
   "--pui-accent": "225 10% 17%",
   "--pui-accent-foreground": "225 12% 96%",
@@ -36,7 +36,7 @@ const baseTokens = {
   // Semantic
   "--pui-positive": "157 68% 45%",
   "--pui-positive-foreground": "225 12% 9%",
-  "--pui-negative": "0 78% 65%",
+  "--pui-negative": "3 92% 69%",
   "--pui-negative-foreground": "225 12% 9%",
   "--pui-destructive": "0 72% 51%",
   "--pui-destructive-foreground": "225 12% 98%",
@@ -107,9 +107,10 @@ const baseTokens = {
   "--pui-duration-slow": "500ms",
   "--pui-ease": "cubic-bezier(0, 0, 0.2, 1)",
 
-  // Style: 1 = the default look. Surface opacity < 1 makes page, window, card and popover see-through; tint scale
-  // multiplies every tint (badges, default buttons, selections); border opacity fades the borders (0 = none);
-  // shadow scale multiplies the shadow alphas.
+  // Style: 1 = the default look. Surface opacity < 1 makes page, window and card see-through (popovers stay opaque);
+  // tint scale multiplies every tint (badges, default buttons, selections — above 1 the tinted text drops below 4.5:1,
+  // see checkTokenContrast); border opacity fades the structural borders (panel edges, dividers; 0 = none — field and
+  // outline borders stay); shadow scale multiplies the shadow alphas.
   "--pui-surface-opacity": "1",
   "--pui-tint-scale": "1",
   "--pui-border-opacity": "1",
@@ -192,15 +193,15 @@ const lightSchemeTokens: Record<Exclude<PreuiTokenName, SharedTokenName>, string
   "--pui-thumb": "0 0% 100%",
 
   // Semantic
-  "--pui-positive": "158 82% 26%",
+  "--pui-positive": "156 71% 26%",
   "--pui-positive-foreground": "0 0% 100%",
-  "--pui-negative": "0 72% 47%",
+  "--pui-negative": "0 81% 42%",
   "--pui-negative-foreground": "0 0% 100%",
   "--pui-destructive": "0 72% 46%",
   "--pui-destructive-foreground": "0 0% 100%",
-  "--pui-warning": "32 95% 33%",
+  "--pui-warning": "29 89% 32%",
   "--pui-warning-foreground": "0 0% 100%",
-  "--pui-info": "200 92% 34%",
+  "--pui-info": "203 85% 34%",
   "--pui-info-foreground": "0 0% 100%",
 
   // Quality tiers

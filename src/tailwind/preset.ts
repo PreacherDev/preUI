@@ -7,7 +7,15 @@ import { schemeSelectors, schemes, schemeTokens, tokens, type PreuiScheme } from
 
 export * from "./tokens";
 export { runtimeTokenSelectors, toHslChannels } from "../theming/token-css";
-export { checkTokenContrast, contrastPairs, getContrast, getContrastLevel } from "../theming/contrast";
+export {
+  checkTokenContrast,
+  contrastPairs,
+  getContrast,
+  getContrastLevel,
+  tintContrastColors,
+  tintContrastSurfaces,
+  worstTintContrast,
+} from "../theming/contrast";
 export type { ContrastLevel, TokenContrastResult } from "../theming/contrast";
 export { deriveTokens } from "../theming/derive";
 export type { DeriveTokensBase } from "../theming/derive";
@@ -127,9 +135,10 @@ const withForeground = (name: string) => ({
 });
 
 /**
- * Surfaces (page, window, card, popover) also follow `--pui-surface-opacity` (1 = opaque, the default): one value
+ * Panel surfaces (page, window, card) also follow `--pui-surface-opacity` (1 = opaque, the default): one value
  * makes every panel see-through, e.g. over the game in FiveM. Opacity modifiers keep working (`bg-pui-card/80` is
- * 0.8 × the surface opacity).
+ * 0.8 × the surface opacity). Popovers (menus, selects, hover cards, toasts) stay opaque: they float over text,
+ * which would read through them.
  */
 const surface = (name: string) => `hsl(var(--pui-${name}) / calc(<alpha-value> * var(--pui-surface-opacity, 1)))`;
 
@@ -158,7 +167,8 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
           background: surface("background"),
           foreground: color("foreground"),
           card: { DEFAULT: surface("card"), foreground: color("card-foreground") },
-          popover: { DEFAULT: surface("popover"), foreground: color("popover-foreground") },
+          // Opaque on purpose (not `surface()`): floating layers cover text.
+          popover: { DEFAULT: color("popover"), foreground: color("popover-foreground") },
           "rail-active": color("rail-active"),
           tooltip: withForeground("tooltip"),
           scrim: color("scrim"),
@@ -167,7 +177,9 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
           secondary: withForeground("secondary"),
           muted: withForeground("muted"),
           accent: withForeground("accent"),
-          // --pui-border-opacity (1 = default, 0 = no borders) fades every border at once.
+          // --pui-border-opacity (1 = default, 0 = none) fades the structural lines at once: panel edges, dividers,
+          // table rows. Outlines that are an element's only shape — fields and outline buttons/badges (border-pui-input)
+          // and tinted borders (border-pui-x/tint-border) — never fade.
           border: "hsl(var(--pui-border) / calc(<alpha-value> * var(--pui-border-opacity, 1)))",
           input: color("input"),
           ring: color("ring"),
@@ -195,7 +207,10 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
         pui: "var(--pui-radius)", // 8px — panels, tables, dialogs
         // max(0px, …) keeps the derived radii valid when --pui-radius is set below 4px.
         "pui-md": "max(0px, calc(var(--pui-radius) - 2px))", // 6px — buttons, inputs, badges
-        "pui-sm": "max(0px, calc(var(--pui-radius) - 4px))", // 4px — menu items, checkbox
+        "pui-sm": "max(0px, calc(var(--pui-radius) - 4px))", // 4px — menu items, toggles
+        // pui-sm capped at 4px for boxes of about 20px and less (checkbox, kbd): a large --pui-radius would turn them
+        // into circles (a 16px checkbox with 8px corners looks like a radio).
+        "pui-xs": "min(4px, max(0px, calc(var(--pui-radius) - 4px)))", // 4px — checkbox, kbd
       },
       boxShadow: {
         "pui-window": "var(--pui-shadow-window)",

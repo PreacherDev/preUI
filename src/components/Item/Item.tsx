@@ -162,7 +162,11 @@ export const ItemContent = /* @__PURE__ */ forwardRef<HTMLDivElement, ItemConten
     <div
       ref={ref}
       data-slot="item-content"
-      className={cn("flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none", className)}
+      className={cn(
+        // min-w-0 + overflow-wrap:anywhere: long unbreakable titles / descriptions wrap inside the item.
+        "flex min-w-0 flex-1 flex-col gap-1 [overflow-wrap:anywhere] [&+[data-slot=item-content]]:flex-none",
+        className,
+      )}
       {...props}
     />
   );

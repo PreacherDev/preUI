@@ -24,7 +24,9 @@ export const BreadcrumbList = /* @__PURE__ */ forwardRef<HTMLOListElement, Bread
       ref={ref}
       data-slot="breadcrumb-list"
       className={cn(
-        "flex flex-wrap items-center gap-1.5 break-words text-sm text-pui-muted-foreground sm:gap-2",
+        // overflow-wrap:anywhere (not break-word) also shrinks the items' min-content width, so a long page name
+        // wraps inside the trail instead of running off a narrow screen.
+        "flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-pui-muted-foreground [overflow-wrap:anywhere] sm:gap-2",
         className,
       )}
       {...props}
@@ -39,7 +41,7 @@ export const BreadcrumbItem = /* @__PURE__ */ forwardRef<HTMLLIElement, Breadcru
   ref,
 ) {
   return (
-    <li ref={ref} data-slot="breadcrumb-item" className={cn("inline-flex items-center gap-1.5", className)} {...props} />
+    <li ref={ref} data-slot="breadcrumb-item" className={cn("inline-flex min-w-0 items-center gap-1.5", className)} {...props} />
   );
 });
 

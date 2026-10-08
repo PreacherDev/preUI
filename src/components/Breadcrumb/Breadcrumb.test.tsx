@@ -83,6 +83,14 @@ describe("Breadcrumb", () => {
     );
     expect(screen.getByText("/")).toBeInTheDocument();
   });
+
+  it("lets items shrink so a long page name wraps on narrow screens", () => {
+    render(<Trail />);
+    const list = screen.getByRole("list");
+    expect(list).toHaveClass("flex-wrap", "min-w-0", "[overflow-wrap:anywhere]");
+    expect(list).not.toHaveClass("break-words");
+    expect(screen.getByText("Einstellungen").closest("li")).toHaveClass("inline-flex", "min-w-0");
+  });
 });
 
 describe("BreadcrumbEllipsis a11y", () => {

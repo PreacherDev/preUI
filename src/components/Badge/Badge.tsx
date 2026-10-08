@@ -21,22 +21,23 @@ export const badgeVariants = /* @__PURE__ */ cva(
         /** Neutral — counts and plain labels. */
         secondary: "border-transparent bg-pui-muted text-pui-muted-foreground [a&]:hover:text-pui-foreground",
         destructive: "border-transparent bg-pui-negative/tint text-pui-negative [a&]:hover:bg-pui-negative/tint-hover",
+        /** The border is its only shape: `border-pui-input` like fields, so `--pui-border-opacity: 0` doesn't hide it. */
         outline:
-          "border-pui-border text-pui-muted-foreground [a&]:hover:bg-pui-accent [a&]:hover:text-pui-foreground",
+          "border-pui-input text-pui-muted-foreground [a&]:hover:bg-pui-accent [a&]:hover:text-pui-foreground",
         positive: "border-transparent bg-pui-positive/tint text-pui-positive [a&]:hover:bg-pui-positive/tint-hover",
         warning: "border-transparent bg-pui-warning/tint text-pui-warning [a&]:hover:bg-pui-warning/tint-hover",
         info: "border-transparent bg-pui-info/tint text-pui-info [a&]:hover:bg-pui-info/tint-hover",
       },
       /**
        * `solid`: opaque — two flat one-colour layers in `background-image`, the tint over `background` (Chromium 103
-       * has no `color-mix()`; `background`, not `card`: the lighter dark card would drop the text below 4.5:1).
+       * has no `color-mix()`; `background`: the most contrast for the tinted text). The tint follows `--pui-tint-scale`.
        * They cover the variant's see-through background colour, so no class has to override another
        * (`badgeVariants()` also works without tailwind-merge).
        */
       surface: {
         tint: "",
         solid: [
-          "[--pui-badge-alpha:var(--pui-tint-rest)] [a&]:hover:[--pui-badge-alpha:var(--pui-tint-hover)]",
+          "[--pui-badge-alpha:calc(var(--pui-tint-rest)*var(--pui-tint-scale,1))] [a&]:hover:[--pui-badge-alpha:calc(var(--pui-tint-hover)*var(--pui-tint-scale,1))]",
           "[background-image:linear-gradient(hsl(var(--pui-badge-tint)/var(--pui-badge-alpha)),hsl(var(--pui-badge-tint)/var(--pui-badge-alpha))),linear-gradient(hsl(var(--pui-background)),hsl(var(--pui-background)))]",
         ],
       },

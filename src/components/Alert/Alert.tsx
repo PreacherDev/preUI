@@ -11,15 +11,17 @@ export const alertVariants = /* @__PURE__ */ cva(
   ],
   {
     variants: {
+      // Tinted variants: the title takes the status colour, the description is foreground at 85 % (muted-foreground
+      // drops below 4.5:1 on the warning / info tints).
       variant: {
         default: "border-pui-border bg-pui-card text-pui-card-foreground [&>svg]:text-current",
         destructive:
-          "border-pui-negative/tint-border bg-pui-negative/tint text-pui-foreground [&>svg]:text-pui-negative [&>[data-slot=alert-title]]:text-pui-negative",
+          "border-pui-negative/tint-border bg-pui-negative/tint text-pui-foreground [&>svg]:text-pui-negative [&>[data-slot=alert-title]]:text-pui-negative [&>[data-slot=alert-description]]:text-pui-foreground/85",
         positive:
-          "border-pui-positive/tint-border bg-pui-positive/tint text-pui-foreground [&>svg]:text-pui-positive [&>[data-slot=alert-title]]:text-pui-positive",
+          "border-pui-positive/tint-border bg-pui-positive/tint text-pui-foreground [&>svg]:text-pui-positive [&>[data-slot=alert-title]]:text-pui-positive [&>[data-slot=alert-description]]:text-pui-foreground/85",
         warning:
-          "border-pui-warning/tint-border bg-pui-warning/tint text-pui-foreground [&>svg]:text-pui-warning [&>[data-slot=alert-title]]:text-pui-warning",
-        info: "border-pui-info/tint-border bg-pui-info/tint text-pui-foreground [&>svg]:text-pui-info [&>[data-slot=alert-title]]:text-pui-info",
+          "border-pui-warning/tint-border bg-pui-warning/tint text-pui-foreground [&>svg]:text-pui-warning [&>[data-slot=alert-title]]:text-pui-warning [&>[data-slot=alert-description]]:text-pui-foreground/85",
+        info: "border-pui-info/tint-border bg-pui-info/tint text-pui-foreground [&>svg]:text-pui-info [&>[data-slot=alert-title]]:text-pui-info [&>[data-slot=alert-description]]:text-pui-foreground/85",
       },
     },
     defaultVariants: {

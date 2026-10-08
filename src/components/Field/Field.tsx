@@ -57,8 +57,11 @@ const fieldVariants = /* @__PURE__ */ cva("flex", {
       /** Label above the control. */
       vertical: "flex-col gap-1.5",
       /** Control and label side by side (checkbox, switch); `FieldContent` stacks label + description. */
-      horizontal:
+      horizontal: [
         "flex-row items-center gap-3 has-[>[data-slot=field-content]]:items-start data-[has-content]:items-start",
+        // Top-aligned next to a FieldContent: the 20px switch is centred on the label's first 16px line.
+        "[&:has(>[data-slot=field-content])>[data-slot=switch]]:-my-0.5 [&[data-has-content]>[data-slot=switch]]:-my-0.5",
+      ],
     },
   },
   defaultVariants: { orientation: "vertical" },
@@ -140,12 +143,15 @@ export const FieldError = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseFie
 
 export type FieldItemProps = ComponentPropsWithoutRef<typeof BaseField.Item>;
 
-/** Wraps one option (checkbox, radio) inside a group field. */
+/**
+ * Wraps one option (checkbox, radio) inside a group field. Top-aligned, so the 16px control lines up with the first
+ * line of a label that wraps.
+ */
 export const FieldItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseField.Item>, FieldItemProps>(function FieldItem(
   { className, ...props },
   ref,
 ) {
-  return <BaseField.Item ref={ref} data-slot="field-item" className={mergeClassName("flex items-center gap-2", className)} {...props} />;
+  return <BaseField.Item ref={ref} data-slot="field-item" className={mergeClassName("flex items-start gap-2", className)} {...props} />;
 });
 
 export type FieldGroupProps = ComponentPropsWithoutRef<"div">;

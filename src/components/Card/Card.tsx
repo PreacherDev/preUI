@@ -33,7 +33,7 @@ export const CardHeader = /* @__PURE__ */ forwardRef<HTMLDivElement, CardHeaderP
       ref={ref}
       data-slot="card-header"
       className={cn(
-        "grid min-h-12 grid-cols-[1fr_auto] content-center items-center gap-x-3 border-b border-pui-border px-4 py-2",
+        "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-3 border-b border-pui-border px-4 py-2",
         // With a description the action spans title + description and sits at the top right, level with
         // the title (like shadcn); otherwise the title stays vertically centred next to it.
         "[&:has(>[data-slot=card-description])>[data-slot=card-action]]:row-[1/span_2] [&:has(>[data-slot=card-description])>[data-slot=card-action]]:self-start",
@@ -57,7 +57,8 @@ export const CardTitle = /* @__PURE__ */ forwardRef<HTMLDivElement, CardTitlePro
       ref={ref}
       data-slot="card-title"
       className={cn(
-        "col-start-1 flex min-w-0 items-center gap-2 text-sm font-semibold leading-5",
+        // min-w-0 + overflow-wrap:anywhere: a long unbreakable word wraps instead of pushing the action out.
+        "col-start-1 flex min-w-0 items-center gap-2 text-sm font-semibold leading-5 [overflow-wrap:anywhere]",
         "[&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-pui-muted-foreground",
         className,
       )}
@@ -76,7 +77,7 @@ export const CardDescription = /* @__PURE__ */ forwardRef<HTMLDivElement, CardDe
     <div
       ref={ref}
       data-slot="card-description"
-      className={cn("col-start-1 text-xs text-pui-muted-foreground", className)}
+      className={cn("col-start-1 min-w-0 text-xs text-pui-muted-foreground [overflow-wrap:anywhere]", className)}
       {...props}
     />
   );

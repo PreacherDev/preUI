@@ -84,7 +84,7 @@ export const ResizableHandle = /* @__PURE__ */ forwardRef<HTMLDivElement, Resiza
         <div
           data-slot="resizable-grip"
           aria-hidden="true"
-          className="z-10 flex h-4 w-3 shrink-0 items-center justify-center rounded-pui-sm border border-pui-border bg-pui-border"
+          className="z-10 flex h-4 w-3 shrink-0 items-center justify-center rounded-pui-xs border border-pui-border bg-pui-border"
         >
           <Grip className="size-2.5 text-pui-muted-foreground" aria-hidden="true" />
         </div>

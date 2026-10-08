@@ -1,6 +1,7 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 
 /** Shares open/close delays between tooltips; adjacent tooltips then open instantly. */
 export const TooltipProvider = BaseTooltip.Provider;
@@ -23,7 +24,7 @@ export interface TooltipContentProps extends ComponentPropsWithoutRef<typeof Bas
   alignOffset?: BaseTooltip.Positioner.Props["alignOffset"];
   /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
   positionerProps?: Omit<BaseTooltip.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseTooltip.Portal.Props["container"];
 }
 
@@ -31,31 +32,33 @@ export interface TooltipContentProps extends ComponentPropsWithoutRef<typeof Bas
 export const TooltipContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTooltip.Popup>, TooltipContentProps>(
   function TooltipContent({ className, side = "top", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
-      <BaseTooltip.Portal data-slot="tooltip-portal" container={container}>
-        <BaseTooltip.Positioner
-          data-slot="tooltip-positioner"
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          {...positionerProps}
-          className={mergeClassName("z-50", positionerProps?.className)}
-        >
-          <BaseTooltip.Popup
-            ref={ref}
-            data-slot="tooltip-content"
-            className={mergeClassName(
-              [
-                "max-w-64 rounded-pui-md bg-pui-tooltip px-2.5 py-1.5 text-xs font-medium leading-snug text-pui-tooltip-foreground shadow-pui-tooltip",
-                "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
-                "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
-                "data-[instant]:transition-none",
-              ],
-              className,
-            )}
-            {...props}
-          />
-        </BaseTooltip.Positioner>
+      <BaseTooltip.Portal data-slot="tooltip-portal" container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BaseTooltip.Positioner
+            data-slot="tooltip-positioner"
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            {...positionerProps}
+            className={mergeClassName("z-50", positionerProps?.className)}
+          >
+            <BaseTooltip.Popup
+              ref={ref}
+              data-slot="tooltip-content"
+              className={mergeClassName(
+                [
+                  "max-w-64 rounded-pui-md bg-pui-tooltip px-2.5 py-1.5 text-xs font-medium leading-snug text-pui-tooltip-foreground shadow-pui-tooltip",
+                  "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
+                  "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
+                  "data-[instant]:transition-none",
+                ],
+                className,
+              )}
+              {...props}
+            />
+          </BaseTooltip.Positioner>
+        </PortalContainerScope>
       </BaseTooltip.Portal>
     );
   },

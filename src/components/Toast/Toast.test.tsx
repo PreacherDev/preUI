@@ -218,7 +218,8 @@ describe("Toast", () => {
     expect(item).toHaveClass("duration-pui-base", "ease-pui", "focus-visible:ring-pui");
     expect(item.parentElement).toHaveAttribute("data-slot", "toaster");
     expect(item.querySelector("[data-slot=toast-icon]")).toBeInTheDocument();
-    expect(item.querySelector("[data-slot=toast-content]")).toBeInTheDocument();
+    // Long unbroken words (URLs, IDs) wrap instead of overflowing the 320px toast.
+    expect(item.querySelector("[data-slot=toast-content]")).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
     expect(screen.getByText("Neu.")).toHaveAttribute("data-slot", "toast-title");
     expect(screen.getByText("Details")).toHaveAttribute("data-slot", "toast-description");
     expect(screen.getByRole("button", { name: "Ansehen" })).toHaveAttribute("data-slot", "toast-action");

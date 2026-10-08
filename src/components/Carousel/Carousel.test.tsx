@@ -99,7 +99,7 @@ describe("Carousel", () => {
       </Carousel>,
     );
     const prev = screen.getByRole("button", { name: "Previous slide" });
-    expect(prev).toHaveClass("rounded-full", "size-pui-control-sm", "border-pui-border", "-left-12");
+    expect(prev).toHaveClass("rounded-full", "size-pui-control-sm", "border-pui-input", "-left-12");
     expect(prev).toHaveAttribute("data-slot", "carousel-previous");
     expect(prev).not.toHaveClass("rounded-pui-md");
     expect(screen.getByRole("button", { name: "Next slide" })).toBeInTheDocument();

@@ -24,6 +24,29 @@ describe("Tailwind preset", () => {
   it("the default export equals createPreuiPreset()", () => {
     expect(preuiPreset.theme).toEqual(createPreuiPreset().theme);
   });
+
+  it("panels follow --pui-surface-opacity, popovers stay opaque", () => {
+    const { pui } = createPreuiPreset().theme.extend.colors;
+    const seeThrough = "calc(<alpha-value> * var(--pui-surface-opacity, 1))";
+    expect(pui.background).toContain(seeThrough);
+    expect(pui.shell).toContain(seeThrough);
+    expect(pui.card.DEFAULT).toContain(seeThrough);
+    // Menus, selects, hover cards and toasts float over text, which would read through them.
+    expect(pui.popover.DEFAULT).toBe("hsl(var(--pui-popover) / <alpha-value>)");
+    expect(pui.popover.DEFAULT).not.toContain("surface-opacity");
+  });
+
+  it("border opacity fades only the structural border colour", () => {
+    const { pui } = createPreuiPreset().theme.extend.colors;
+    expect(pui.border).toContain("var(--pui-border-opacity, 1)");
+    expect(pui.input).not.toContain("border-opacity");
+  });
+
+  it("rounded-pui-xs is rounded-pui-sm capped at 4px (checkbox, kbd)", () => {
+    const radius = createPreuiPreset().theme.extend.borderRadius;
+    expect(radius["pui-sm"]).toBe("max(0px, calc(var(--pui-radius) - 4px))");
+    expect(radius["pui-xs"]).toBe(`min(4px, ${radius["pui-sm"]})`);
+  });
 });
 
 /** Runs the preset's plugin and collects everything it passes to addBase. */

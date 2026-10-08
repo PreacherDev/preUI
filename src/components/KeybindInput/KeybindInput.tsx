@@ -10,6 +10,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { useFieldRootContext } from "@base-ui/react/internals/field-root-context";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
 import { inputVariants, type InputSize } from "../Input/Input";
@@ -184,7 +185,7 @@ export const KeybindInput = /* @__PURE__ */ forwardRef<HTMLButtonElement, Keybin
     allowModifiers = true,
     disallowedKeys = defaultDisallowed,
     clearable = true,
-    invalid = false,
+    invalid: invalidProp = false,
     disabled = false,
     size = "default",
     formatKey,
@@ -205,6 +206,9 @@ export const KeybindInput = /* @__PURE__ */ forwardRef<HTMLButtonElement, Keybin
   ref,
 ) {
   const labels = { ...defaultKeybindInputLabels, ...labelsProp };
+  // Inside a Base UI `Field` it also follows the field's validity (`<Field invalid>`), like the other fields.
+  const field = useFieldRootContext();
+  const invalid = invalidProp || field.state.valid === false;
   const Close = useIcon("close");
   const [uncontrolled, setUncontrolled] = useState<Keybind | null>(defaultValue);
   const controlled = valueProp !== undefined;
@@ -310,6 +314,8 @@ export const KeybindInput = /* @__PURE__ */ forwardRef<HTMLButtonElement, Keybin
       className={cn(
         inputVariants({ size }),
         "relative items-center gap-1 p-0 focus-within:border-pui-ring data-[listening]:border-pui-ring",
+        // The invalid border outranks the focus border: a ring in the negative colour shows the focus instead.
+        "data-[invalid]:focus-within:ring-pui data-[invalid]:focus-within:ring-pui-negative",
         className,
       )}
       style={style}
@@ -340,7 +346,12 @@ export const KeybindInput = /* @__PURE__ */ forwardRef<HTMLButtonElement, Keybin
             {labels.listening}
           </span>
         ) : parts.length ? (
-          <span data-slot="keybind-input-keys" className="inline-flex min-w-0 items-center gap-1">
+          // Caps never shrink. Too long for the field: clipped at the start (justify-end), so the main key stays
+          // visible and nothing runs under the clear button.
+          <span
+            data-slot="keybind-input-keys"
+            className="flex min-w-0 items-center justify-end gap-1 overflow-hidden whitespace-nowrap [&>*]:shrink-0"
+          >
             {parts.map((part, index) => (
               <Fragment key={index}>
                 {index > 0 && separator !== "" && (

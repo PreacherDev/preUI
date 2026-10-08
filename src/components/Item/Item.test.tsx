@@ -87,6 +87,17 @@ describe("Item", () => {
     expect(outline).not.toContain("border-transparent");
     expect(itemVariants().split(/\s+/)).toContain("border-transparent");
   });
+
+  it("lets the content shrink and wrap long unbreakable text", () => {
+    render(
+      <Item>
+        <ItemContent data-testid="content">
+          <ItemTitle>Seriennummer_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</ItemTitle>
+        </ItemContent>
+      </Item>,
+    );
+    expect(screen.getByTestId("content")).toHaveClass("min-w-0", "flex-1", "[overflow-wrap:anywhere]");
+  });
 });
 
 describe("Item highlighted state", () => {

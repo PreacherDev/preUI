@@ -8,7 +8,15 @@ describe("Checkbox", () => {
     render(<Checkbox aria-label="AGB" />);
     const checkbox = screen.getByRole("checkbox", { name: "AGB" });
     expect(checkbox).toHaveAttribute("aria-checked", "false");
-    expect(checkbox).toHaveClass("size-4", "rounded-pui-sm", "border-pui-input", "data-[checked]:bg-pui-primary");
+    expect(checkbox).toHaveClass("size-4", "rounded-pui-xs", "border-pui-input", "data-[checked]:bg-pui-primary");
+  });
+
+  it("caps the corner radius at 4px, so a large --pui-radius never makes it round like a radio", async () => {
+    const { createPreuiPreset } = await import("../../tailwind/preset");
+    const radius = createPreuiPreset().theme.extend.borderRadius["pui-xs"];
+    expect(radius).toBe("min(4px, max(0px, calc(var(--pui-radius) - 4px)))");
+    render(<Checkbox aria-label="B" />);
+    expect(screen.getByRole("checkbox", { name: "B" })).not.toHaveClass("rounded-pui-sm");
   });
 
   it("keeps the focus ring visible on the primary fill (1px offset)", () => {

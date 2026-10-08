@@ -3,12 +3,17 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "re
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
 import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import {
   containedAttr,
   ModalContainedContext,
   ModalSections,
   modalCloseClassName,
+  modalNestedDimClassName,
+  NestedModalContext,
   useModalContained,
+  useNestedModalHost,
+  useNestedModalReport,
   type ModalContentOptions,
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
@@ -43,12 +48,14 @@ export const DrawerClose = /* @__PURE__ */ forwardRef<HTMLButtonElement, DrawerC
  * container's edge and the overlay only covers the container (see `contained`).
  */
 export const DrawerPortal = /* @__PURE__ */ forwardRef<HTMLDivElement, DrawerPortalProps>(function DrawerPortal(
-  { contained, ...props },
+  { contained, container, children, ...props },
   ref,
 ) {
   return (
-    <ModalContainedContext.Provider value={contained ?? props.container != null}>
-      <BaseDrawer.Portal ref={ref} data-slot="drawer-portal" {...props} />
+    <ModalContainedContext.Provider value={contained ?? container != null}>
+      <BaseDrawer.Portal ref={ref} data-slot="drawer-portal" container={usePortalContainer(container)} {...props}>
+        <PortalContainerScope>{children}</PortalContainerScope>
+      </BaseDrawer.Portal>
     </ModalContainedContext.Provider>
   );
 });
@@ -133,6 +140,9 @@ export const DrawerPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDr
     const CloseIcon = useIcon("close");
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref, true);
+    const popupRef = useNestedModalReport(focus.ref);
+    // Base UI sets `data-nested-dialog-open` only on Dialog popups; preUI tracks the modals opened from a drawer.
+    const nested = useNestedModalHost();
     return (
       <BaseDrawer.Viewport
         data-slot="drawer-viewport"
@@ -140,18 +150,24 @@ export const DrawerPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDr
         className={cn("pointer-events-none fixed inset-0 z-50", contained && "absolute")}
       >
         <BaseDrawer.Popup
-          ref={focus.ref}
+          ref={popupRef}
           initialFocus={focus.initialFocus}
           data-slot="drawer-popup"
           data-contained={containedAttr(contained)}
-          className={mergeClassName([drawerPopupClassName, contained && drawerPopupContainedClassName], className)}
+          data-nested-dialog-open={nested.nestedOpen ? "" : undefined}
+          className={mergeClassName(
+            [drawerPopupClassName, modalNestedDimClassName, contained && drawerPopupContainedClassName],
+            className,
+          )}
           {...props}
         >
           <div aria-hidden="true" data-slot="drawer-handle" className={cn(drawerHandleClassName)} />
           <BaseDrawer.Content data-slot="drawer-inner" className="flex min-h-0 flex-1 flex-col gap-4">
-            <ModalSections header={[DrawerHeader]} footer={[DrawerFooter]}>
-              {children}
-            </ModalSections>
+            <NestedModalContext.Provider value={nested.register}>
+              <ModalSections header={[DrawerHeader]} footer={[DrawerFooter]}>
+                {children}
+              </ModalSections>
+            </NestedModalContext.Provider>
           </BaseDrawer.Content>
           {showCloseButton && (
             <BaseDrawer.Close aria-label={closeLabel} data-slot="drawer-close" className={cn(modalCloseClassName)}>

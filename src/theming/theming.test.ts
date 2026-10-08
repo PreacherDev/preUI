@@ -3,7 +3,14 @@ import { parseColor } from "../components/ColorPicker/color";
 import { lightTokens, tokens } from "../tailwind/tokens";
 import { tokensToCss } from "../tailwind/preset";
 import { applyTokens, clearTokens } from "./apply-tokens";
-import { checkTokenContrast, contrastPairs, getContrast, getContrastLevel } from "./contrast";
+import {
+  checkTokenContrast,
+  contrastPairs,
+  getContrast,
+  getContrastLevel,
+  tintContrastColors,
+  tintContrastSurfaces,
+} from "./contrast";
 import { deriveTokens } from "./derive";
 import {
   normalizeTokenValue,
@@ -235,7 +242,7 @@ describe("getContrast", () => {
 });
 
 describe("text on tinted surfaces", () => {
-  // `text-pui-<status>` on `bg-pui-<status>/tint` (badges, alerts, default buttons) over the page background.
+  // `text-pui-<status>` on `bg-pui-<status>/tint` (badges, alerts, default buttons) over every surface they sit on.
   const blend = (fg: string, bg: string, alpha: number) => {
     const a = parseColor(`hsl(${fg})`)!;
     const b = parseColor(`hsl(${bg})`)!;
@@ -245,13 +252,15 @@ describe("text on tinted surfaces", () => {
   it.each([
     ["dark", tokens],
     ["light", lightTokens],
-  ] as const)("default %s reaches 4.5:1 for every status colour", (_, set) => {
+  ] as const)("default %s reaches 4.5:1 for every tinted colour on every surface", (_, set) => {
     const values = set as Record<string, string>;
     const tint = Number(values["--pui-tint-rest"]);
-    for (const name of ["primary", "positive", "negative", "warning", "info"]) {
-      const colour = values[`--pui-${name}`];
-      const ratio = getContrast(colour, blend(colour, values["--pui-background"], tint));
-      expect({ name, ok: ratio >= 4.5 }).toEqual({ name, ok: true });
+    for (const name of tintContrastColors) {
+      for (const surface of tintContrastSurfaces) {
+        const colour = values[name];
+        const ratio = getContrast(colour, blend(colour, values[surface], tint));
+        expect({ name, surface, ok: ratio >= 4.5 }).toEqual({ name, surface, ok: true });
+      }
     }
   });
 });
@@ -262,7 +271,7 @@ describe("checkTokenContrast", () => {
     ["light", lightTokens],
   ] as const)("default %s passes every pair with at least AA", (_, set) => {
     const results = checkTokenContrast(set);
-    expect(results).toHaveLength(contrastPairs.length);
+    expect(results).toHaveLength(contrastPairs.length + tintContrastColors.length);
     for (const result of results) {
       expect({ pair: `${result.fg} on ${result.bg}`, ok: result.ratio >= 4.5 }).toEqual({
         pair: `${result.fg} on ${result.bg}`,
@@ -284,6 +293,51 @@ describe("checkTokenContrast", () => {
       expect.objectContaining({ fg: "--pui-card-foreground", bg: "--pui-card", level: "AAA" }),
     ]);
   });
+
+  it("checks each status colour as text on its own tint over the surfaces and reports the worst", () => {
+    const tinted = checkTokenContrast(tokens).filter((result) => result.tint !== undefined);
+    expect(tinted.map((result) => result.fg)).toEqual(tintContrastColors);
+    for (const result of tinted) {
+      expect(result.bg).toBe(result.fg);
+      expect(result.tint).toBeCloseTo(0.15, 5);
+      expect(tintContrastSurfaces).toContain(result.surface);
+    }
+    // Plain pairs carry no tint fields.
+    expect(checkTokenContrast(tokens)[0]).not.toHaveProperty("surface");
+    // The tint over the grey surface is darker than over white: the grey one is reported.
+    const [result] = checkTokenContrast({
+      "--pui-primary": "#2563eb",
+      "--pui-background": "#ffffff",
+      "--pui-muted": "#e5e7eb",
+      "--pui-tint-rest": "0.1",
+    }).filter((entry) => entry.tint !== undefined);
+    expect(result).toMatchObject({ fg: "--pui-primary", bg: "--pui-primary", surface: "--pui-muted", tint: 0.1 });
+  });
+
+  it("follows --pui-tint-scale: stronger tints lower the ratio, no tint-rest skips the tinted pairs", () => {
+    const primary = (set: Record<string, string>) =>
+      checkTokenContrast(set).find((result) => result.tint !== undefined && result.fg === "--pui-primary")!;
+    const normal = primary(tokens);
+    const strong = primary({ ...tokens, "--pui-tint-scale": "3" });
+    expect(strong.tint).toBeCloseTo(0.45, 5);
+    expect(strong.ratio).toBeLessThan(normal.ratio);
+    expect(strong.level).not.toBe("AA");
+    // Scale 0: no tint, the plain ratio on the lowest-contrast surface.
+    const surfaces = tintContrastSurfaces.map((surface) => getContrast(tokens["--pui-primary"], tokens[surface]));
+    expect(primary({ ...tokens, "--pui-tint-scale": "0" }).ratio).toBeCloseTo(Math.min(...surfaces), 5);
+    expect(primary({ ...tokens, "--pui-tint-scale": "nope" }).tint).toBeCloseTo(0.15, 5); // unparsable scale = 1
+    const { "--pui-tint-rest": _rest, ...withoutTint } = tokens;
+    expect(checkTokenContrast(withoutTint).some((result) => result.tint !== undefined)).toBe(false);
+  });
+
+  it("the defaults stay readable on their tints at tint scale 1, not at 1.5", () => {
+    for (const set of [tokens, lightTokens]) {
+      const passes = (scale: number) =>
+        checkTokenContrast({ ...set, "--pui-tint-scale": String(scale) }).every((result) => result.ratio >= 4.5);
+      expect(passes(1)).toBe(true);
+      expect(passes(1.5)).toBe(false);
+    }
+  });
 });
 
 describe("deriveTokens", () => {
@@ -304,13 +358,55 @@ describe("deriveTokens", () => {
   it("derives surfaces from the background", () => {
     const derived = deriveTokens({ primary: "#22c55e", background: "hsl(30 20% 10%)" }, "dark");
     expect(derived["--pui-background"]).toBe("30 20% 10%");
-    // card: default +3 L; saturation scaled like the defaults (11/12 of the background's)
-    expect(derived["--pui-card"]).toBe("30 18% 13%");
-    expect(derived["--pui-border"]).toBe("30 17% 19%");
-    expect(derived["--pui-input"]).toBe("30 17% 21%");
+    // card: default +3 L; chroma scaled like the defaults (this background is 1.85× as colourful as the default one)
+    expect(derived["--pui-card"]).toBe("30 19% 13%");
+    expect(derived["--pui-border"]).toBe("30 18% 19%");
+    expect(derived["--pui-input"]).toBe("30 18% 21%");
     expect(derived["--pui-ring"]).toBe(derived["--pui-primary"]);
     expect(derived["--pui-chart-primary"]).toBe("var(--pui-primary)");
     expect(derived["--pui-quality-premium"]).toBe(tokens["--pui-quality-premium"]);
+  });
+
+  it("scales chroma, not saturation: near-white and navy backgrounds keep neutral text and surfaces", () => {
+    const chroma = (value: string) => {
+      const [, s, l] = value.replace(/%/g, "").split(" ").map(Number);
+      return (1 - Math.abs((2 * l) / 100 - 1)) * (s / 100);
+    };
+    // #fffdf8 is 100 % saturated but almost white: surfaces and text get a light tint, not yellow / brown / mustard.
+    const cream = deriveTokens({ primary: "#9f4706", background: "#fffdf8" }, "light");
+    expect(cream["--pui-background"]).toBe("43 100% 99%");
+    for (const name of ["--pui-shell", "--pui-muted", "--pui-border", "--pui-input"] as const) {
+      expect(chroma(cream[name])).toBeLessThan(0.05);
+    }
+    expect(cream["--pui-card"]).toBe(cream["--pui-background"]); // white card on a white page → cream on cream
+    expect(cream["--pui-foreground"]).toBe("43 19% 12%");
+    expect(chroma(cream["--pui-muted-foreground"])).toBeLessThanOrEqual(chroma(lightTokens["--pui-muted-foreground"]) * 1.5);
+    // Navy (#0b1324, 53 % saturation): surfaces stay navy, text is only slightly blue (≤ 1.5× the default tint).
+    const navy = deriveTokens({ primary: "#60a5fa", background: "#0b1324" }, "dark");
+    expect(navy["--pui-card"]).toBe("221 49% 12%");
+    expect(navy["--pui-foreground"]).toBe("221 18% 92%");
+    // (+ 0.01: the saturation is rounded to whole percent)
+    expect(chroma(navy["--pui-muted-foreground"])).toBeLessThanOrEqual(chroma(tokens["--pui-muted-foreground"]) * 1.5 + 0.01);
+    // A grey background gives grey surfaces and text.
+    const grey = deriveTokens({ primary: "#e5e5e5", background: "#111111" }, "dark");
+    expect(grey["--pui-card"]).toBe("0 0% 10%");
+    expect(grey["--pui-foreground"]).toBe("0 0% 92%");
+  });
+
+  it("moves status colours you left out until they are readable on their tint over the derived surfaces", () => {
+    const base = { primary: "#7c3aed", background: "#f1f5f9" };
+    const derived = deriveTokens(base, "light");
+    const tinted = checkTokenContrast(derived).filter((result) => result.tint !== undefined && result.fg !== "--pui-primary");
+    for (const result of tinted) expect({ fg: result.fg, ok: result.ratio >= 4.5 }).toEqual({ fg: result.fg, ok: true });
+    // Same hue and saturation, only darker on this light page.
+    const [h, s, l] = derived["--pui-negative"].replace(/%/g, "").split(" ").map(Number);
+    expect([h, s]).toEqual([0, 81]);
+    expect(l).toBeLessThan(42);
+    // Colours you give are kept as they are; destructive (a solid fill) is never moved.
+    expect(deriveTokens({ ...base, negative: "#ef4444" }, "light")["--pui-negative"]).toBe("0 84% 60%");
+    expect(derived["--pui-destructive"]).toBe(lightTokens["--pui-destructive"]);
+    // Without a background of your own nothing moves.
+    expect(deriveTokens({ primary: "#7c3aed" }, "light")["--pui-negative"]).toBe(lightTokens["--pui-negative"]);
   });
 
   it.each([

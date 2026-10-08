@@ -41,4 +41,20 @@ describe("Card", () => {
     expect(screen.getByText("Ohne Abstand")).toHaveClass("p-0");
     expect(screen.getByText("Ohne Abstand")).not.toHaveClass("p-4");
   });
+
+  it("lets long unbreakable titles and descriptions wrap next to the action", () => {
+    render(
+      <Card>
+        <CardHeader data-testid="header">
+          <CardTitle>Fahrzeug_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789</CardTitle>
+          <CardDescription>https://example.com/a/very/long/path/without/any/spaces</CardDescription>
+          <CardAction>Aktion</CardAction>
+        </CardHeader>
+      </Card>,
+    );
+    expect(screen.getByTestId("header")).toHaveClass("grid-cols-[minmax(0,1fr)_auto]");
+    expect(screen.getByTestId("header")).not.toHaveClass("grid-cols-[1fr_auto]");
+    expect(screen.getByText(/^Fahrzeug_/)).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
+    expect(screen.getByText(/^https:/)).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
+  });
 });

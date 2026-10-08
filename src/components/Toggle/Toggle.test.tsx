@@ -72,3 +72,22 @@ describe("Toggle data attributes", () => {
     expect(toggle).toHaveClass("h-pui-control-sm", "focus-visible:ring-pui");
   });
 });
+
+describe("Toggle icon size", () => {
+  it("sizes icons by default without outranking a size class on the icon", () => {
+    render(
+      <>
+        <Toggle aria-label="Fett">B</Toggle>
+        <Toggle aria-label="Kursiv" size="segment">
+          I
+        </Toggle>
+      </>,
+    );
+    const toggle = screen.getByRole("button", { name: "Fett" });
+    expect(toggle).toHaveClass("[:where(&)_svg]:size-4");
+    expect(toggle).not.toHaveClass("[&_svg]:size-4");
+    const segment = screen.getByRole("button", { name: "Kursiv" });
+    expect(segment).toHaveClass("[:where(&)_svg]:size-3.5");
+    expect(segment).not.toHaveClass("[:where(&)_svg]:size-4");
+  });
+});

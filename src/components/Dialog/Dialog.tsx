@@ -6,7 +6,11 @@ import {
   forwardRef,
   Fragment,
   isValidElement,
+  useCallback,
   useContext,
+  useEffect,
+  useRef,
+  useState,
   type ComponentPropsWithoutRef,
   type ComponentRef,
   type ElementType,
@@ -16,6 +20,7 @@ import {
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
 import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import { useScrollTabStop } from "../../utils/scroll-tab-stop";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 
@@ -33,6 +38,17 @@ export const modalPopupClassName = [
 
 /** Centred modal inside a portal container: positioned against the container, height relative to it. */
 export const modalPopupContainedClassName = "absolute max-h-[85%]";
+
+/**
+ * Dims a modal surface (Dialog, AlertDialog, Sheet, Drawer) while a dialog opened from it is on top: a scrim-coloured
+ * layer over the popup (`::after`, same radius, no pointer events) fades in on `data-nested-dialog-open`. Base UI
+ * renders no second backdrop for nested dialogs, so without it the nested dialog would sit flat on its parent.
+ * Needs a positioned popup (`fixed`/`absolute`), which every modal surface is.
+ */
+export const modalNestedDimClassName = [
+  "after:pointer-events-none after:absolute after:inset-0 after:z-50 after:rounded-[inherit] after:bg-pui-scrim/scrim after:opacity-0",
+  "after:transition-opacity after:duration-pui-base after:ease-pui data-[nested-dialog-open]:after:opacity-100",
+];
 
 /* ------------------------------------------------------------------------------------------------
  * Contained modals (portal into a frame instead of the viewport)
@@ -63,7 +79,7 @@ export interface ModalPortalOptions {
 
 /** Props shared by the all-in-one modal contents (`DialogContent`, `SheetContent` …). */
 export interface ModalContentOptions<OverlayClassName> extends ModalPortalOptions {
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseDialog.Portal.Props["container"];
   /** Renders the dimmed scrim. `false` = no scrim (the dialog stays modal). Default `true`. */
   overlay?: boolean;
@@ -73,6 +89,68 @@ export interface ModalContentOptions<OverlayClassName> extends ModalPortalOption
 
 /** `data-contained` for overlays and popups. @internal */
 export const containedAttr = (contained: boolean) => (contained ? "" : undefined);
+
+/* ------------------------------------------------------------------------------------------------
+ * Nested modals in a Drawer
+ * ----------------------------------------------------------------------------------------------*/
+
+/**
+ * Base UI marks a Dialog/AlertDialog/Sheet popup with `data-nested-dialog-open` while a dialog opened from it is
+ * open, but not a Drawer popup. preUI's modal popups therefore report their open state to the Drawer popup they were
+ * opened from through this context (`null` = parent is no Drawer, Base UI handles it).
+ * @internal
+ */
+export const NestedModalContext = /* @__PURE__ */ createContext<(() => () => void) | null>(null);
+
+/**
+ * For a Drawer popup: whether a preUI modal opened from it is open, and the `NestedModalContext` value to provide.
+ * @internal
+ */
+export function useNestedModalHost() {
+  const [count, setCount] = useState(0);
+  const register = useCallback(() => {
+    setCount((current) => current + 1);
+    return () => setCount((current) => current - 1);
+  }, []);
+  return { nestedOpen: count > 0, register };
+}
+
+/**
+ * For a modal popup: wraps its ref and, when it was opened from a Drawer, tells the Drawer while the popup is open
+ * (its `data-open` attribute, so the Drawer un-dims as soon as the closing animation starts).
+ * @internal Used by Dialog, AlertDialog, Sheet and Drawer popups.
+ */
+export function useNestedModalReport<T extends HTMLElement>(ref: (node: T | null) => void) {
+  const register = useContext(NestedModalContext);
+  const nodeRef = useRef<T | null>(null);
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!register || !node || typeof MutationObserver === "undefined") return undefined;
+    let release: (() => void) | null = null;
+    const sync = () => {
+      const open = node.hasAttribute("data-open");
+      if (open && !release) release = register();
+      else if (!open && release) {
+        release();
+        release = null;
+      }
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(node, { attributes: true, attributeFilter: ["data-open"] });
+    return () => {
+      observer.disconnect();
+      release?.();
+    };
+  }, [register]);
+  return useCallback(
+    (node: T | null) => {
+      nodeRef.current = node;
+      ref(node);
+    },
+    [ref],
+  );
+}
 
 /** Shared close (X) button styles (also used by Sheet and Drawer). */
 export const modalCloseClassName = [
@@ -163,12 +241,14 @@ export const DialogClose = /* @__PURE__ */ forwardRef<HTMLButtonElement, DialogC
  * position inside it (see `contained`).
  */
 export const DialogPortal = /* @__PURE__ */ forwardRef<HTMLDivElement, DialogPortalProps>(function DialogPortal(
-  { contained, ...props },
+  { contained, container, children, ...props },
   ref,
 ) {
   return (
-    <ModalContainedContext.Provider value={contained ?? props.container != null}>
-      <BaseDialog.Portal ref={ref} data-slot="dialog-portal" {...props} />
+    <ModalContainedContext.Provider value={contained ?? container != null}>
+      <BaseDialog.Portal ref={ref} data-slot="dialog-portal" container={usePortalContainer(container)} {...props}>
+        <PortalContainerScope>{children}</PortalContainerScope>
+      </BaseDialog.Portal>
     </ModalContainedContext.Provider>
   );
 });
@@ -209,18 +289,24 @@ export const DialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDi
     const CloseIcon = useIcon("close");
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref);
+    const popupRef = useNestedModalReport(focus.ref);
     return (
       <BaseDialog.Popup
-        ref={focus.ref}
+        ref={popupRef}
         initialFocus={focus.initialFocus}
         data-slot="dialog-popup"
         data-contained={containedAttr(contained)}
-        className={mergeClassName([modalPopupClassName, contained && modalPopupContainedClassName], className)}
+        className={mergeClassName(
+          [modalPopupClassName, modalNestedDimClassName, contained && modalPopupContainedClassName],
+          className,
+        )}
         {...props}
       >
-        <ModalSections header={[DialogHeader]} footer={[DialogFooter]}>
-          {children}
-        </ModalSections>
+        <NestedModalContext.Provider value={null}>
+          <ModalSections header={[DialogHeader]} footer={[DialogFooter]}>
+            {children}
+          </ModalSections>
+        </NestedModalContext.Provider>
         {showCloseButton && (
           <BaseDialog.Close aria-label={closeLabel} data-slot="dialog-close" className={cn(modalCloseClassName)}>
             <CloseIcon className="size-4" aria-hidden="true" />

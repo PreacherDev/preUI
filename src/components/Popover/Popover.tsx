@@ -1,6 +1,7 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { cn, mergeClassName } from "../../utils/cn";
+import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 
 export const Popover = BasePopover.Root;
 
@@ -26,7 +27,7 @@ export interface PopoverContentProps extends ComponentPropsWithoutRef<typeof Bas
   alignOffset?: BasePopover.Positioner.Props["alignOffset"];
   /** Further props for the Positioner (e.g. `collisionPadding`, `sticky`, `anchor`, `className`). */
   positionerProps?: Omit<BasePopover.Positioner.Props, "side" | "align" | "sideOffset" | "alignOffset">;
-  /** Element the portal renders into (Base UI Portal `container`); defaults to `document.body`. */
+  /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BasePopover.Portal.Props["container"];
 }
 
@@ -34,30 +35,32 @@ export interface PopoverContentProps extends ComponentPropsWithoutRef<typeof Bas
 export const PopoverContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BasePopover.Popup>, PopoverContentProps>(
   function PopoverContent({ className, side = "bottom", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
-      <BasePopover.Portal data-slot="popover-portal" container={container}>
-        <BasePopover.Positioner
-          data-slot="popover-positioner"
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          {...positionerProps}
-          className={mergeClassName("z-50 outline-none", positionerProps?.className)}
-        >
-          <BasePopover.Popup
-            ref={ref}
-            data-slot="popover-content"
-            className={mergeClassName(
-              [
-                "w-72 rounded-pui-md border border-pui-border bg-pui-popover p-4 text-sm text-pui-popover-foreground shadow-pui-floating outline-none",
-                "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
-                "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
-              ],
-              className,
-            )}
-            {...props}
-          />
-        </BasePopover.Positioner>
+      <BasePopover.Portal data-slot="popover-portal" container={usePortalContainer(container)}>
+        <PortalContainerScope>
+          <BasePopover.Positioner
+            data-slot="popover-positioner"
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            {...positionerProps}
+            className={mergeClassName("z-50 outline-none", positionerProps?.className)}
+          >
+            <BasePopover.Popup
+              ref={ref}
+              data-slot="popover-content"
+              className={mergeClassName(
+                [
+                  "w-72 rounded-pui-md border border-pui-border bg-pui-popover p-4 text-sm text-pui-popover-foreground shadow-pui-floating outline-none",
+                  "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
+                  "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
+                ],
+                className,
+              )}
+              {...props}
+            />
+          </BasePopover.Positioner>
+        </PortalContainerScope>
       </BasePopover.Portal>
     );
   },
