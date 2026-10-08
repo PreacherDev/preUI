@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/create-preui-nui",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Scaffolds a FiveM NUI resource with preUI: npm create @pre_scripts/preui-nui",
   "keywords": [
     "fivem",

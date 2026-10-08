@@ -385,6 +385,16 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 
 ## @pre_scripts/preui-nui
 
+### 0.5.0 - 2026-10-08
+
+- `thirdPartyLicenses` groups the file by license: one block per license with every package's copyright lines, then
+  the text once (`group: false` for the old full text per package). The file is much shorter, the legal content is
+  the same.
+- `copyTo`: also write the file outside the build output, e.g. `"../THIRD_PARTY_LICENSES.txt"` next to
+  `fxmanifest.lua`. This replaces the `LICENSES/` folder (`dir` still works).
+- Fonts a stylesheet references with `url()` are listed (they were missing). `include` lists packages the plugin can't
+  see.
+
 ### 0.4.0 — 2026-10-07
 
 - `NuiToastRelay`: shows notifications Lua hands to this NUI (`readyEvent` called once, then `action` messages with
@@ -426,6 +436,11 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.3.0 - 2026-10-08
+
+- New resources get one grouped `THIRD_PARTY_LICENSES.txt` next to `fxmanifest.lua` instead of a `LICENSES/` folder,
+  and depend on `@pre_scripts/preui-nui` `^0.5.0`.
 
 ### 0.2.2 — 2026-10-08
 

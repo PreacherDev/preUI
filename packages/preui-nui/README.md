@@ -100,10 +100,21 @@ export default defineConfig({
 });
 ```
 
-Options: `fileName` (default `"THIRD_PARTY_LICENSES.txt"`, `false` for none), `header` (first lines, e.g. your
-resource name), `exclude` (package names to leave out), `dir` (also keep a folder next to the project, e.g.
-`"../LICENSES"` for a FiveM resource: one `<scope>-<name>-LICENSE.txt` per package plus `THIRD_PARTY.md`; files of
-packages no longer bundled are removed, your `*-LICENSE.manual.txt` stay). Works with Vite 7 (Rollup) and 8 (Rolldown).
+The file is grouped by license: one block per license with every package's copyright lines, then the license text
+once. Same legal content as one text per package, a fraction of the length. Fonts a stylesheet references with
+`url()` are found too.
+
+For a FiveM resource whose UI is in `web/`, also put the file next to `fxmanifest.lua`:
+
+```ts
+plugins: [react(), thirdPartyLicenses({ copyTo: "../THIRD_PARTY_LICENSES.txt" })],
+```
+
+Options: `fileName` (default `"THIRD_PARTY_LICENSES.txt"`, `false` for none), `copyTo` (also write it there, relative
+to the Vite root), `group` (default `true`; `false` = full text per package), `header` (first lines, e.g. your
+resource name), `exclude` (package names to leave out), `include` (package names to list although the plugin can't
+see them, e.g. a font copied by hand), `dir` (older layout: a folder with one `<scope>-<name>-LICENSE.txt` per package
+plus `THIRD_PARTY.md`). Works with Vite 7 (Rollup) and 8 (Rolldown).
 
 Stop a build when the installed preUI packages differ from `package.json` (exact pins, or `^` / `~` ranges):
 

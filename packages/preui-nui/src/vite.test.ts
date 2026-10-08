@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { licenseFileName, packageRootOf, renderThirdPartyLicenses, thirdPartyLicenses } from "./vite";
+import { licenseFileName, packageRootOf, renderGroupedLicenses, renderThirdPartyLicenses, thirdPartyLicenses } from "./vite";
 
 describe("thirdPartyLicenses", () => {
   it("finds the package root of a module id", () => {
@@ -27,7 +27,7 @@ describe("thirdPartyLicenses", () => {
   it("emits the file for the packages of the bundled modules (this repo's own node_modules)", () => {
     const root = new URL("../../../node_modules/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
     const emitted: { fileName: string; source: string }[] = [];
-    const plugin = thirdPartyLicenses({ exclude: ["clsx"] });
+    const plugin = thirdPartyLicenses({ exclude: ["clsx"], group: false });
     plugin.generateBundle.call(
       { emitFile: (file) => (emitted.push(file), "id") },
       {},
@@ -82,5 +82,40 @@ describe("thirdPartyLicenses", () => {
     const overview = readFileSync(`${dir}/THIRD_PARTY.md`, "utf8");
     expect(overview).toMatch(/^\| @floating-ui\/utils \| \S+ \| MIT \| \[floating-ui-utils-LICENSE\.txt\]\(floating-ui-utils-LICENSE\.txt\) \|$/m);
     expect(overview.indexOf("@floating-ui/utils")).toBeLessThan(overview.indexOf("| react |"));
+  });
+
+  it("groups packages by license text: copyright lines per package, the text once", () => {
+    const mit = (holder: string) => ["MIT License", "", `Copyright (c) ${holder}`, "", "Permission is hereby granted, free of charge."].join("\n");
+    const text = renderGroupedLicenses([
+      { name: "b", version: "1.0.0", license: "MIT", text: mit("Bea") },
+      { name: "a", version: "2.0.0", license: "MIT", text: mit("Al") },
+      { name: "c", version: "3.0.0", license: "ISC", text: ["ISC License", "", "Copyright (c) Cy", "", "Permission to use."].join("\n") },
+      { name: "d", version: "4.0.0", license: "Apache-2.0", text: ["Apache License", "", "NOTICE: Dee"].join("\n"), notice: "NOTICE: Dee" },
+    ]);
+    expect(text.match(/Permission is hereby granted/g)).toHaveLength(1);
+    expect(text).toContain(["a 2.0.0", "  Copyright (c) Al", "b 1.0.0", "  Copyright (c) Bea"].join("\n"));
+    expect(text.indexOf("\nMIT\n")).toBeLessThan(text.indexOf("\nISC\n")); // bigger groups first
+    expect(text).toContain(["d 4.0.0", "  NOTICE:", "  NOTICE: Dee"].join("\n"));
+  });
+
+  it("finds fonts referenced with url() in CSS, honours include, writes copyTo", () => {
+    const root = new URL("../../../", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1").replace(/\/$/, "");
+    const plugin = thirdPartyLicenses({ include: ["clsx"], copyTo: "node_modules/.cache/preui-licenses-test/THIRD_PARTY_LICENSES.txt" });
+    plugin.configResolved({ root });
+    const emitted: { fileName: string; source: string }[] = [];
+    plugin.generateBundle.call(
+      { emitFile: (file) => (emitted.push(file), "id") },
+      {},
+      {
+        "assets/inter.woff2": {
+          type: "asset",
+          originalFileNames: ["node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"],
+        },
+      },
+    );
+    const source = emitted[0].source;
+    expect(source).toContain("@fontsource-variable/inter ");
+    expect(source).toContain("clsx ");
+    expect(readFileSync(`${root}/node_modules/.cache/preui-licenses-test/THIRD_PARTY_LICENSES.txt`, "utf8")).toBe(source);
   });
 });

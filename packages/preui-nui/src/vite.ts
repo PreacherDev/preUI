@@ -16,6 +16,21 @@ export interface ThirdPartyLicensesOptions {
   header?: string;
   /** Package names to leave out (e.g. your own workspace packages). */
   exclude?: string[];
+  /**
+   * Package names to list even when the plugin can't see them in the bundle (e.g. a font file copied by hand).
+   * Fonts that a stylesheet references with `url()` are found by themselves.
+   */
+  include?: string[];
+  /**
+   * One block per license: the copyright lines of every package that uses it, then the license text once - instead
+   * of the full text per package. Same legal content, a fraction of the length. @default true
+   */
+  group?: boolean;
+  /**
+   * Also write the file outside the build output, relative to the Vite root - e.g. `"../THIRD_PARTY_LICENSES.txt"`
+   * for a FiveM resource whose UI is in `web/`, so the licenses sit next to `fxmanifest.lua`.
+   */
+  copyTo?: string;
 }
 
 export interface ThirdPartyPackage {
@@ -24,6 +39,8 @@ export interface ThirdPartyPackage {
   license: string;
   /** LICENSE / LICENCE / COPYING file of the package, plus a NOTICE file when there is one (Apache-2.0). */
   text: string;
+  /** The NOTICE file alone (Apache-2.0); kept per package when licenses are grouped. */
+  notice?: string;
 }
 
 /** `@base-ui/react` → `base-ui-react-LICENSE.txt` */
@@ -71,6 +88,9 @@ interface OutputChunk {
 }
 interface OutputAsset {
   type: "asset";
+  /** Source files of an emitted asset, e.g. a font a stylesheet references with `url()` (Vite 6+ / Rollup 4.32+). */
+  originalFileNames?: readonly string[];
+  originalFileName?: string | null;
 }
 interface PluginContext {
   emitFile(file: { type: "asset"; fileName: string; source: string }): string;
@@ -109,8 +129,9 @@ function readPackage(root: string): ThirdPartyPackage | null {
       typeof pkg.license === "string"
         ? pkg.license
         : (pkg.licenses?.map((entry) => entry.type).filter(Boolean).join(" OR ") ?? "") || "UNKNOWN";
-    const text = [read(LICENSE_FILE), read(NOTICE_FILE)].filter(Boolean).join("\n\n");
-    return { name: pkg.name, version: pkg.version ?? "", license, text };
+    const notice = read(NOTICE_FILE);
+    const text = [read(LICENSE_FILE), notice].filter(Boolean).join("\n\n");
+    return { name: pkg.name, version: pkg.version ?? "", license, text, ...(notice ? { notice } : {}) };
   } catch {
     return null;
   }
@@ -129,6 +150,48 @@ export function renderThirdPartyLicenses(packages: ThirdPartyPackage[], header?:
   return `${intro}\n\n${blocks.join("\n\n")}\n`;
 }
 
+const COPYRIGHT_LINE = /^\s*(copyright\b|\(c\)|©)/i;
+
+/** A license text split into its copyright lines and the rest (the part that is the same for every MIT package). */
+function splitLicense(text: string): { copyright: string[]; body: string } {
+  const copyright: string[] = [];
+  const body: string[] = [];
+  for (const line of text.split(/\r?\n/)) (COPYRIGHT_LINE.test(line) ? copyright : body).push(line.trim());
+  return { copyright, body: body.join("\n").replace(/\n{3,}/g, "\n\n").trim() };
+}
+
+/**
+ * The grouped file: one block per distinct license text, listing the packages and their copyright lines, then the
+ * text once. Apache-2.0 NOTICE files stay with their package.
+ */
+export function renderGroupedLicenses(packages: ThirdPartyPackage[], header?: string): string {
+  const line = "=".repeat(80);
+  const groups = new Map<string, { license: string; body: string; members: { pkg: ThirdPartyPackage; copyright: string[] }[] }>();
+  for (const pkg of [...packages].sort((a, b) => a.name.localeCompare(b.name))) {
+    const licenseText = pkg.notice ? pkg.text.slice(0, pkg.text.lastIndexOf(pkg.notice)).trim() : pkg.text;
+    const { copyright, body } = splitLicense(licenseText);
+    const key = `${pkg.license}\n${body.replace(/\s+/g, " ")}`;
+    const group = groups.get(key) ?? { license: pkg.license, body, members: [] };
+    group.members.push({ pkg, copyright });
+    groups.set(key, group);
+  }
+  const blocks = [...groups.values()]
+    .sort((a, b) => b.members.length - a.members.length || a.license.localeCompare(b.license))
+    .map((group) => {
+      const members = group.members.flatMap(({ pkg, copyright }) => [
+        `${pkg.name} ${pkg.version}`,
+        ...copyright.map((entry) => `  ${entry}`),
+        ...(pkg.notice ? ["  NOTICE:", ...pkg.notice.split(/\r?\n/).map((entry) => `  ${entry}`)] : []),
+      ]);
+      const text = group.body || `(no license file in the package; license: ${group.license})`;
+      return [line, group.license, line, "", ...members, "", text].join("\n");
+    });
+  const intro =
+    header ??
+    "Third-party software in this user interface. Each block lists the packages under one license with their\ncopyright notices, followed by the license text.";
+  return `${intro}\n\n${blocks.join("\n\n")}\n`;
+}
+
 /**
  * Writes `THIRD_PARTY_LICENSES.txt` into the build output: name, version, license and license text of every npm
  * package whose code is in the bundle (React, Base UI, preUI … — only what you actually import) and of fonts
@@ -142,7 +205,7 @@ export function renderThirdPartyLicenses(packages: ThirdPartyPackage[], header?:
  * ```
  */
 export function thirdPartyLicenses(options: ThirdPartyLicensesOptions = {}) {
-  const { fileName = "THIRD_PARTY_LICENSES.txt", header, exclude = [], dir } = options;
+  const { fileName = "THIRD_PARTY_LICENSES.txt", header, exclude = [], include = [], group = true, copyTo, dir } = options;
   let root = ".";
   return {
     name: "preui-third-party-licenses",
@@ -153,19 +216,32 @@ export function thirdPartyLicenses(options: ThirdPartyLicensesOptions = {}) {
     generateBundle(this: PluginContext, _options: unknown, bundle: Record<string, OutputChunk | OutputAsset>) {
       const roots = new Set<string>();
       for (const item of Object.values(bundle)) {
-        if (item.type !== "chunk") continue;
-        for (const id of item.moduleIds ?? Object.keys(item.modules ?? {})) {
-          const root = packageRootOf(id);
-          if (root) roots.add(root);
+        // Assets: fonts and images a stylesheet pulls in with url(); their source path is relative to the root.
+        const ids =
+          item.type === "chunk"
+            ? (item.moduleIds ?? Object.keys(item.modules ?? {}))
+            : [...(item.originalFileNames ?? []), ...(item.originalFileName ? [item.originalFileName] : [])].map(
+                (file) => (/^([A-Za-z]:)?[\\/]/.test(file) ? file : `${root}/${file}`),
+              );
+        for (const id of ids) {
+          const packageRoot = packageRootOf(id);
+          if (packageRoot) roots.add(packageRoot);
         }
       }
+      for (const name of include) roots.add(resolve(root, "node_modules", name));
       const packages = new Map<string, ThirdPartyPackage>();
       for (const root of roots) {
         const pkg = readPackage(root);
         if (pkg && !exclude.includes(pkg.name) && !packages.has(pkg.name)) packages.set(pkg.name, pkg);
       }
       const list = [...packages.values()];
-      if (fileName !== false) this.emitFile({ type: "asset", fileName, source: renderThirdPartyLicenses(list, header) });
+      const source = group ? renderGroupedLicenses(list, header) : renderThirdPartyLicenses(list, header);
+      if (fileName !== false) this.emitFile({ type: "asset", fileName, source });
+      if (copyTo) {
+        const target = resolve(root, copyTo);
+        mkdirSync(resolve(target, ".."), { recursive: true });
+        writeFileSync(target, source);
+      }
       if (dir) writeLicensesDir(resolve(root, dir), list);
     },
   };
