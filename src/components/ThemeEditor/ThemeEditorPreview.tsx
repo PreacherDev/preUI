@@ -7,10 +7,9 @@ import { Button, type ButtonVariant } from "../Button/Button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "../Card/Card";
 import { Checkbox } from "../Checkbox/Checkbox";
 import { Field, FieldDescription, FieldLabel } from "../Field/Field";
-import { HudStatus, HudStatusGroup } from "../HudStatus/HudStatus";
 import { Input } from "../Input/Input";
 import { KeybindHint, KeybindHintBar } from "../KeybindHint/KeybindHint";
-import { ListMenu, ListMenuContent, ListMenuItem } from "../ListMenu/ListMenu";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "../Item/Item";
 import { Progress } from "../Progress/Progress";
 import { ProgressCircle } from "../ProgressCircle/ProgressCircle";
 import { Slider } from "../Slider/Slider";
@@ -59,7 +58,7 @@ export interface ThemeEditorPreviewLabels {
       amount: string;
     }[];
   };
-  /** The game sample (`sample="game"`): HUD, progress, a list menu, key hints, a notification. */
+  /** The game sample (`sample="game"`): status rings and bars, progress, a list, key hints, a notification. */
   game: {
     groups: { hud: string; progress: string; menu: string; hints: string; notification: string };
     hud: { health: string; armor: string; hunger: string; thirst: string };
@@ -386,15 +385,21 @@ const GameSample = /* @__PURE__ */ forwardRef<
     <div ref={ref} data-slot="theme-editor-sample" data-sample="game" className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-wrap gap-6">
         <Group label={labels.groups.hud} className="min-w-0 flex-1 basis-64">
-          <HudStatusGroup aria-label={labels.groups.hud} className="flex-wrap">
-            <HudStatus value={78} label={labels.hud.health} criticalBelow={20} />
-            <HudStatus value={45} label={labels.hud.armor} />
-            <HudStatus value={32} label={labels.hud.hunger} warnBelow={40} />
-            <HudStatus value={12} label={labels.hud.thirst} criticalBelow={20} pulseWhenCritical={false} />
-          </HudStatusGroup>
+          <div className="flex flex-wrap gap-3">
+            <ProgressCircle size="sm" value={78} tone="positive" aria-label={labels.hud.health} />
+            <ProgressCircle size="sm" value={45} tone="primary" aria-label={labels.hud.armor} />
+            <ProgressCircle size="sm" value={32} tone="warning" aria-label={labels.hud.hunger} />
+            <ProgressCircle size="sm" value={12} tone="negative" aria-label={labels.hud.thirst} />
+          </div>
           <div className="flex flex-col gap-2">
-            <HudStatus variant="bar" value={78} label={labels.hud.health} showLabel />
-            <HudStatus variant="bar" value={32} label={labels.hud.hunger} showLabel warnBelow={40} />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-pui-muted-foreground">{labels.hud.health}</span>
+              <Progress value={78} tone="positive" aria-label={labels.hud.health} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-pui-muted-foreground">{labels.hud.hunger}</span>
+              <Progress value={32} tone="warning" aria-label={labels.hud.hunger} />
+            </div>
           </div>
         </Group>
         <Group label={labels.groups.progress} className="min-w-0 flex-1 basis-64">
@@ -410,21 +415,25 @@ const GameSample = /* @__PURE__ */ forwardRef<
 
       <div className="flex flex-wrap gap-6">
         <Group label={labels.groups.menu} className="min-w-0 flex-1 basis-64">
-          <ListMenu className="rounded-pui-md bg-pui-shell shadow-pui-window">
-            <ListMenuContent aria-label={labels.groups.menu}>
-              {labels.menu.map((item) => (
-                <ListMenuItem
-                  key={item.label}
-                  value={item.label}
-                  description={item.description}
-                  disabled={item.disabled}
-                  suffix={<Badge variant={item.disabled ? "destructive" : "secondary"}>{item.suffix}</Badge>}
-                >
-                  {item.label}
-                </ListMenuItem>
-              ))}
-            </ListMenuContent>
-          </ListMenu>
+          <ItemGroup aria-label={labels.groups.menu} className="rounded-pui-md bg-pui-shell p-1 shadow-pui-window">
+            {labels.menu.map((item, index) => (
+              <Item
+                key={item.label}
+                size="sm"
+                // The first row as the highlighted one, the way a keyboard-driven list (useListNavigation) marks it.
+                data-highlighted={index === 0 ? "" : undefined}
+                className={item.disabled ? "opacity-50" : undefined}
+              >
+                <ItemContent>
+                  <ItemTitle>{item.label}</ItemTitle>
+                  <ItemDescription>{item.description}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Badge variant={item.disabled ? "destructive" : "secondary"}>{item.suffix}</Badge>
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
         </Group>
         <Group label={labels.groups.notification} className="min-w-0 flex-1 basis-64">
           {/* A toast as it looks in game, drawn in place (the real Toaster renders in a portal outside the preview). */}

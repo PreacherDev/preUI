@@ -12,6 +12,13 @@ Barrierefreiheit, **Tailwind v3** mit dem preUI-Preset für das Aussehen, Werte 
 
 ---
 
+## Was in preUI aufgenommen wird
+
+Nur allgemeine Bausteine, die auch eine normale Web-App ohne FiveM nutzen würde. Spiel-Bedeutung (HUD, Radial,
+Minispiele, Inventar, Fahrzeuge) gehört ins jeweilige Script oder, wenn mindestens zwei Scripts sie brauchen, nach
+pre_lib — gebaut aus preUI-Bausteinen. Verbindung Lua ↔ NUI ohne Optik gehört nach `preui-nui`. Code wandert nur
+nach oben (Script → pre_lib → preUI), nie auf Vorrat. Die Game-Komponenten wurden deshalb in 0.10 entfernt.
+
 ## Dateien
 
 ```

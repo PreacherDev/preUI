@@ -3,6 +3,25 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.10.0 — 2026-10-08
+
+### Removed
+
+- **Game components:** `HudStatus`, `HudStatusGroup`, `HudSpeedometer`, `HudContainer` (with `hudAnchors`,
+  `getHudPositionStyle`, `useHudStatus`, `getHudStatusLevel`), `RadialMenu` (`defaultRadialMenuLabels`),
+  `SkillCheck` (`useSkillCheck`, `useSkillCheckGame`, `getSkillCheckProgress`, `skillCheckDifficulties`,
+  `resolveSkillCheckDifficulty`, `defaultSkillCheckLabels`) and `ListMenu` (all `ListMenu*` parts, `useListMenu`,
+  `listMenuItemVariants`, `listMenuItemIconVariants`). They are to be rebuilt where they are needed.
+- `isOverlayOpen` no longer checks for a RadialMenu submenu.
+
+### Stays
+
+- `KeybindHint`, `KeybindHintBar`, `KeybindInput`, `ProgressCircle`, `BentoGrid`, `Kanban`.
+- `useListNavigation` (same API, now in `src/utils`): keyboard lists with your own markup; `Item` shows
+  `data-highlighted`.
+- The ThemeEditor's game sample uses `ProgressCircle`, `Progress` and `Item` rows instead of HUD rings and the list
+  menu.
+
 ## 0.9.1 — 2026-10-07
 
 - **ThemeEditor**: while panels are see-through, the split preview shows a backdrop of flat shapes in the theme
@@ -325,6 +344,10 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.2.1 — 2026-10-08
+
+- New resources depend on `@pre_scripts/preui` `^0.10.0`.
 
 ### 0.2.0 — 2026-10-07
 

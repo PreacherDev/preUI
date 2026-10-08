@@ -188,7 +188,7 @@ describe("ThemeEditor features", () => {
     expect(pane.querySelector('[data-slot="theme-editor-sample"]')).not.toHaveAttribute("data-sample", "game");
     await user.click(within(pane).getByRole("button", { name: "Game" }));
     await waitFor(() => expect(pane.querySelector('[data-slot="theme-editor-sample"]')).toHaveAttribute("data-sample", "game"));
-    expect(within(pane).getAllByRole("meter").length + within(pane).getAllByRole("progressbar").length).toBeGreaterThan(0);
+    expect(within(pane).getAllByRole("progressbar").length).toBeGreaterThan(0);
     expect(within(pane).getByText("Karin Sultan")).toBeInTheDocument();
   });
 

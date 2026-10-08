@@ -80,8 +80,8 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
-| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, Empty, Item, Kanban, Kbd, ListMenu, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, Spinner, Table |
-| Game UI | HudContainer, HudStatus, HudStatusGroup, HudSpeedometer, KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle, RadialMenu, SkillCheck (see [Game UI](#game-ui)) |
+| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, Spinner, Table |
+| Game UI | KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle (see [Game UI](#game-ui)) |
 
 Components that build on another library have their own entry point, so you only install what you use:
 
@@ -109,9 +109,9 @@ Besides the components, the main package exports:
 | `IconProvider`, `useIcon`, `defaultIcons` | Icon slots (see [Icons](#icons)) |
 | `ThemeProvider`, `useTheme`, `ThemeScript`, `getThemeScript`, `ThemeToggle`, `ThemeSelect` | Light/dark scheme + your named themes (see [Theming: scheme & themes](#theming-scheme--themes)); types `ThemeStorage`, `ThemeStorageValue` |
 | `applyTokens`, `clearTokens`, `deriveTokens`, `getContrast`, `getContrastLevel`, `checkTokenContrast`, `contrastPairs`, `runtimeTokenSelectors`, `toHslChannels`, `ContrastBadge` | Runtime theming: set tokens live, derive palettes, check contrast (see [Runtime theming](#runtime-theming)); types `TokenInput`, `TokenOverrides`, `DeriveTokensBase`, `TokenContrastResult`, `ContrastLevel`, `PreuiTokens`, `PreuiTokenName` |
-| `hudAnchors`, `getHudPositionStyle`, `getHudStatusLevel`, `useHudStatus`, `useSkillCheck`, `useSkillCheckGame`, `getSkillCheckProgress`, `skillCheckDifficulties`, `resolveSkillCheckDifficulty`, `formatKeybind`, `keybindFromEvent`, `matchesKeybind`, default labels (`defaultRadialMenuLabels`, `defaultSkillCheckLabels`, `defaultKeybindInputLabels`, `defaultContrastBadgeLabels`) | Game UI and badge helpers (see [Game UI](#game-ui)) |
+| `formatKeybind`, `keybindFromEvent`, `matchesKeybind`, default labels (`defaultKeybindInputLabels`, `defaultContrastBadgeLabels`) | Keybind and badge helpers (see [Game UI](#game-ui)) |
 | `moveKanbanItem`, `defaultKanbanLabels` | Kanban state helper and screen-reader texts (see [Kanban](#kanban)) |
-| `useListNavigation`, `useListMenu` | Keyboard-driven lists (see [ListMenu & useListNavigation](#listmenu--uselistnavigation)) |
+| `useListNavigation` | Keyboard-driven lists (see [useListNavigation](#uselistnavigation)) |
 | `useWindowToggle`, `useEscapeKey`, `isOverlayOpen` | Close windows with Escape, reopen with keys (see [Windows](#windows-escape-and-toggle-keys)) |
 | `DialogPopup`, `AlertDialogPopup`, `SheetPopup`, `DrawerPopup` (+ the existing `…Portal` / `…Overlay`) | Build your own overlay surface, e.g. inside a frame (see [Overlays](#overlays-dialog-alertdialog-sheet-drawer-commanddialog)) |
 | `Toaster`, `toast` | Toasts (Sonner-style API) |
@@ -415,82 +415,18 @@ The building blocks are exported too:
 
 - `isOverlayOpen(root?)`: `true` while something owns Escape: an open Dialog, AlertDialog, Sheet, Drawer,
   Popover (DatePicker, ColorPicker), CommandDialog, DropdownMenu, ContextMenu, Menubar, Select, Combobox,
-  Autocomplete or NavigationMenu popup, a Kanban drag, a recording `KeybindInput`, or a focused `RadialMenu` in a
-  submenu. Never for toasts (which are `role="dialog"` too), tooltips or hover cards.
+  Autocomplete or NavigationMenu popup, a Kanban drag or a recording `KeybindInput`. Never for toasts (which are
+  `role="dialog"` too), tooltips or hover cards.
 - `useEscapeKey(handler, { enabled, ignoreWhenOverlayOpen, capture })`: Escape anywhere on the page, except while
   an overlay owns it. With `capture: true` (default) it runs before popups react. With `capture: false` it runs after
   your own components and also skips an Escape one of them handled (`preventDefault()` / `stopPropagation()`). Use
   that when your window has inputs with their own Escape behaviour.
 
-### ListMenu & useListNavigation
+### useListNavigation
 
-Keyboard-driven list panels for game menus: garage, shop, job menu, third-eye options. `ListMenu` tracks the
-highlighted row and handles the keyboard, mouse, scrolling and ARIA; `useListNavigation` is the same logic as a
-headless hook for your own markup.
-
-```tsx
-import {
-  ListMenu, ListMenuHeader, ListMenuContent, ListMenuGroup, ListMenuLabel, ListMenuItem,
-  ListMenuSeparator, ListMenuFooter, ScrollArea, KeybindHint, KeybindHintBar, useListMenu,
-} from "@pre_scripts/preui";
-
-function Position() {
-  const { highlightedIndex, count } = useListMenu();
-  return <span className="tabular-nums">{highlightedIndex + 1}/{count}</span>;
-}
-
-<ListMenu keyboardTarget="window" size="lg" onBack={back} onClose={close} className="w-96">
-  <ListMenuHeader>Garage · Pillbox Hill</ListMenuHeader>
-  <ScrollArea viewportClassName="max-h-96" reserveTrack={false}>
-    <ListMenuContent aria-label="Vehicles">
-      <ListMenuGroup>
-        <ListMenuLabel>Parked</ListMenuLabel>
-        <ListMenuItem value="sultan" icon={<CarIcon />} description="LS 42 KRN" suffix={<Badge>Parked</Badge>} submenu onSelect={openSultan}>
-          Karin Sultan RS
-        </ListMenuItem>
-        <ListMenuItem value="vigero" icon={<CarIcon />} description="Impounded" disabled>
-          Declasse Vigero
-        </ListMenuItem>
-      </ListMenuGroup>
-      <ListMenuSeparator />
-      <ListMenuItem value="close" onSelect={close}>Close</ListMenuItem>
-    </ListMenuContent>
-  </ScrollArea>
-  <ListMenuFooter>
-    <KeybindHintBar className="gap-x-3">
-      <KeybindHint size="sm" keys={["↑", "↓"]} separator={null} label="Select" />
-      <KeybindHint size="sm" keys="Enter" label="Open" />
-      <KeybindHint size="sm" keys="Esc" label="Close" />
-    </KeybindHintBar>
-    <Position />
-  </ListMenuFooter>
-</ListMenu>
-```
-
-- **Keys:** ↑/↓ move (←/→ for `orientation="horizontal"`, all four arrows for `"grid"` with `columns`), Home/End,
-  PageUp/PageDown, Enter/Space → the item's `onSelect` and the menu's `onSelect(value)`, Backspace (and ← in a vertical
-  list) → `onBack`, Escape → `onClose`. Back/close keys are only handled when the callback is set; change them with
-  `keys={{ select, back, close }}`.
-- **NUI:** in FiveM the list usually has no DOM focus. `keyboardTarget="window"` listens on `window` while `enabled`
-  (default `true`) and ignores keys typed into inputs. The default `"list"` needs focus on `ListMenuContent`
-  (`autoFocus` helps).
-- **Disabled items** are skipped by default. `skipDisabled={false}` keeps them reachable, so a "why not" description
-  can be read, but they can't be selected.
-- **Wrap:** `loop` (default `true`).
-- **Mouse:** hovering highlights on pointer *move*, so a resting mouse doesn't fight the keyboard; a click selects.
-- **Scrolling:** the highlighted row is scrolled into view (`block: "nearest"`) on keyboard moves and on mount, never on
-  hover. Works inside `ScrollArea`. Turn it off with `scrollIntoView={false}`.
-- **Typeahead:** typing jumps to items by their label (or `textValue`). On by default for `keyboardTarget="list"`, off
-  for `"window"`, where letters are game keys.
-- **State:** `highlightedValue` / `defaultHighlightedValue` / `onHighlightedValueChange(value, source)`;
-  `useListMenu()` inside the menu gives `{ highlightedValue, highlightedIndex, count, highlight }`.
-- **ARIA:** `role="menu"` + `menuitem` (or `role="listbox"` + `option`), `aria-activedescendant` (default) or roving
-  tabindex (`focusMode="roving"`). Give `ListMenuContent` an `aria-label`.
-- **Styling:** highlighted rows get `data-highlighted` (accent surface + primary bar on the left); disabled rows
-  get `data-disabled`. `size="lg"` shows icons as tiles and suits two-line rows. `render` swaps the element of
-  `ListMenuItem` / `ListMenuContent`.
-
-**Headless:** `useListNavigation` does the same for any markup:
+Keyboard navigation for lists you build yourself (garage, shop, job menu …): it tracks the highlighted row and handles
+the keyboard, mouse, scrolling and ARIA. `Item` shows the highlighted style through `data-highlighted`, so it works as
+a row directly. (The `ListMenu` component built on it was removed in 0.10.)
 
 ```tsx
 const nav = useListNavigation({
@@ -608,7 +544,7 @@ const [board, setBoard] = useState<Record<string, Order[]>>({ new: […], progre
 
 ### Game UI
 
-Components for HUDs and inventories — built for FiveM, usable anywhere. Like the rest of preUI they avoid CSS that
+Building blocks for game windows — built for FiveM, usable anywhere. Like the rest of preUI they avoid CSS that
 Chromium 103 lacks.
 
 #### ProgressCircle
@@ -668,163 +604,6 @@ Clicks on the key caps reach the button (`Kbd` is `pointer-events-none`). Set `i
 styles on or off. `size="sm"` gives smaller key caps and `text-xs` for compact footers. `KeybindHintBar` also takes
 `render` (e.g. `render={<footer />}`).
 
-#### RadialMenu
-
-Interaction wheel like the radial menus of FiveM servers: items sit in a ring of equal segments around a centre. The
-pointer's angle from the centre picks the segment (also outside the ring), a click selects it or opens its submenu, and
-the centre shows the highlighted label and goes back one level. Data-driven, because the layout depends on the item count.
-
-```tsx
-import { RadialMenu, type RadialMenuItem } from "@pre_scripts/preui";
-import { Car, Cog, DoorOpen, Package, User } from "lucide-react";
-
-const items: RadialMenuItem[] = [
-  { id: "vehicle", label: "Vehicle", icon: <Car />, items: [
-    { id: "doors", label: "Doors", icon: <DoorOpen /> },
-    { id: "engine", label: "Engine", icon: <Cog /> },
-    { id: "trunk", label: "Trunk", icon: <Package />, disabled: true },
-  ] },
-  { id: "person", label: "Person", icon: <User /> },
-];
-
-const [open, setOpen] = useState(false);
-<RadialMenu
-  items={items}
-  open={open}
-  onOpenChange={setOpen}
-  onSelect={(item, path) => fetchNui("radial", { path })} // path = ["vehicle", "doors"]
-  autoFocus
-  centerLabel="Interact"
-/>
-```
-
-- 2–10 items per level; up to 8 reads best. `size` is the diameter in px (default 320), `innerRadius` the centre's
-  share of the radius (default 0.36).
-- Keyboard: arrows move around the ring (wrapping, disabled items skipped), Home/End, Enter/Space select or open a
-  submenu, Backspace/Escape go back, Escape on the root level closes.
-- Closing (Escape on the root level, a click on the centre on the root level, or after a selection unless
-  `keepOpenOnSelect`) calls `onOpenChange(false)`. Without `open` / `onOpenChange` the menu never closes itself.
-- `pointerTracking="window"` (default) follows the pointer anywhere on the page, like FiveM wheels; use `"element"`
-  when several menus share a page. Clicks only count on the menu itself.
-- `labels={{ menu, back, close }}` (English defaults) for the accessible name and the centre texts.
-
-**Your own look.** Everything below is optional; keyboard, pointer and screen reader behaviour stay the same.
-
-```tsx
-import { RadialMenu, type RadialMenuItem } from "@pre_scripts/preui";
-import { IdCard, Receipt, Search, ShieldAlert, Siren } from "lucide-react";
-
-const police: RadialMenuItem[] = [
-  { id: "id", label: "Check ID", icon: <IdCard />, description: "Asks for the person's ID." },
-  { id: "search", label: "Search", icon: <Search /> },
-  { id: "arrest", label: "Arrest", icon: <ShieldAlert />, tone: "destructive", description: "Takes the person into custody." },
-  { id: "fine", label: "Fine", icon: <Receipt /> },
-];
-const counts: Record<string, number> = { fine: 3 };
-
-<RadialMenu
-  items={police}
-  size={260}
-  innerRadius={0.46}
-  gap={6}
-  startAngle={180 / police.length} // a gap instead of a segment at the top
-  classNames={{ segment: "fill-pui-background", center: "fill-pui-background" }}
-  renderItem={(item, { highlighted }) => (
-    <span className={highlighted ? "relative" : "relative text-pui-foreground"}>
-      {item.icon}
-      {counts[item.id] ? <span className="absolute -right-2 -top-2 rounded-full bg-pui-primary px-1 text-[10px] text-pui-primary-foreground">{counts[item.id]}</span> : null}
-      <span className="sr-only">{item.label}</span>
-    </span>
-  )}
-  renderCenter={({ highlighted }) =>
-    highlighted ? <><b>{highlighted.label}</b><small>{highlighted.description}</small></> : <Siren />
-  }
-/>
-```
-
-- Per item: `description` (shown in the centre below the label while highlighted, and used as the item's accessible
-  description), `className` (the item's content element) and `tone` — `"default"` / `"primary"` (primary tint),
-  `"positive"`, `"warning"`, `"destructive"` — colours the highlighted segment and its text (sets `data-tone`).
-- `renderItem(item, { highlighted, disabled, level, index, count, hasSubmenu })` replaces a segment's icon + label. The
-  result is rendered inside the segment's `role="menuitem"` element, centred on the segment; keep a text (e.g. an
-  `sr-only` label) in it when you render icons only, because the item's accessible name comes from its content.
-- `renderCenter({ highlighted, level, path, action, centerActive })` replaces the centre content. `path` is the list of
-  opened submenu items, `action` is `"back"` (submenu), `"close"` (closable root level) or `null`, `centerActive` is
-  true while the pointer rests on the centre. The centre is decorative (`aria-hidden`).
-- Geometry: `startAngle` (degrees clockwise from 12 o'clock for the first item, default `0`), `gap` (px between
-  segments, default `4`, `0` = touching) and `outerPadding` (px between the ring and the box edge, default `1`, e.g.
-  room for badges outside the ring). The pointer mapping follows all of them.
-- `classNames={{ root, ring, segment, segmentHighlight, item, icon, label, center, centerContent, centerLabel,
-  centerDescription }}` adds classes per part; they are merged with tailwind-merge, so conflicting classes replace the
-  defaults (`label: "text-sm"` replaces `text-xs`). `segment` is the resting segment shape, `segmentHighlight` the
-  overlay that fades in on highlight; the segment group has Tailwind's `group`, so `group-data-[highlighted]:` works.
-- Styling hooks: `data-slot="radial-menu"` (with `data-level`), `radial-menu-segment` / `radial-menu-item` (with
-  `data-highlighted`, `data-disabled`, `data-tone`), `radial-menu-segment-shape`, `radial-menu-segment-highlight`,
-  `radial-menu-label`, `radial-menu-icon`, `radial-menu-center` (with `data-action="back|close"`, `data-active`),
-  `radial-menu-center-content`, `radial-menu-center-label`, `radial-menu-center-description`.
-
-#### SkillCheck
-
-The "press the key at the right moment" minigame for lockpicking, repairs or fishing, like ox_lib's `skillCheck`. A
-marker runs around a ring (or slides along a bar); the player presses the key (or clicks/taps the check) while it is
-inside the highlighted zone.
-
-```tsx
-import { SkillCheck, useSkillCheck } from "@pre_scripts/preui";
-
-function Lockpick() {
-  const skillCheck = useSkillCheck();
-  const pick = async () => {
-    const ok = await skillCheck.start(["easy", "medium", "hard"], ["e"]);
-    fetchNui("lockpick:result", { ok });
-  };
-  return (
-    <>
-      <Button onClick={pick}>Pick the lock</Button>
-      {skillCheck.running && <SkillCheck {...skillCheck.props} />}
-    </>
-  );
-}
-
-// Declarative
-<SkillCheck rounds={3} difficulty="medium" keys={["e"]} onComplete={(ok, { round }) => …} />
-
-// Horizontal bar, own colours and centre content
-<SkillCheck variant="bar" size={280} zoneTone="positive" indicatorTone="primary" />
-<SkillCheck classNames={{ track: "stroke-pui-border" }} renderContent={({ key, round, rounds }) => …} />
-```
-
-- Difficulties `"easy"` (50° zone, ×1), `"medium"` (40°, ×1.5), `"hard"` (25°, ×1.75) — ox_lib's values — or
-  `{ areaSize, speedMultiplier }`. One turn takes 2 s at ×1. `rounds` is an array of difficulties or a count.
-- Fails on a configured key outside the zone and after `timeoutTurns` full turns (default 1) without a press; other
-  keys, key repeats and Ctrl/Alt/Meta combinations are ignored. `randomKey` picks one of `keys` per round (ox_lib
-  style). The zone is placed at random each round (`random` makes it predictable, e.g. in tests).
-- `useSkillCheck().start()` resolves `false` on a miss, on `cancel()`, when `start()` is called again or when the
-  component unmounts.
-- Props: `active`, `runKey` (change it to restart), `variant` (`"ring"` | `"bar"`), `size` (ring: `"sm"` 96 /
-  `"default"` 128 / `"lg"` 160 / px; bar: its length, 160 / 224 / 288 / px), `thickness` (ring stroke / bar height),
-  `zoneTone` (`"primary"` | `"positive"` | `"warning"`), `indicatorTone` (`"foreground"` | `"primary"` | `"positive"` |
-  `"warning"`), `showKey`, `formatKey`, `pointer` (default `true`), `labels`, `classNames` (per part: `root`, `svg`,
-  `track`, `zone`, `indicator`, `content`, `hint`, `key`, `round`, `status`) and `renderContent({ state, round, rounds,
-  key, progress })` to replace the centre content. `onRoundComplete({ round, success })`.
-- The marker moves with `requestAnimationFrame` (SVG `transform` attribute: `rotate()` on the ring, `translate()` on the
-  bar) and keeps moving with `prefers-reduced-motion`, because the movement is the game. The root carries
-  `data-state="idle|running|success|failed"` and `data-variant`.
-
-**Your own minigame.** `useSkillCheckGame(options)` runs the same game (rounds, difficulties, keys, random zones,
-timeouts, `onComplete` / `onRoundComplete`) without any markup:
-
-```tsx
-const game = useSkillCheckGame({ rounds: ["easy", "medium", "hard"], keys: ["e"], onComplete: (ok) => … });
-// game.state, game.round (1-based), game.rounds, game.zone { start, size } (degrees), game.angle, game.progress (0–1),
-// game.key, game.flash, game.start(), game.cancel(), game.press() (click/tap) or game.press("e")
-<Pin lift={game.progress} target={[game.zone.start / 360, (game.zone.start + game.zone.size) / 360]} />
-```
-
-It is idle until `start()` (or `active: true`); keys are read from `window` while running (`keyboard: false` turns
-that off). By default it re-renders every frame; for heavy visuals pass `frameUpdates: false` and draw in
-`onFrame(angle)` or read `getAngle()`.
-
 #### KeybindInput
 
 A "press a key" field for settings menus. It looks like `Input` and shows the binding as `Kbd` chips (Shift + F).
@@ -849,103 +628,6 @@ window.addEventListener("keydown", (e) => { if (matchesKeybind(e, bind)) openMen
   `keybindFromEvent(event)`, `matchesKeybind(event, value)`.
 - FiveM: game keybinds belong in Lua (`RegisterKeyMapping`, changeable in GTA's settings); this field is for hotkeys
   inside your UI or a preference your script maps.
-
-#### HudStatus
-
-Player stats for game HUDs (health, armour, hunger, thirst, stamina, stress, oxygen …) as a ring, bar or compact pill,
-plus a speedometer. Thresholds switch the tone to `warning` / `negative` and set `data-level`.
-
-```tsx
-import { HudSpeedometer, HudStatus, HudStatusGroup } from "@pre_scripts/preui";
-import { Fuel, Heart, Shield, Utensils } from "lucide-react";
-
-// Hoist icons: the components are memoised and skip renders when their props don't change.
-const heart = <Heart />;
-
-<HudStatusGroup aria-label="Status" variant="surface">
-  <HudStatus value={health} icon={heart} label="Health" tone="positive" criticalBelow={20} pulseWhenCritical />
-  {armour > 0 && <HudStatus value={armour} icon={<Shield />} label="Armour" />}
-  <HudStatus value={hunger} icon={<Utensils />} label="Hunger" tone="muted" warnBelow={25} criticalBelow={10} />
-  <HudStatus value={stress} label="Stress" variant="pill" warnAbove={60} criticalAbove={85} />
-  <HudStatus value={oxygen} label="Oxygen" size={72} thickness={7} renderValue={({ valueText }) => `${valueText} %`} />
-</HudStatusGroup>
-
-<HudSpeedometer speed={kmh} maxSpeed={260} ticks={14} redlineFrom={220} gear={gear} fuel={fuel} fuelIcon={<Fuel />} locale="de-DE" />
-```
-
-| `HudStatus` prop | Type | Default |
-|---|---|---|
-| `value` / `max` | `number` — clamped to `0 … max` | — / `100` |
-| `label` | `string` — accessible name; visible with `showLabel` | required |
-| `icon` | `ReactNode` | |
-| `variant` | `"ring"` (ProgressCircle, icon inside) `\| "bar"` `\| "pill"` | `"ring"` |
-| `tone` | `"primary" \| "positive" \| "warning" \| "negative" \| "muted"` — while no threshold is reached | `"primary"` |
-| `warnBelow` / `criticalBelow` / `warnAbove` / `criticalAbove` | `number` | |
-| `pulseWhenCritical` | `boolean` (`motion-safe:animate-pulse`) | `false` |
-| `showValue` / `showLabel` | `boolean` | `true` for pills or with `renderValue` / `false` |
-| `size` | `"sm" \| "default" \| "lg"`, or a number = ring diameter in px (bars/pills use `"default"`) | `"default"` |
-| `thickness` | `number` — ring stroke width or bar height in px | per size |
-| `renderValue` | `(state: { value, max, fraction, percent, level, tone, valueText }) => ReactNode` | |
-| `classNames` | `Partial<Record<"root" \| "icon" \| "track" \| "indicator" \| "value" \| "label", string>>` | |
-| `locale` / `format` | `Intl.LocalesArgument` / `Intl.NumberFormatOptions` | `"en-US"` / `{ maximumFractionDigits: 0 }` |
-
-Rings are `role="progressbar"`, bars and pills `role="meter"`, all with `aria-valuenow/min/max` and `aria-valuetext`
-(always the formatted value, also with `renderValue`). The root carries `data-variant`, `data-size` (`"custom"` for
-px), `data-tone` and `data-level` (`"warning"` / `"critical"`). To hide a stat, don't render it or pass `hidden`.
-`getHudStatusLevel(value, thresholds)` returns the level for your own logic. `HudStatusGroup` takes `orientation`,
-`variant` (`"default"` | `"surface"`) and `gap`; give it an `aria-label`.
-
-**Your own HUD visual.** `useHudStatus({ value, max, warnBelow, criticalBelow, warnAbove, criticalAbove, tone, locale,
-format, label })` returns `{ value, max, fraction, percent, level, tone, valueText, meterProps }` — the same clamping
-and threshold logic, with `meterProps` (`role="meter"`, `aria-label`, `aria-valuenow/min/max/text`) to spread on your
-element:
-
-```tsx
-function SegmentBar({ value, label }: { value: number; label: string }) {
-  const s = useHudStatus({ value, label, warnBelow: 25, criticalBelow: 10 });
-  const filled = Math.ceil(s.percent / 10);
-  return (
-    <div {...s.meterProps} className="flex flex-col-reverse gap-0.5">
-      {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} className={i < filled ? (s.tone === "negative" ? "bg-pui-negative" : "bg-pui-positive") : "bg-pui-muted"} />
-      ))}
-    </div>
-  );
-}
-```
-
-`HudSpeedometer` takes `speed`, `maxSpeed` (default `240`), `unit` (default `"km/h"`), `gear` / `gearLabel`, `fuel`
-(0–100, with `fuelIcon`, `fuelLabel`, `fuelWarnBelow` = 25, `fuelCriticalBelow` = 10), `showArc`, `ticks` (flat tick
-marks along the arc, both ends included), `redlineFrom` (tinted negative arc segment from that speed; the indicator
-turns negative and the root gets `data-redline` once the speed reaches it), `tone`, `size`, `label`, `locale`,
-`format`, `renderSpeed({ speed, maxSpeed, fraction, speedText, redline })` and `classNames` (per part: `root`, `dial`,
-`arc`, `track`, `redline`, `indicator`, `tick`, `readout`, `speed`, `unit`, `gear`, `fuel`). Only the bar width and the
-ring/arc `stroke-dashoffset` animate, so values from NUI messages can update many times per second.
-
-#### HudContainer
-
-Places HUD elements at one of nine anchors. Anchor and offset are plain props, so players can move a HUD at runtime.
-It ignores the mouse by default, so it never blocks the game cursor.
-
-```tsx
-import { HudContainer, hudAnchors, type HudAnchor } from "@pre_scripts/preui";
-
-<HudContainer anchor="bottom-right" offset={24}>…</HudContainer>
-<HudContainer anchor="top" offset={{ x: 0, y: 16 }} transition>…</HudContainer>
-<HudContainer anchor={settings.anchor} position="absolute" interactive>…</HudContainer>
-```
-
-| Prop | Type | Default |
-|---|---|---|
-| `anchor` | `"top-left" \| "top" \| "top-right" \| "left" \| "center" \| "right" \| "bottom-left" \| "bottom" \| "bottom-right"` (all in `hudAnchors`) | `"top-left"` |
-| `offset` | `number \| { x, y }` — px inward from the anchor edges; shifts on centred axes | `0` |
-| `position` | `"fixed" \| "absolute"` | `"fixed"` |
-| `transition` | `boolean` — animates position changes (a switch between opposite edges jumps) | `false` |
-| `interactive` | `boolean` — enables pointer events | `false` |
-
-Positioning uses inline `left` / `right` / `top` / `bottom` and `transform` (not the individual `translate` property,
-so it works in Chromium 103). `data-anchor` reflects the current anchor; `getHudPositionStyle(anchor, offset)` returns
-the same styles for your own elements.
 
 ## Server rendering (SSR)
 

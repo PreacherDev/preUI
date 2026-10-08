@@ -24,21 +24,15 @@ const OVERLAY_SELECTOR = [
 
 /**
  * `true` while something in `root` (default: the whole document) owns the Escape key: an open dialog, alert dialog,
- * sheet, drawer, popover, menu, select, combobox, autocomplete or navigation menu popup, a Kanban drag, a
- * `KeybindInput` that is recording, or a focused `RadialMenu` showing a submenu (Escape goes back a level).
- * Tooltips, hover cards and toasts never count.
+ * sheet, drawer, popover, menu, select, combobox, autocomplete or navigation menu popup, a Kanban drag, or a
+ * `KeybindInput` that is recording. Tooltips, hover cards and toasts never count.
  *
  * Use it to decide whether an Escape is meant for your window or for a popup inside it. Check it **before** the
  * popups react (capture phase), since they close on the same keydown. Returns `false` on the server.
  */
 export function isOverlayOpen(root?: ParentNode): boolean {
   if (typeof document === "undefined") return false;
-  const scope = root ?? document;
-  if (scope.querySelector(OVERLAY_SELECTOR)) return true;
-  // A RadialMenu handles Escape itself (back one level) only while it has the focus.
-  const active = document.activeElement;
-  const radial = active?.closest?.('[data-slot="radial-menu"]');
-  return Boolean(radial && radial.getAttribute("data-level") !== "0" && (scope as Node).contains(radial));
+  return Boolean((root ?? document).querySelector(OVERLAY_SELECTOR));
 }
 
 export interface UseEscapeKeyOptions {
