@@ -92,7 +92,7 @@ Components that build on another library have their own entry point, so you only
 | `@pre_scripts/preui/calendar` | Calendar, CalendarDayButton, DatePicker, DateRangePicker | `react-day-picker` |
 | `@pre_scripts/preui/carousel` | Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, `useCarousel` | `embla-carousel-react` |
 | `@pre_scripts/preui/command` | Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator, CommandShortcut | `cmdk` |
-| `@pre_scripts/preui/theme-editor` | ThemeEditor, ThemeEditorPreview (also in the main entry; this entry lets a lazily loaded theme tool get its own chunk) | - |
+| `@pre_scripts/preui/theme-editor` | ThemeEditor, ThemeEditorPreview, `defaultThemeEditorLabels`, `defaultThemeEditorFonts`, `defaultThemeEditorPreviewLabels`, `themeEditorColorKeys` (also in the main entry; this entry lets a lazily loaded theme tool get its own chunk) | - |
 | `@pre_scripts/preui/resizable` | ResizablePanelGroup, ResizablePanel, ResizableHandle | `react-resizable-panels` |
 | `@pre_scripts/preui/form` | Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, `useFormField` | `react-hook-form` |
 | `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableToolbar, DataTableViewOptions, `createSelectColumn`, `createDataTableColumnHelper`, `dataTableFeatures`, re-exported `createColumnHelper` / `flexRender` | `@tanstack/react-table` `@tanstack/table-core` |
@@ -356,9 +356,7 @@ import { MarkdownEditor, RichTextEditor } from "@pre_scripts/preui/editor";
 
 <CodeBlock language="lua" filename="server.lua" showLineNumbers code={source} />
 <CodeEditor language="typescript" value={code} onValueChange={setCode} />
-<Markdown>{"# Hello
-
-- [x] GFM task lists"}</Markdown>
+<Markdown>{"# Hello\n\n- [x] GFM task lists"}</Markdown>
 <RichTextEditor value={markdown} onValueChange={setMarkdown} />
 <MarkdownEditor layout="split" value={markdown} onValueChange={setMarkdown} />
 ```
@@ -373,6 +371,7 @@ import { registerShikiLanguages } from "@pre_scripts/preui/code"; // or "@pre_sc
 registerShikiLanguages({
   lua: () => import("shiki/langs/lua.mjs"),
   ts: () => import("shiki/langs/typescript.mjs"),
+  typescript: () => import("shiki/langs/typescript.mjs"), // aliases need their own key in the map form
 });
 // Every Shiki language (about 10 MB of lazily loaded chunks in your build):
 // import { bundledLanguagesInfo } from "shiki/langs"; registerShikiLanguages(bundledLanguagesInfo);
