@@ -1,7 +1,13 @@
 // Pure helpers of the ThemeEditor: reading and writing fields of a ThemeConfig, preset matching, contrast per field.
 import type { SchemePreference } from "../Theme/theme-script";
 import { rgbToHex } from "../ColorPicker/color";
-import { checkTokenContrast, parseAnyColor, type TokenContrastResult } from "../../theming/contrast";
+import {
+  checkTokenContrast,
+  contrastPairs,
+  parseAnyColor,
+  tintContrastColors,
+  type TokenContrastResult,
+} from "../../theming/contrast";
 import type { DeriveTokensBase } from "../../theming/derive";
 import { resolveThemeConfigTokens, type ThemeConfig, type ThemePalette, type ThemePreset } from "../../theming/theme-config";
 import { normalizeTokens, type TokenInput, type TokenOverrides } from "../../theming/token-css";
@@ -65,7 +71,7 @@ export function fieldProblems(
 export const pairKey = (result: Pick<TokenContrastResult, "fg" | "bg">) =>
   `${result.fg.replace(/^--pui-/, "")}/${result.bg.replace(/^--pui-/, "")}`;
 
-/** The pairs always listed in the contrast details; other pairs appear only while they fail. */
+/** The pairs listed first in the contrast details (always, in this order); the others sit in "Other pairs". */
 export const importantPairs: readonly string[] = [
   "foreground/background",
   "muted-foreground/background",
@@ -79,6 +85,19 @@ export const importantPairs: readonly string[] = [
   "destructive-foreground/destructive",
   "primary/primary",
 ];
+
+/**
+ * Every pair `checkTokenContrast` reports (`contrastPairs`, then one tinted pair per `tintContrastColors` entry), as
+ * `pairKey`s in that fixed order. The contrast details list rows by these keys, so their number never depends on the
+ * current result.
+ */
+export const allPairKeys: readonly string[] = [
+  ...contrastPairs.map(([fg, bg]) => pairKey({ fg, bg })),
+  ...tintContrastColors.map((colour) => pairKey({ fg: colour, bg: colour })),
+];
+
+/** `allPairKeys` without the `importantPairs` (the collapsible "Other pairs" of the contrast details). */
+export const otherPairKeys: readonly string[] = allPairKeys.filter((key) => !importantPairs.includes(key));
 
 /** Any colour string → `#rrggbb` (the ColorPicker value); `null` when it is no colour. */
 export function toHex(value: string | undefined): string | null {

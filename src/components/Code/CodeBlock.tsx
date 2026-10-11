@@ -1,10 +1,10 @@
-import type { ThemedToken } from "shiki/core";
 import {
   forwardRef,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ComponentPropsWithoutRef,
   type CSSProperties,
   type ReactNode,
@@ -13,7 +13,12 @@ import { Button } from "../Button/Button";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
-import { highlightCode, highlightCodeSync } from "./shiki";
+import {
+  getCodeHighlighter,
+  getCodeHighlighterVersion,
+  subscribeCodeHighlighter,
+  type HighlightToken,
+} from "./highlighter";
 import { syntaxColor } from "./syntax-theme";
 
 /* ------------------------------------------------------------------------------------------------
@@ -23,7 +28,10 @@ import { syntaxColor } from "./syntax-theme";
 export interface CodeBlockProps extends Omit<ComponentPropsWithoutRef<"div">, "children" | "onCopy"> {
   /** The source code to display. */
   code: string;
-  /** Any Shiki language id or alias (`tsx`, `ts`, `bash`, `sh`, `lua`, `json` …). Unknown ids render as plain text. */
+  /**
+   * Language id or alias (`tsx`, `ts`, `bash`, `lua`, `json` …). Highlighted when the app registered it with
+   * `registerShikiLanguages`; otherwise (and for unknown ids) the code renders plain.
+   */
   language?: string;
   /** Shows a header row with the file name, the language and the copy button. */
   filename?: ReactNode;
@@ -43,7 +51,7 @@ export interface CodeBlockProps extends Omit<ComponentPropsWithoutRef<"div">, "c
   onCopy?: (code: string) => void;
 }
 
-type TokenLine = Pick<ThemedToken, "content" | "color" | "fontStyle">[];
+type TokenLine = HighlightToken[];
 
 /** Splits code into single-token lines — the plain fallback, rendered with the same metrics as the highlighted version. */
 function plainLines(code: string): TokenLine[] {
@@ -70,15 +78,25 @@ const lineNumberClassName = cn(
   "data-[highlighted]:before:text-pui-foreground/70",
 );
 
-/** Keeps the highlighted tokens for the current `code` + `language`; falls back to plain lines while loading. */
+/**
+ * Keeps the highlighted tokens for the current `code` + `language`; falls back to plain lines while loading and
+ * whenever no highlighter is registered for the language (then Shiki is never loaded).
+ */
 function useHighlightedLines(code: string, language: string) {
-  const syncTokens = useMemo(() => highlightCodeSync(code, language), [code, language]);
+  const version = useSyncExternalStore(subscribeCodeHighlighter, getCodeHighlighterVersion, getCodeHighlighterVersion);
+  const highlighter = useMemo(() => {
+    const current = getCodeHighlighter();
+    return current?.has(language) ? current : null;
+    // `version` changes when languages are registered later.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, version]);
+  const syncTokens = useMemo(() => highlighter?.highlightSync(code, language) ?? null, [highlighter, code, language]);
   const [asyncResult, setAsyncResult] = useState<{ code: string; language: string; lines: TokenLine[] } | null>(null);
 
   useEffect(() => {
-    if (syncTokens) return;
+    if (!highlighter || syncTokens) return;
     let cancelled = false;
-    highlightCode(code, language).then(
+    highlighter.highlight(code, language).then(
       (lines) => {
         if (!cancelled) setAsyncResult({ code, language, lines });
       },
@@ -89,10 +107,10 @@ function useHighlightedLines(code: string, language: string) {
     return () => {
       cancelled = true;
     };
-  }, [code, language, syncTokens]);
+  }, [highlighter, code, language, syncTokens]);
 
-  if (syncTokens) return { lines: syncTokens as TokenLine[], highlighted: true };
-  if (asyncResult && asyncResult.code === code && asyncResult.language === language) {
+  if (syncTokens) return { lines: syncTokens, highlighted: true };
+  if (highlighter && asyncResult && asyncResult.code === code && asyncResult.language === language) {
     return { lines: asyncResult.lines, highlighted: true };
   }
   return { lines: plainLines(code), highlighted: false };
@@ -146,8 +164,9 @@ function CopyButton({ code, copyLabel, copiedLabel, onCopy, className }: CopyBut
 }
 
 /**
- * Read-only, syntax-highlighted code (Shiki). Renders the plain code immediately and swaps in the
- * highlighted tokens once Shiki and the grammar are loaded — with identical metrics, so nothing shifts.
+ * Read-only code with optional syntax highlighting (Shiki, for the languages registered with
+ * `registerShikiLanguages`). Renders the plain code immediately and swaps in the highlighted tokens once Shiki and
+ * the grammar are loaded — with identical metrics, so nothing shifts.
  */
 export const CodeBlock = /* @__PURE__ */ forwardRef<HTMLDivElement, CodeBlockProps>(function CodeBlock(
   {

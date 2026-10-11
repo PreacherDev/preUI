@@ -77,7 +77,7 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Group | Components (`@pre_scripts/preui`) |
 |---|---|
 | Actions | Button, ButtonGroup, Toggle, ToggleGroup, Toolbar |
-| Forms | Checkbox, CheckboxGroup, ColorPicker, Field, Form, Input, InputGroup, InputOTP, Label, NumberField, RadioGroup, Slider, Switch, Textarea |
+| Forms | Checkbox, CheckboxGroup, ColorPicker, Field, Form, Input, InputGroup, InputOTP, Label, NumberField (`steppers={false}` hides -/+), RadioGroup, Slider, Switch, Textarea |
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
@@ -92,11 +92,12 @@ Components that build on another library have their own entry point, so you only
 | `@pre_scripts/preui/calendar` | Calendar, CalendarDayButton, DatePicker, DateRangePicker | `react-day-picker` |
 | `@pre_scripts/preui/carousel` | Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, `useCarousel` | `embla-carousel-react` |
 | `@pre_scripts/preui/command` | Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator, CommandShortcut | `cmdk` |
+| `@pre_scripts/preui/theme-editor` | ThemeEditor, ThemeEditorPreview (also in the main entry; this entry lets a lazily loaded theme tool get its own chunk) | - |
 | `@pre_scripts/preui/resizable` | ResizablePanelGroup, ResizablePanel, ResizableHandle | `react-resizable-panels` |
 | `@pre_scripts/preui/form` | Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, `useFormField` | `react-hook-form` |
 | `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableToolbar, DataTableViewOptions, `createSelectColumn`, `createDataTableColumnHelper`, `dataTableFeatures`, re-exported `createColumnHelper` / `flexRender` | `@tanstack/react-table` `@tanstack/table-core` |
-| `@pre_scripts/preui/code` | CodeBlock (syntax highlighting, copy, line numbers), CodeInline, CodeEditor, `syntaxColor`, `syntaxPalette` | `shiki`, `@codemirror/*` (state, view, language, commands, language-data, search, autocomplete), `@lezer/highlight` |
-| `@pre_scripts/preui/markdown` | Markdown (GFM tables, task lists, highlighted code) | `react-markdown` `remark-gfm` + the `/code` packages |
+| `@pre_scripts/preui/code` | CodeBlock (syntax highlighting via `registerShikiLanguages`, copy, line numbers), CodeInline, CodeEditor, `syntaxColor`, `syntaxPalette`, `registerShikiLanguages` | `shiki`, `@codemirror/*` (state, view, language, commands, language-data, search, autocomplete), `@lezer/highlight` |
+| `@pre_scripts/preui/markdown` | Markdown (GFM tables, task lists, code blocks; colours via `registerShikiLanguages`), `registerShikiLanguages` | `react-markdown` `remark-gfm` + the `/code` packages |
 | `@pre_scripts/preui/editor` | RichTextEditor (WYSIWYG, stores Markdown), MarkdownEditor (write/preview), `proseClassName`, default labels / toolbar lists (`defaultRichTextEditorLabels`, `defaultRichTextEditorToolbar`, `richTextEditorToolbarGroups`, `defaultMarkdownEditorLabels`, `markdownEditorToolbarGroups`, `MARKDOWN_EDITOR_COMPACT_WIDTH`) | `@tiptap/core` `@tiptap/react` `@tiptap/pm` `@tiptap/starter-kit` `@tiptap/markdown` `@tiptap/extensions` + the `/markdown` packages |
 
 The main package also exports a Base UI `Form` (native form with server-side errors); the `/form` entry is shadcn's react-hook-form `Form`.
@@ -326,6 +327,26 @@ Without `revealGroup` only hovering (or focusing) the badge itself opens it. It 
 works too: `<TabsContent className="h-96 overflow-auto">`. Before 0.7 it was `flex-1`, whose zero basis ignored `h-*`
 unless you added `flex-none`.
 
+### Tabs that keep their panels
+
+Inactive `TabsContent` unmounts by default. Wrap the panels in `TabsStack` to keep them all mounted and stacked in
+one grid cell: state, scroll position and inputs survive a switch, the area keeps the size of the largest panel (no
+layout shift), and inactive panels are invisible and inert.
+
+```tsx
+<Tabs defaultValue="players" className="min-h-0 flex-1 gap-0">
+  <TabsBar>…</TabsBar>
+  <TabsStack className="min-h-0 flex-1">
+    <TabsContent value="players">…</TabsContent>
+    <TabsContent value="log" className="flex flex-col">…</TabsContent>
+  </TabsStack>
+</Tabs>
+```
+
+Arrow keys move the focus between tabs; Enter / Space or a click activate (`activateOnFocus` switches on focus). In a
+`TabsBar` that is too narrow the tabs scroll sideways, the side with more tabs fades out, and the active tab is
+scrolled into view whenever it changes.
+
 ### Code, Markdown & rich text
 
 ```tsx
@@ -340,6 +361,21 @@ import { MarkdownEditor, RichTextEditor } from "@pre_scripts/preui/editor";
 - [x] GFM task lists"}</Markdown>
 <RichTextEditor value={markdown} onValueChange={setMarkdown} />
 <MarkdownEditor layout="split" value={markdown} onValueChange={setMarkdown} />
+```
+
+Code renders plain until you register the languages to colour. Only those grammars end up in your build, and Shiki
+plus each grammar load lazily the first time a block in that language appears. Apps that never call it bundle no
+Shiki at all (important for FiveM, where every client downloads all of `web/dist`):
+
+```ts
+import { registerShikiLanguages } from "@pre_scripts/preui/code"; // or "@pre_scripts/preui/markdown"
+
+registerShikiLanguages({
+  lua: () => import("shiki/langs/lua.mjs"),
+  ts: () => import("shiki/langs/typescript.mjs"),
+});
+// Every Shiki language (about 10 MB of lazily loaded chunks in your build):
+// import { bundledLanguagesInfo } from "shiki/langs"; registerShikiLanguages(bundledLanguagesInfo);
 ```
 
 Syntax colours follow the theme tokens; override single roles with `--pui-syntax-keyword`, `--pui-syntax-string` … .
@@ -1039,7 +1075,10 @@ CSS export.
 
 ### ThemeEditor
 
-One theme editor for websites and FiveM NUI. It edits a `ThemeConfig` (theme protocol v1): the exact object
+One theme editor for websites and FiveM NUI. It is also available from its own entry,
+`@pre_scripts/preui/theme-editor`, so a lazily loaded settings screen gets its own chunk. `samples={["web"]}` shows only
+the interface sample of the split preview and hides the web/game switch. Sliders and colour edits never shift the
+layout: the contrast list always shows the same rows. It edits a `ThemeConfig` (theme protocol v1): the exact object
 `NuiThemeBridge` / `GlobalState.theme` use, so a saved value needs no conversion. The component never talks to a
 server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or your API.
 

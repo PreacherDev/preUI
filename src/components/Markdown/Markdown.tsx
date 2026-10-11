@@ -29,7 +29,10 @@ export interface MarkdownProps extends Omit<ComponentPropsWithoutRef<"div">, "ch
   rehypePlugins?: PluggableList;
   /** Options for `remark-rehype` (e.g. `footnoteLabel`, `footnoteBackLabel`). */
   remarkRehypeOptions?: Options["remarkRehypeOptions"];
-  /** Renders fenced code with the syntax-highlighted `CodeBlock`. `false` → a plain styled `<pre>`. Default `true`. */
+  /**
+   * Renders fenced code with `CodeBlock` (frame, copy button; colours for languages registered with
+   * `registerShikiLanguages`). `false` → a plain styled `<pre>`. Default `true`.
+   */
   highlight?: boolean;
   /** Props for every `CodeBlock` (e.g. `showLineNumbers`, `copyable`, `wrap`, `copyLabel`). */
   codeBlockProps?: Omit<Partial<CodeBlockProps>, "code" | "language">;

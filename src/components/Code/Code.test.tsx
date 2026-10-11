@@ -1,8 +1,13 @@
+/// <reference types="vite/client" />
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { CodeBlock, CodeEditor, CodeInline, type CodeEditorHandle } from ".";
+import { CodeBlock, CodeEditor, CodeInline, registerShikiLanguages, type CodeEditorHandle } from ".";
+import { getCodeHighlighter } from "./highlighter";
+import codeBlockSource from "./CodeBlock.tsx?raw";
+import highlighterSource from "./highlighter.ts?raw";
+import markdownSource from "../Markdown/Markdown.tsx?raw";
 import { openSearchPanel } from "@codemirror/search";
 
 // CodeMirror measures text via ranges; jsdom doesn't implement layout.
@@ -22,13 +27,37 @@ afterEach(() => {
 
 const TS = `const answer: number = 42;\n// comment\nfunction greet(name: string) {\n  return "Hallo " + name;\n}`;
 
+/** Any value import (not `import type`) of Shiki or of the Shiki setup module. */
+const VALUE_IMPORT_OF_SHIKI = /^import (?!type\b)[^;]*from "(?:shiki[^"]*|\.\/shiki|\.\.\/Code\/shiki)";|import\("shiki/m;
+
 describe("CodeBlock", () => {
-  it("renders plain code immediately and highlighted tokens after load", async () => {
+  // Runs first: nothing is registered yet in this file.
+  it("renders plain code and never loads Shiki while no language is registered", async () => {
     const { container } = render(<CodeBlock code={TS} language="ts" />);
     const block = container.querySelector('[data-slot="code-block"]')!;
     expect(block).toHaveAttribute("data-state", "plain");
+    expect(container.querySelectorAll("[data-line]")).toHaveLength(5);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(block).toHaveAttribute("data-state", "plain");
+    expect(getCodeHighlighter()).toBeNull();
+  });
+
+  it("keeps Shiki out of the static import graph of CodeBlock and Markdown (bundlers drop it when unused)", () => {
+    expect(codeBlockSource).not.toMatch(VALUE_IMPORT_OF_SHIKI);
+    expect(highlighterSource).not.toMatch(VALUE_IMPORT_OF_SHIKI);
+    expect(markdownSource).not.toMatch(VALUE_IMPORT_OF_SHIKI);
+  });
+
+  it("highlights mounted blocks once their language is registered, with the same box and lines", async () => {
+    const { container } = render(<CodeBlock code={TS} language="ts" />);
+    const block = container.querySelector('[data-slot="code-block"]')!;
+    const pre = container.querySelector("pre")!;
+    const preClassName = pre.className;
+    expect(block).toHaveAttribute("data-state", "plain");
     expect(container.querySelector("code")).toHaveTextContent("const answer: number = 42;");
     expect(container.querySelectorAll("[data-line]")).toHaveLength(5);
+
+    act(() => registerShikiLanguages({ ts: () => import("shiki/langs/typescript.mjs") }));
 
     await waitFor(() => expect(block).toHaveAttribute("data-state", "highlighted"), { timeout: 10_000 });
     const keyword = [...container.querySelectorAll("code span[style]")].find((el) => el.textContent === "const");
@@ -36,20 +65,41 @@ describe("CodeBlock", () => {
     expect((keyword as HTMLElement).style.color).toContain("--pui-syntax-keyword");
     const comment = [...container.querySelectorAll("code span[style]")].find((el) => el.textContent?.includes("comment"));
     expect((comment as HTMLElement).style.fontStyle).toBe("italic");
-    // Text content is unchanged by highlighting.
+    // Text content and metrics are unchanged by highlighting.
     expect(container.querySelector("code")).toHaveTextContent('return "Hallo " + name;');
     expect(container.querySelectorAll("[data-line]")).toHaveLength(5);
+    expect(container.querySelector("pre")).toBe(pre);
+    expect(pre.className).toBe(preClassName);
   });
 
-  it("falls back to plain text for unknown languages", async () => {
-    const { container } = render(<CodeBlock code={"foo bar\nbaz"} language="definitely-not-a-language" />);
+  it("highlights a loaded language synchronously on the next mount (no plain flash)", () => {
+    const { container } = render(<CodeBlock code="let x = 1;" language="TS" />);
+    expect(container.querySelector('[data-slot="code-block"]')).toHaveAttribute("data-state", "highlighted");
+  });
+
+  it("accepts a language list with aliases (Shiki's bundledLanguagesInfo shape)", async () => {
+    registerShikiLanguages([
+      { id: "shellscript", aliases: ["bash", "sh"], import: () => import("shiki/langs/shellscript.mjs") },
+    ]);
+    const { container } = render(<CodeBlock code={'echo "hi"'} language="sh" />);
     const block = container.querySelector('[data-slot="code-block"]')!;
     await waitFor(() => expect(block).toHaveAttribute("data-state", "highlighted"), { timeout: 10_000 });
-    expect(container.querySelector("code")).toHaveTextContent("foo bar");
-    const colored = [...container.querySelectorAll("code span[style]")].filter((el) =>
-      (el as HTMLElement).style.color.includes("--pui-syntax-keyword"),
+    expect(container.querySelector("code")).toHaveTextContent('echo "hi"');
+  });
+
+  it("renders unregistered, unknown and plain-text languages as plain code", async () => {
+    const { container } = render(
+      <>
+        <CodeBlock code={"foo bar\nbaz"} language="definitely-not-a-language" />
+        <CodeBlock code={"local x = 1"} language="lua" />
+        <CodeBlock code={"just text"} language="text" />
+      </>,
     );
-    expect(colored).toHaveLength(0);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    for (const block of container.querySelectorAll('[data-slot="code-block"]')) {
+      expect(block).toHaveAttribute("data-state", "plain");
+    }
+    expect(container.querySelector("code")).toHaveTextContent("foo bar");
   });
 
   it("supports line numbers, highlighted lines, filename header and className", () => {

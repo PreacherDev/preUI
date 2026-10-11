@@ -4,6 +4,7 @@ export type {
   ThemeEditorFont,
   ThemeEditorLabels,
   ThemeEditorProps,
+  ThemeEditorSample,
   ThemeEditorSection,
 } from "./ThemeEditor";
 export { themeEditorColorKeys } from "./theme-editor-config";

@@ -94,3 +94,43 @@ describe("NumberField sizes and invalid focus", () => {
     );
   });
 });
+
+describe("NumberField without steppers", () => {
+  it("leaves out the -/+ buttons and pads like a plain Input per size", () => {
+    const { container, rerender } = render(
+      <NumberField steppers={false} defaultValue={4000} inputProps={{ "aria-label": "Preis" }} />,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(container.querySelector("[data-slot=number-field-decrement]")).toBeNull();
+    expect(container.firstChild).toHaveAttribute("data-steppers", "false");
+    expect(container.firstChild).toHaveClass("h-pui-control", "rounded-pui-md", "border-pui-input", "text-sm");
+    const input = screen.getByRole("textbox", { name: "Preis" });
+    expect(input).toHaveValue("4,000");
+    expect(input).toHaveClass("px-3", "text-left", "tabular-nums");
+    expect(input).not.toHaveClass("px-2", "text-center");
+
+    rerender(<NumberField steppers={false} size="sm" inputProps={{ "aria-label": "Preis" }} />);
+    expect(screen.getByRole("textbox")).toHaveClass("px-2.5");
+    rerender(<NumberField steppers={false} size="lg" inputProps={{ "aria-label": "Preis" }} />);
+    expect(screen.getByRole("textbox")).toHaveClass("px-3.5");
+  });
+
+  it("still steps with the keyboard", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <NumberField steppers={false} defaultValue={3} onValueChange={onValueChange} inputProps={{ "aria-label": "Menge" }} />,
+    );
+    const input = screen.getByRole("textbox", { name: "Menge" });
+    await userEvent.click(input);
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowDown}");
+    expect(input).toHaveValue("4");
+    expect(onValueChange).toHaveBeenLastCalledWith(4, expect.anything());
+  });
+
+  it("keeps the stepper layout by default", () => {
+    const { container } = render(<NumberField inputProps={{ "aria-label": "Menge" }} />);
+    expect(container.firstChild).not.toHaveAttribute("data-steppers");
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("textbox")).toHaveClass("px-2", "text-center");
+  });
+});

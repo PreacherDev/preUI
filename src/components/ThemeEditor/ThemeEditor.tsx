@@ -28,6 +28,7 @@ import { PortalContainerProvider } from "../../utils/portal-container";
 import { Button } from "../Button/Button";
 import type { ColorPickerLabels } from "../ColorPicker/ColorPicker";
 import { ColorPicker } from "../ColorPicker/ColorPicker";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../Collapsible/Collapsible";
 import { ContrastBadge, type ContrastBadgeLabels } from "../ContrastBadge/ContrastBadge";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../Tabs/Tabs";
@@ -40,8 +41,10 @@ import {
   fieldProblems,
   fixFieldContrast,
   hasRawColorToken,
+  allPairKeys,
   hasOverrides,
   importantPairs,
+  otherPairKeys,
   matchesPreset,
   normalizeThemeConfig,
   pairKey,
@@ -83,6 +86,8 @@ export interface ThemeEditorLabels {
   contrast: (scheme: string) => string;
   /** Names of the checked pairs, keyed `"fg/bg"` without `--pui-` (see `contrastPairs`). */
   pairs: Record<string, string>;
+  /** Collapsible group of the contrast details with the less important pairs. */
+  otherPairs: string;
   shared: string;
   radius: string;
   radiusValue: (value: string) => string;
@@ -198,6 +203,7 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
     "warning/warning": "Warning text on its tint",
     "info/info": "Info text on its tint",
   },
+  otherPairs: "Other pairs",
   shared: "Font",
   radius: "Corner radius",
   radiusValue: (value) => `${value} rem`,
@@ -290,6 +296,11 @@ export type ThemeEditorSection =
 
 export type ThemeEditorExportFormat = "css" | "json";
 
+/** Built-in sample content of the split preview: an interface (`"web"`) or game-style windows (`"game"`). */
+export type ThemeEditorSample = "web" | "game";
+
+const allSamples: readonly ThemeEditorSample[] = ["web", "game"];
+
 export interface ThemeEditorProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "onReset" | "children"> {
   /** Controlled theme (protocol v1 — `GlobalState.theme`, `NuiThemeBridge`, your own storage). */
@@ -351,7 +362,12 @@ export interface ThemeEditorProps
    */
   sections?: readonly ThemeEditorSection[];
   /** Built-in sample of the split preview to start with. @default "web" */
-  defaultSample?: "web" | "game";
+  defaultSample?: ThemeEditorSample;
+  /**
+   * Built-in samples of the split preview the user can switch between. With one entry (e.g. `["web"]`) the switch is
+   * hidden and only that sample is shown. @default ["web", "game"]
+   */
+  samples?: readonly ThemeEditorSample[];
   /** Called when the user copies an export (e.g. to also log it in a game console). */
   onExport?: (format: ThemeEditorExportFormat, text: string) => void;
   /** Controlled tab (the scheme whose colours are edited). */
@@ -453,6 +469,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     savedValue,
     sections: sectionsProp,
     defaultSample = "web",
+    samples: samplesProp = allSamples,
     onExport,
     editingScheme: editingProp,
     defaultEditingScheme,
@@ -556,7 +573,10 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     [sectionsProp, importable, exportable],
   );
   const show = (section: ThemeEditorSection) => sections.has(section);
-  const [sample, setSample] = useState<"web" | "game">(defaultSample);
+  const samples = samplesProp.length > 0 ? samplesProp : allSamples;
+  const [sampleState, setSample] = useState<ThemeEditorSample>(defaultSample);
+  // Falls back to the first allowed sample when `samples` doesn't contain the chosen one (also if it changes later).
+  const sample = samples.includes(sampleState) ? sampleState : samples[0];
 
   // ---- tab --------------------------------------------------------------------------------------
   const [innerEditing, setInnerEditing] = useState<PreuiScheme>(
@@ -709,7 +729,24 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               )}
             >
               <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-              <span aria-live="polite">{schemeSummary(scheme)}</span>
+              {/*
+                Stable width: the widest summaries ("all readable", the most problems possible) are stacked invisibly
+                in the same grid cell as pseudo-elements (not part of the text content), so the badge doesn't grow
+                or shrink while a slider or colour changes the result.
+              */}
+              <span
+                data-reserve-a={labels.statusScheme(labels.schemes[scheme], labels.allReadable)}
+                data-reserve-b={labels.statusScheme(labels.schemes[scheme], labels.problems(allPairKeys.length))}
+                className={cn(
+                  "inline-grid tabular-nums",
+                  "before:invisible before:col-start-1 before:row-start-1 before:content-[attr(data-reserve-a)]",
+                  "after:invisible after:col-start-1 after:row-start-1 after:content-[attr(data-reserve-b)]",
+                )}
+              >
+                <span aria-live="polite" className="col-start-1 row-start-1">
+                  {schemeSummary(scheme)}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -770,7 +807,11 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
                 {schemeList.map((scheme) => (
                   <TabsTrigger key={scheme} value={scheme} data-problems={problemCount(scheme)}>
                     {labels.schemes[scheme]}
-                    {problemCount(scheme) > 0 && <Warning className="size-3.5 text-pui-warning" aria-hidden="true" />}
+                    {/* Always in the layout (invisible while readable), so the tab keeps its width. */}
+                    <Warning
+                      className={cn("size-3.5 text-pui-warning", problemCount(scheme) === 0 && "invisible")}
+                      aria-hidden="true"
+                    />
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -877,16 +918,19 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               <span id={`${id}-preview`} className={eyebrow}>
                 {labels.preview}
               </span>
-              {previewSlot == null && (
+              {previewSlot == null && samples.length > 1 && (
                 <ToggleGroup
                   aria-label={labels.preview}
                   value={[sample]}
-                  onValueChange={(next) => next[0] && setSample(next[0] as "web" | "game")}
+                  onValueChange={(next) => next[0] && setSample(next[0] as ThemeEditorSample)}
                   data-slot="theme-editor-sample-switch"
                   className="ml-auto"
                 >
-                  <ToggleGroupItem value="web">{labels.sampleWeb}</ToggleGroupItem>
-                  <ToggleGroupItem value="game">{labels.sampleGame}</ToggleGroupItem>
+                  {samples.map((name) => (
+                    <ToggleGroupItem key={name} value={name}>
+                      {name === "web" ? labels.sampleWeb : labels.sampleGame}
+                    </ToggleGroupItem>
+                  ))}
                 </ToggleGroup>
               )}
               <ToggleGroup
@@ -1219,32 +1263,54 @@ function ContrastDetails({
   minContrast: number;
 }) {
   const id = useId();
-  // Important pairs always, the others while they fail; problems first.
-  const shown = results
-    .filter((result) => importantPairs.includes(pairKey(result)) || result.ratio < minContrast)
-    .sort((a, b) => Number(b.ratio < minContrast) - Number(a.ratio < minContrast));
+  // A fixed set of rows in a fixed order (never filtered or sorted by the result), so the list keeps its height while
+  // a slider or colour changes the contrast and nothing below it jumps. The less important pairs sit in a collapsible
+  // group whose header counts their problems.
+  const byKey = new Map(results.map((result) => [pairKey(result), result]));
+  const fails = (key: string) => (byKey.get(key)?.ratio ?? Infinity) < minContrast;
+  const otherProblems = otherPairKeys.filter(fails).length;
+  const row = (key: string) => {
+    const result = byKey.get(key);
+    return (
+      <li
+        key={key}
+        data-slot="theme-editor-contrast-item"
+        data-pair={key}
+        data-contrast={result ? (result.ratio < minContrast ? "fail" : "pass") : "unknown"}
+        className="flex h-5 min-w-0 items-center justify-between gap-2"
+      >
+        <span className="truncate text-pui-muted-foreground">{labels.pairs[key] ?? key}</span>
+        <ContrastBadge ratio={result?.ratio ?? Number.NaN} locale={locale} labels={labels.contrastBadge} className="shrink-0" />
+      </li>
+    );
+  };
   return (
     <div data-slot="theme-editor-contrast" className="flex flex-col gap-2">
       <span id={`${id}-contrast`} className={eyebrow}>
         {labels.contrast(labels.schemes[scheme])}
       </span>
       <ul aria-labelledby={`${id}-contrast`} className="flex flex-col gap-1.5">
-        {shown.map((result) => {
-          const key = pairKey(result);
-          return (
-            <li
-              key={key}
-              data-slot="theme-editor-contrast-item"
-              data-pair={key}
-              data-contrast={result.ratio < minContrast ? "fail" : "pass"}
-              className="flex min-w-0 items-center justify-between gap-2"
-            >
-              <span className="truncate text-pui-muted-foreground">{labels.pairs[key] ?? key}</span>
-              <ContrastBadge ratio={result.ratio} locale={locale} labels={labels.contrastBadge} className="shrink-0" />
-            </li>
-          );
-        })}
+        {importantPairs.map(row)}
       </ul>
+      <Collapsible data-slot="theme-editor-contrast-other" data-problems={otherProblems}>
+        <CollapsibleTrigger className="flex h-6 w-full min-w-0 justify-between gap-2 text-xs font-normal text-pui-muted-foreground hover:text-pui-foreground">
+          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span className="truncate">{labels.otherPairs}</span>
+            {/* Always the same element; only colour and text change (tabular numbers). */}
+            <span
+              data-slot="theme-editor-contrast-other-summary"
+              className={cn("shrink-0 tabular-nums", otherProblems > 0 ? "text-pui-warning" : "text-pui-positive")}
+            >
+              {otherProblems === 0 ? labels.allReadable : labels.problems(otherProblems)}
+            </span>
+          </span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <ul aria-label={labels.otherPairs} className="flex flex-col gap-1.5 pt-1.5">
+            {otherPairKeys.map(row)}
+          </ul>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

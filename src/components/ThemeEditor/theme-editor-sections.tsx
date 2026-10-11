@@ -133,11 +133,15 @@ export function StyleSection({
           </div>
         );
       })}
-      {surfaceOpacity < 1 && (
-        <p data-slot="theme-editor-transparency-hint" className="text-xs text-pui-muted-foreground">
-          {labels.transparencyHint}
-        </p>
-      )}
+      {/* Always in the layout (invisible while panels are opaque), so the sections below don't move. */}
+      <p
+        data-slot="theme-editor-transparency-hint"
+        data-visible={surfaceOpacity < 1 ? "" : undefined}
+        aria-hidden={surfaceOpacity < 1 ? undefined : true}
+        className={cn("text-xs text-pui-muted-foreground", !(surfaceOpacity < 1) && "invisible")}
+      >
+        {labels.transparencyHint}
+      </p>
     </section>
   );
 }

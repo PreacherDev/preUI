@@ -148,12 +148,15 @@ describe("ThemeEditor features", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     const { container } = render(<ThemeEditor onChange={onChange} presets={[]} preview={false} />);
-    expect(slot(container, "theme-editor-transparency-hint")).toBeNull();
+    // Always in the layout (reserves its space), hidden while the panels are opaque.
+    expect(slot(container, "theme-editor-transparency-hint")).toHaveClass("invisible");
+    expect(slot(container, "theme-editor-transparency-hint")).toHaveAttribute("aria-hidden", "true");
     const opacity = screen.getByRole("slider", { name: "Panel opacity" });
     act(() => opacity.focus());
     await user.keyboard("{ArrowLeft}");
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ tokens: { shared: { "surface-opacity": "0.95" } } }));
-    expect(slot(container, "theme-editor-transparency-hint")).toBeInTheDocument();
+    expect(slot(container, "theme-editor-transparency-hint")).not.toHaveClass("invisible");
+    expect(slot(container, "theme-editor-transparency-hint")).not.toHaveAttribute("aria-hidden");
     for (const name of ["Accent strength", "Borders", "Shadows"]) expect(screen.getByRole("slider", { name })).toBeInTheDocument();
   });
 

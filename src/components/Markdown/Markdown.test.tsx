@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Markdown } from ".";
+import { Markdown, registerShikiLanguages } from ".";
 
 const DOC = `# Lager
 
@@ -84,6 +84,13 @@ describe("Markdown", () => {
   });
 
   it("renders fenced code with CodeBlock (language from the fence, `text` without) and inline code with CodeInline", async () => {
+    // Plain until a language is registered.
+    const plain = render(<Markdown>{DOC}</Markdown>);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(plain.container.querySelector('[data-slot="code-block"]')).toHaveAttribute("data-state", "plain");
+    plain.unmount();
+
+    registerShikiLanguages({ lua: () => import("shiki/langs/lua.mjs") });
     const { container } = render(<Markdown codeBlockProps={{ showLineNumbers: true }}>{DOC}</Markdown>);
     const blocks = container.querySelectorAll('[data-slot="code-block"]');
     expect(blocks).toHaveLength(2);

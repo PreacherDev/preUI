@@ -16,6 +16,9 @@ export default defineConfig({
     code: "src/components/Code/index.ts",
     markdown: "src/components/Markdown/index.ts",
     editor: "src/components/Editor/index.ts",
+    // No third-party dependency, but large and usually lazy-loaded (a settings screen): its own entry lets a bundler
+    // split it out. Still re-exported from `index` (same shared chunk, so contexts and icons stay one instance).
+    "theme-editor": "src/components/ThemeEditor/index.ts",
   },
   format: ["esm", "cjs"],
   platform: "neutral",

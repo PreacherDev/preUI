@@ -25,8 +25,8 @@ No dependencies besides `react` and `@pre_scripts/preui` (peer dependencies). Co
 | `normalizeLocale(value)` | `"de_DE"` → `"de-DE"`; `null` for anything that isn't a locale. |
 | `<NuiTextsProvider event fallback locale>` / `useNuiTexts()` | The server's texts: asks `getTexts` once, follows `setTexts`, merges over `fallback` (e.g. an exported `dev-texts.json`). `t(key, values)` fills `{name}` placeholders, `t.plural(key, count)` picks `key_one` / `key_other` / … by `Intl.PluralRules`. Nested Lua tables become dot keys. |
 | `createNuiTexts(texts, { locale })`, `flattenTexts`, `formatText` | The same `t` without React (tests, notifications). |
-| `useNuiMoney({ event, fallback, locale })` | `{ format(amount), currency, ready }`: asks `getCurrency` once (`{ format = '${amount}', decimals = 0 }`), follows `setCurrency`, then formats every amount locally — no round trip per amount. |
-| `formatMoney(amount, { format, decimals, locale })` | `1234.5` → `"$1,235"`; the sign goes in front of the template (`-$500`). |
+| `useNuiMoney({ event, fallback, locale })` | `{ format(amount), currency, ready }`: asks `getCurrency` once (`{ format = '${amount}', decimals = 0 }`, optional `thousands` / `decimal`), follows `setCurrency`, then formats every amount locally — no round trip per amount. |
+| `formatMoney(amount, { format, decimals, locale, thousands, decimal })` | `1234.5` → `"$1,235"`; the sign goes in front of the template (`-$500`). `thousands` / `decimal` replace the locale's separators (`""` = no grouping). |
 | `<NuiToastRelay readyEvent action />` | Shows notifications Lua hands to this NUI (e.g. while this window has the focus and FiveM draws it above a shared notification UI). Calls `readyEvent` once, then shows every `action` message `{ title?, description, type, duration, position }`. Close button and actions off. |
 | `installAltGrFix()` | Types AltGr characters (`{ } [ ] \ @ € ~ \|` on German and similar keyboards) when the NUI dropped them. Does nothing where the browser typed them itself; call once in `main.tsx`. |
 | `thirdPartyLicenses()` from `@pre_scripts/preui-nui/vite` | Vite plugin (build time): writes `dist/THIRD_PARTY_LICENSES.txt` with name, version, license and license text of every npm package in the bundle, fonts included. |
@@ -80,6 +80,14 @@ function Cart({ items, cash }: { items: Item[]; cash: number }) {
 ```lua
 RegisterNUICallback('getTexts', function(_, cb) cb(texts) end)          -- flat or nested table
 RegisterNUICallback('getCurrency', function(_, cb) cb({ format = '${amount}', decimals = 0 }) end)
+```
+
+Separators come from `Intl` and `locale` unless the currency table has `thousands` and/or `decimal` — then the UI
+uses exactly those, so totals in the NUI match amounts the server formatted (`fr` in `Intl` groups with a narrow
+no-break space, a Lua locale file usually with a normal one):
+
+```lua
+cb({ format = '{amount} €', decimals = 2, thousands = ' ', decimal = ',' }) -- 1 234,50 €
 ```
 
 Plural keys follow the locale: `cart.items_one` / `cart.items_other` in English and German, plus `_few` / `_many` in

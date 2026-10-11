@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/preui",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "React UI components built on Base UI and Tailwind CSS v3",
   "keywords": [
     "react",
@@ -154,6 +154,16 @@
         "default": "./dist/editor.cjs"
       }
     },
+    "./theme-editor": {
+      "import": {
+        "types": "./dist/theme-editor.d.ts",
+        "default": "./dist/theme-editor.js"
+      },
+      "require": {
+        "types": "./dist/theme-editor.d.cts",
+        "default": "./dist/theme-editor.cjs"
+      }
+    },
     "./icons/lucide": {
       "import": {
         "types": "./dist/icons/lucide.d.ts",
@@ -175,7 +185,8 @@
       }
     },
     "./fonts.css": "./dist/fonts.css",
-    "./tokens.css": "./dist/tokens.css"
+    "./tokens.css": "./dist/tokens.css",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

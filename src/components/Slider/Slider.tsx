@@ -34,7 +34,8 @@ const sliderHasRules: HasFallbackRule[] = [
 const thumbCount = (value: unknown) => (Array.isArray(value) ? value.length : 1);
 
 /**
- * Slider: 4px muted track, primary indicator, 16px thumb. Pass an array as `value` / `defaultValue`
+ * Slider: 4px muted track, primary indicator, 16px thumb. The control keeps half a thumb of room at each end, so
+ * the thumb at min or max is never cut by a parent with `overflow: hidden`. Pass an array as `value` / `defaultValue`
  * for a range; one thumb is rendered per value. `children` (e.g. `SliderLabel`, `SliderValue`) render
  * above the track.
  */
@@ -73,9 +74,11 @@ export const Slider = /* @__PURE__ */ forwardRef(function Slider(
         data-slot="slider-control"
         className={mergeClassName(
           [
-            "flex w-full touch-none select-none items-center py-2",
+            // Half a thumb (8px) of room at each end: at min and max the thumb sticks out of the track by half its width,
+            // and a parent with overflow hidden (ScrollArea, Card) would cut it.
+            "flex w-full touch-none select-none items-center px-2 py-2",
             "data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-32 data-[orientation=vertical]:w-auto",
-            "data-[orientation=vertical]:justify-center data-[orientation=vertical]:px-2 data-[orientation=vertical]:py-0",
+            "data-[orientation=vertical]:justify-center",
             "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
           ],
           controlClassName,

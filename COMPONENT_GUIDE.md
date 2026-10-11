@@ -57,6 +57,7 @@ installieren). Die Libraries sind optionale Peer-Dependencies und bereits instal
 | `@pre_scripts/preui/calendar` | `Calendar` (inkl. `DatePicker`) | react-day-picker **10** |
 | `@pre_scripts/preui/carousel` | `Carousel` | embla-carousel-react 8 |
 | `@pre_scripts/preui/command` | `Command` | cmdk 1 |
+| `@pre_scripts/preui/theme-editor` | `ThemeEditor` (auch im Haupteinstieg) | – |
 | `@pre_scripts/preui/resizable` | `Resizable` | react-resizable-panels **4** |
 | `@pre_scripts/preui/form` | `HookForm` (exportiert shadcns `Form`, `FormField` …) | react-hook-form 7 |
 | `@pre_scripts/preui/data-table` | `DataTable` | @tanstack/react-table **9** |

@@ -9,7 +9,7 @@ export type { NuiLocale, UseNuiLocaleOptions } from "./locale";
 export { NuiTextsProvider, createNuiTexts, flattenTexts, formatText, useNuiTexts } from "./texts";
 export type { NuiTexts, NuiTextsInput, NuiTextsProviderProps, NuiTextValues } from "./texts";
 export { formatMoney, useNuiMoney } from "./money";
-export type { FormatMoneyOptions, MoneyFormat, NuiMoney, UseNuiMoneyOptions } from "./money";
+export type { FormatMoneyOptions, MoneyFormat, NuiMoney, ResolvedMoneyFormat, UseNuiMoneyOptions } from "./money";
 export { NuiToastRelay } from "./toast-relay";
 export type { NuiToastMessage, NuiToastRelayProps } from "./toast-relay";
 export { installAltGrFix } from "./altgr-fix";

@@ -30,6 +30,13 @@ export const numberFieldVariants = /* @__PURE__ */ cva(
 
 export type NumberFieldSize = NonNullable<VariantProps<typeof numberFieldVariants>["size"]>;
 
+// Without steppers the input gets the padding of `inputVariants` per size, so it looks like a plain Input.
+const plainInputPadding: Record<NumberFieldSize, string> = {
+  sm: "px-2.5",
+  default: "px-3",
+  lg: "px-3.5",
+};
+
 const stepperClassName = [
   "flex w-8 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-pui-muted-foreground outline-none",
   "transition-colors duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-foreground",
@@ -45,6 +52,11 @@ export interface NumberFieldProps extends BaseNumberField.Root.Props {
    */
   locale?: Intl.LocalesArgument;
   placeholder?: string;
+  /**
+   * Show the -/+ buttons. `false` leaves them out (dense tables): the value is left-aligned with the padding of an
+   * `Input` of the same size. Keyboard, wheel and scrub stepping stay. @default true
+   */
+  steppers?: boolean;
   /** Accessible label of the minus button. */
   decrementLabel?: string;
   /** Accessible label of the plus button. */
@@ -57,11 +69,13 @@ export interface NumberFieldProps extends BaseNumberField.Root.Props {
 /**
  * Numeric field with -/+ steppers on both sides, separated by borders; the value is centred with
  * tabular figures. Keyboard (arrows, Page Up/Down, Home/End) and wheel/scrub stepping come from Base UI.
+ * `steppers={false}` drops the buttons and looks like a plain `Input`.
  */
 export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFieldProps>(function NumberField(
   {
     className,
     size,
+    steppers = true,
     placeholder,
     decrementLabel = "Decrease",
     incrementLabel = "Increase",
@@ -80,37 +94,43 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
       ref={ref}
       data-slot="number-field"
       data-size={size ?? "default"}
+      data-steppers={steppers ? undefined : "false"}
       locale={locale}
       className={mergeClassName(numberFieldVariants({ size }), className)}
       {...props}
     >
       <BaseNumberField.Group data-slot="number-field-group" className="flex min-w-0 flex-1 items-stretch">
-        <BaseNumberField.Decrement
-          data-slot="number-field-decrement"
-          aria-label={decrementLabel}
-          className={cn(stepperClassName, "border-r border-solid border-pui-input")}
-        >
-          <Minus className="size-3.5" aria-hidden="true" />
-        </BaseNumberField.Decrement>
+        {steppers && (
+          <BaseNumberField.Decrement
+            data-slot="number-field-decrement"
+            aria-label={decrementLabel}
+            className={cn(stepperClassName, "border-r border-solid border-pui-input")}
+          >
+            <Minus className="size-3.5" aria-hidden="true" />
+          </BaseNumberField.Decrement>
+        )}
         <BaseNumberField.Input
           data-slot="number-field-input"
           placeholder={placeholder}
           {...inputProps}
           className={mergeClassName(
             [
-              "min-w-0 flex-1 border-0 bg-transparent px-2 text-center text-[length:inherit] tabular-nums text-pui-foreground outline-none",
+              "min-w-0 flex-1 border-0 bg-transparent text-[length:inherit] tabular-nums text-pui-foreground outline-none",
+              steppers ? "px-2 text-center" : cn(plainInputPadding[size ?? "default"], "text-left"),
               "placeholder:text-pui-muted-foreground",
             ],
             inputClassName,
           )}
         />
-        <BaseNumberField.Increment
-          data-slot="number-field-increment"
-          aria-label={incrementLabel}
-          className={cn(stepperClassName, "border-l border-solid border-pui-input")}
-        >
-          <Plus className="size-3.5" aria-hidden="true" />
-        </BaseNumberField.Increment>
+        {steppers && (
+          <BaseNumberField.Increment
+            data-slot="number-field-increment"
+            aria-label={incrementLabel}
+            className={cn(stepperClassName, "border-l border-solid border-pui-input")}
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+          </BaseNumberField.Increment>
+        )}
       </BaseNumberField.Group>
     </BaseNumberField.Root>
   );

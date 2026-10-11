@@ -3,6 +3,50 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.12.0 - 2026-10-11
+
+### Updating from 0.11
+
+- **Syntax highlighting is opt-in.** `CodeBlock` and `Markdown` render code plain until you register languages once:
+  `registerShikiLanguages({ lua: () => import("shiki/langs/lua.mjs") })` (from `@pre_scripts/preui/code` or
+  `/markdown`), or `registerShikiLanguages(bundledLanguagesInfo)` from `shiki/langs` for every language as before.
+  Apps that never register a language no longer bundle any Shiki file; FiveM scripts can delete their `shiki-stub.js`
+  alias.
+- **`TabsList` `activateOnFocus` defaults to `false`.** Arrow keys move the focus, Enter / Space or a click activate.
+  Pass `activateOnFocus` for the old behaviour; remove `activateOnFocus={false}` workarounds.
+
+### Added
+
+- **`TabsStack`**: wrap the `TabsContent`s in it to keep every panel mounted (state, scroll position and inputs
+  survive a switch) and stacked in one grid cell. The area keeps the size of the largest panel, so switching tabs
+  causes no layout shift; inactive panels are invisible and inert. Replaces hand-made "stacked panel" classes.
+- **Entry `@pre_scripts/preui/theme-editor`** for `ThemeEditor` and `ThemeEditorPreview`, so a lazily loaded theme
+  tool gets its own chunk. The main entry still exports it; switching the import path is a drop-in change.
+- **`ThemeEditor` `samples`**: `samples={["web"]}` shows only the interface sample and hides the web/game switch.
+  New type `ThemeEditorSample`, new label `otherPairs`.
+- **`NumberField` `steppers={false}`** leaves out the -/+ buttons for dense tables and forms. The field then looks like
+  a plain `Input` of the same size; keyboard, wheel and scrub stepping stay. The root gets `data-steppers="false"`.
+- **`registerShikiLanguages`** (exported from `/code` and `/markdown`) with the types `ShikiLanguages`,
+  `ShikiLanguageLoader`, `ShikiLanguageInfo`.
+- `"./package.json"` in `exports`.
+
+### Changed
+
+- **ThemeEditor: no layout shift** while you drag a slider or edit a colour (e.g. accent strength above 100 %). The
+  contrast details always show the same rows in a fixed order (the important pairs, plus an "Other pairs" group,
+  collapsed, whose header counts its problems). Status badges keep a fixed width; the tab warning icon and the
+  see-through hint always reserve their space.
+- **TabsBar** scrolls the active tab into view when it changes (and on mount), inside the bar only. The bar's scroll
+  viewport is no longer an extra Tab stop.
+- **Shiki** and each registered grammar load lazily the first time a block in that language renders. A Markdown app
+  without registered languages shrank from about 8.4 MB (246 files) to 445 KB (1 file) in a test build.
+
+### Fixed
+
+- **Slider:** the thumb at min or max is no longer cut by a parent with `overflow: hidden` (e.g. the ThemeEditor's
+  style section in a ScrollArea). The control keeps half a thumb of room at each end, so the track is 8px shorter on
+  each side.
+
 ## 0.11.0 — 2026-10-08
 
 Fixes from a combination audit in Chromium 103: every component next to, inside and on top of the others, in dark and
@@ -385,6 +429,14 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 
 ## @pre_scripts/preui-nui
 
+### 0.6.0 - 2026-10-11
+
+- **Money separators:** `MoneyFormat` has optional `thousands` and `decimal`. When set, `formatMoney` and
+  `useNuiMoney` use them instead of Intl's separators for the locale (`""` turns grouping off). `useNuiMoney` reads
+  both from `getCurrency` / `setCurrency` and `fallback`, so a Lua table like
+  `{ format = '{amount} €', decimals = 2, thousands = ' ', decimal = ',' }` gives `1 234,50 €`, the same as
+  server-side formatting. New type `ResolvedMoneyFormat` (used by `NuiMoney.currency`). Default unchanged.
+
 ### 0.5.0 - 2026-10-08
 
 - `thirdPartyLicenses` groups the file by license: one block per license with every package's copyright lines, then
@@ -436,6 +488,10 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.3.1 - 2026-10-11
+
+- New resources depend on `@pre_scripts/preui` `^0.12.0` and `@pre_scripts/preui-nui` `^0.6.0`.
 
 ### 0.3.0 - 2026-10-08
 

@@ -1,14 +1,16 @@
-import type { BundledLanguageInfo, HighlighterCore, ThemedToken, ThemeRegistration } from "shiki/core";
+import type { HighlighterCore, LanguageRegistration, ThemeRegistration } from "shiki/core";
+import { setCodeHighlighter, type CodeHighlighter, type HighlightToken } from "./highlighter";
 import { syntaxColor, type SyntaxRole } from "./syntax-theme";
 
 /**
- * Shiki setup for `CodeBlock`:
+ * Shiki setup for `CodeBlock`, switched on by the app with `registerShikiLanguages`:
  * - fine-grained core (`shiki/core`) + the JavaScript RegExp engine (no WASM download),
- * - one highlighter per page, created on first use,
- * - languages are imported on demand from `shiki/langs` (each grammar is its own chunk),
+ * - one highlighter per page, created when the first registered language is rendered,
+ * - only the grammars the app registered, each imported on demand (its own chunk),
  * - a CSS-variables theme whose colours come from the shared syntax palette.
  *
- * Nothing here touches `window` at import time; Shiki itself is only loaded via dynamic `import()`.
+ * Nothing here touches `window` at import time; Shiki itself is only loaded via dynamic `import()`. Apps that never
+ * call `registerShikiLanguages` don't reference this module, so their bundle contains no Shiki at all.
  */
 
 const THEME_NAME = "preui";
@@ -83,7 +85,7 @@ let highlighterPromise: Promise<HighlighterCore> | null = null;
 let highlighterInstance: HighlighterCore | null = null;
 
 /** The shared Shiki highlighter (created once, on first call). */
-export function getHighlighter(): Promise<HighlighterCore> {
+function getHighlighter(): Promise<HighlighterCore> {
   if (!highlighterPromise) {
     themePromise ??= createTheme();
     highlighterPromise = Promise.all([
@@ -107,71 +109,107 @@ export function getHighlighter(): Promise<HighlighterCore> {
   return highlighterPromise;
 }
 
-let languageIndexPromise: Promise<Map<string, BundledLanguageInfo>> | null = null;
+/** A Shiki grammar module, e.g. `() => import("shiki/langs/lua.mjs")`. */
+export type ShikiLanguageLoader = () => Promise<{ default: LanguageRegistration[] }>;
 
-/** id and alias (lower-case) → language info, from Shiki's bundled language list (lazy grammar imports). */
-function getLanguageIndex(): Promise<Map<string, BundledLanguageInfo>> {
-  languageIndexPromise ??= import("shiki/langs").then(({ bundledLanguagesInfo }) => {
-    const index = new Map<string, BundledLanguageInfo>();
-    for (const info of bundledLanguagesInfo) {
-      index.set(info.id.toLowerCase(), info);
-      for (const alias of info.aliases ?? []) index.set(alias.toLowerCase(), info);
-    }
-    return index;
-  });
-  return languageIndexPromise;
-}
-
-const loadingLanguages = new Map<string, Promise<void>>();
-
-/** Loads the grammar for `language` (id or alias). Resolves to the Shiki id, or `"text"` when unknown. */
-async function ensureLanguage(highlighter: HighlighterCore, language: string): Promise<string> {
-  const name = language.trim().toLowerCase();
-  if (PLAIN.has(name)) return "text";
-  const info = (await getLanguageIndex()).get(name);
-  if (!info) return "text";
-  if (!highlighter.getLoadedLanguages().includes(info.id)) {
-    let loading = loadingLanguages.get(info.id);
-    if (!loading) {
-      loading = highlighter.loadLanguage(info.import);
-      loadingLanguages.set(info.id, loading);
-      loading.catch(() => loadingLanguages.delete(info.id));
-    }
-    await loading;
-  }
-  return info.id;
-}
-
-function tokenize(highlighter: HighlighterCore, code: string, lang: string): ThemedToken[][] {
-  return highlighter.codeToTokens(code, { lang, theme: THEME_NAME }).tokens;
-}
-
-/** Highlights `code` asynchronously (loads Shiki and the grammar on demand). Unknown languages → plain text. */
-export async function highlightCode(code: string, language: string): Promise<ThemedToken[][]> {
-  const highlighter = await getHighlighter();
-  let lang = "text";
-  try {
-    lang = await ensureLanguage(highlighter, language);
-  } catch {
-    lang = "text";
-  }
-  return tokenize(highlighter, code, lang);
+/** One entry of a language list, e.g. Shiki's `bundledLanguagesInfo`. */
+export interface ShikiLanguageInfo {
+  id: string;
+  aliases?: readonly string[];
+  import: ShikiLanguageLoader;
 }
 
 /**
- * Synchronous fast path: returns tokens when the highlighter and the grammar are already loaded
- * (e.g. the second CodeBlock with the same language), otherwise `null`.
+ * The grammars `CodeBlock` may highlight: a map of language name → grammar import
+ * (`{ lua: () => import("shiki/langs/lua.mjs") }`) or a list like Shiki's `bundledLanguagesInfo`.
  */
-export function highlightCodeSync(code: string, language: string): ThemedToken[][] | null {
-  const highlighter = highlighterInstance;
-  if (!highlighter) return null;
-  const name = language.trim().toLowerCase();
-  if (PLAIN.has(name)) return null;
-  const loaded = highlighter.getLoadedLanguages();
-  if (!loaded.includes(name)) return null;
-  try {
-    return tokenize(highlighter, code, name);
-  } catch {
-    return null;
+export type ShikiLanguages = Readonly<Record<string, ShikiLanguageLoader>> | readonly ShikiLanguageInfo[];
+
+/** Language name or alias (lower-case) → grammar import. */
+const languageLoaders = new Map<string, ShikiLanguageLoader>();
+/** Grammar import → the loaded Shiki language id (shared by all names of one grammar). */
+const loadedLanguages = new Map<ShikiLanguageLoader, Promise<string>>();
+/** Language name or alias (lower-case) → Shiki id, once its grammar is loaded. */
+const resolvedLanguages = new Map<string, string>();
+
+const normalize = (language: string) => language.trim().toLowerCase();
+
+function isRegistered(language: string): boolean {
+  const name = normalize(language);
+  return !PLAIN.has(name) && languageLoaders.has(name);
+}
+
+/** Loads the grammar for `name` once; resolves to its Shiki id (the main grammar is the module's last entry). */
+function ensureLanguage(highlighter: HighlighterCore, name: string): Promise<string> {
+  const load = languageLoaders.get(name);
+  if (!load) return Promise.resolve("text");
+  let loading = loadedLanguages.get(load);
+  if (!loading) {
+    loading = load().then(async ({ default: grammars }) => {
+      await highlighter.loadLanguage(grammars);
+      return grammars[grammars.length - 1]?.name ?? "text";
+    });
+    loadedLanguages.set(load, loading);
+    loading.catch(() => loadedLanguages.delete(load));
   }
+  return loading.then((id) => {
+    resolvedLanguages.set(name, id);
+    return id;
+  });
+}
+
+function tokenize(highlighter: HighlighterCore, code: string, lang: string): HighlightToken[][] {
+  return highlighter.codeToTokens(code, { lang, theme: THEME_NAME }).tokens;
+}
+
+const shikiHighlighter: CodeHighlighter = {
+  has: isRegistered,
+  async highlight(code, language) {
+    const highlighter = await getHighlighter();
+    let lang = "text";
+    try {
+      lang = await ensureLanguage(highlighter, normalize(language));
+    } catch {
+      lang = "text";
+    }
+    return tokenize(highlighter, code, lang);
+  },
+  highlightSync(code, language) {
+    const highlighter = highlighterInstance;
+    const lang = resolvedLanguages.get(normalize(language));
+    if (!highlighter || !lang) return null;
+    try {
+      return tokenize(highlighter, code, lang);
+    } catch {
+      return null;
+    }
+  },
+};
+
+/**
+ * Switches on syntax highlighting in `CodeBlock` (and `Markdown`'s code blocks) for the given languages. Call it
+ * once at startup; later calls add languages. Shiki and each grammar load lazily when a block in that language is
+ * first rendered, and only the registered grammars end up in your build. Languages that are not registered render as
+ * plain code.
+ *
+ * ```ts
+ * registerShikiLanguages({ lua: () => import("shiki/langs/lua.mjs"), ts: () => import("shiki/langs/typescript.mjs") });
+ * // every Shiki language (about 10 MB of lazily loaded chunks in your build):
+ * import { bundledLanguagesInfo } from "shiki/langs";
+ * registerShikiLanguages(bundledLanguagesInfo);
+ * ```
+ */
+export function registerShikiLanguages(languages: ShikiLanguages): void {
+  const entries: ShikiLanguageInfo[] = Array.isArray(languages)
+    ? (languages as readonly ShikiLanguageInfo[]).slice()
+    : Object.keys(languages).map((id) => ({ id, import: (languages as Record<string, ShikiLanguageLoader>)[id]! }));
+  for (const { id, aliases, import: load } of entries) {
+    for (const name of [id, ...(aliases ?? [])]) {
+      const key = normalize(name);
+      if (PLAIN.has(key)) continue;
+      if (languageLoaders.get(key) !== load) resolvedLanguages.delete(key);
+      languageLoaders.set(key, load);
+    }
+  }
+  setCodeHighlighter(shikiHighlighter);
 }
