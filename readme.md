@@ -81,7 +81,7 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
-| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, Spinner, Table |
+| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SortableList, Spinner, Table |
 | Game UI | KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle (see [Game UI](#game-ui)) |
 
 Components that build on another library have their own entry point, so you only install what you use:
@@ -95,7 +95,7 @@ Components that build on another library have their own entry point, so you only
 | `@pre_scripts/preui/theme-editor` | ThemeEditor, ThemeEditorPreview, `defaultThemeEditorLabels`, `defaultThemeEditorFonts`, `defaultThemeEditorPreviewLabels`, `themeEditorColorKeys` (also in the main entry; this entry lets a lazily loaded theme tool get its own chunk) | - |
 | `@pre_scripts/preui/resizable` | ResizablePanelGroup, ResizablePanel, ResizableHandle | `react-resizable-panels` |
 | `@pre_scripts/preui/form` | Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, `useFormField` | `react-hook-form` |
-| `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableToolbar, DataTableViewOptions, `createSelectColumn`, `createDataTableColumnHelper`, `dataTableFeatures`, re-exported `createColumnHelper` / `flexRender` | `@tanstack/react-table` `@tanstack/table-core` |
+| `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableToolbar, DataTableViewOptions, `createSelectColumn`, `createDragColumn`, DataTableDragHandle, `createDataTableColumnHelper`, `dataTableFeatures`, re-exported `createColumnHelper` / `flexRender` | `@tanstack/react-table` `@tanstack/table-core` |
 | `@pre_scripts/preui/code` | CodeBlock (syntax highlighting via `registerShikiLanguages`, copy, line numbers), CodeInline, CodeEditor, `syntaxColor`, `syntaxPalette`, `registerShikiLanguages` | `shiki`, `@codemirror/*` (state, view, language, commands, language-data, search, autocomplete), `@lezer/highlight` |
 | `@pre_scripts/preui/markdown` | Markdown (GFM tables, task lists, code blocks; colours via `registerShikiLanguages`), `registerShikiLanguages` | `react-markdown` `remark-gfm` + the `/code` packages |
 | `@pre_scripts/preui/editor` | RichTextEditor (WYSIWYG, stores Markdown), MarkdownEditor (write/preview), `proseClassName`, default labels / toolbar lists (`defaultRichTextEditorLabels`, `defaultRichTextEditorToolbar`, `richTextEditorToolbarGroups`, `defaultMarkdownEditorLabels`, `markdownEditorToolbarGroups`, `MARKDOWN_EDITOR_COMPACT_WIDTH`) | `@tiptap/core` `@tiptap/react` `@tiptap/pm` `@tiptap/starter-kit` `@tiptap/markdown` `@tiptap/extensions` + the `/markdown` packages |
@@ -166,6 +166,9 @@ toast.promise(save(), { loading: "Saving…", success: "Saved", error: "Failed" 
 "bottom-center" | "bottom-right"` (default `"bottom-right"`, type `ToasterPosition`). The prop can change at runtime
 (e.g. a HUD setting); at the top the newest toast is on top and toasts slide in downwards. The viewport carries
 `data-position`.
+
+`toast("Saved", { position: "top-center" })` shows one toast somewhere else; the `Toaster` keeps its own position for
+all others.
 
 `<Toaster actions={false} />` hides the action buttons (overlays without focus can't click them).
 
@@ -278,6 +281,22 @@ visible, give the parent a flex column and the table `min-h-0 flex-1` twice:
 
 Long unbreakable cell text (ids, URLs) wraps inside its cell.
 
+### DataTable: reorder rows, select all matches
+
+```tsx
+<DataTable columns={columns} data={rows} getRowId={(r) => r.id}
+  onRowMove={(from, to) => setRows((list) => moveItem(list, from, to))} />
+```
+
+`onRowMove` adds a drag handle column. Rows move within the current page and only while the table is unsorted and
+unfiltered (the handles say why otherwise). Use `getRowId` so selection and focus follow the row.
+
+`createSelectColumn({ scope: "filtered", max: 50, isLocked: (row) => added.has(row.original.id) })` selects every
+matching row across pages (up to `max`) and shows locked rows as checked and disabled.
+
+`reserveTrack="strip"` (also on `Table`) gives the horizontal scrollbar its own strip below the rows, so it never covers
+one.
+
 ### Sidebar: named group
 
 The sidebar root is the Tailwind group `group/sidebar`, so plain `group-hover:` classes inside it (Badge `reveal`,
@@ -381,6 +400,9 @@ Syntax colours follow the theme tokens; override single roles with `--pui-syntax
 Markdown is rendered safely by default (raw HTML skipped, unsafe URLs stripped). The rich-text editor stores Markdown,
 so formats Markdown doesn't have (underline, colours) are intentionally not offered.
 
+The rich-text editor reads and writes images (`![alt](src)`) and GFM tables; insert them from the toolbar (`image`,
+`table`). Tab moves between table cells.
+
 ### Overlays: Dialog, AlertDialog, Sheet, Drawer, CommandDialog
 
 `DialogContent`, `AlertDialogContent`, `SheetContent`, `DrawerContent` and `CommandDialog` bundle portal, scrim and
@@ -479,6 +501,87 @@ The building blocks are exported too:
   an overlay owns it. With `capture: true` (default) it runs before popups react. With `capture: false` it runs after
   your own components and also skips an Escape one of them handled (`preventDefault()` / `stopPropagation()`). Use
   that when your window has inputs with their own Escape behaviour.
+
+### Long lists in Combobox and Autocomplete
+
+`virtualized` renders only the rows in view, so a list with thousands of items opens instantly. Pass `items` and a
+function child; every row is `itemHeight` px tall (default 32):
+
+```tsx
+<Combobox items={vehicles} virtualized>
+  <ComboboxInput placeholder="Search" />
+  <ComboboxContent>
+    <ComboboxList itemHeight={32}>{(item) => <ComboboxItem key={item.value} value={item}>{item.label}</ComboboxItem>}</ComboboxList>
+  </ComboboxContent>
+</Combobox>
+```
+
+Grouped `items` get their heading rows from the list (`renderGroupLabel`, `groupLabelHeight`); `overscan` sets how
+many extra rows render above and below.
+
+### SortableList
+
+Reorder a plain list by drag and drop or keyboard:
+
+```tsx
+<SortableList onMove={(from, to) => setItems((list) => moveItem(list, from, to))}>
+  {items.map((item) => (
+    <SortableItem key={item.id} id={item.id}>
+      <SortableItemHandle />
+      {item.name}
+    </SortableItem>
+  ))}
+</SortableList>
+```
+
+Without a `SortableItemHandle` the whole row is the handle (inputs and buttons inside still work). Space / Enter lifts
+an item, arrows move it, Space / Enter drops it, Escape cancels; translate the announcements with `labels`. Without
+`onMove` the list is read-only.
+
+### EditorWindow and useDraftHistory
+
+A list-and-editor window for admin panels: entries on the left, the form on the right, a header with an unsaved badge,
+a status text and undo / redo / delete / save / close. `useDraftHistory` keeps the draft, tells whether it is unsaved
+and records labelled undo steps (typing in one field is one step). With `key` it follows the selected entry, and undo
+goes back into the entry a change was made in. `history.request(action)` asks before unsaved changes are dropped;
+spread `history.confirmProps` into a `ConfirmDialog`. Nothing moves when buttons or the badge come and go.
+
+```tsx
+const history = useDraftHistory(savedEntry, { key: selectedId, onKeyChange: setSelectedId });
+
+<EditorWindow>
+  <EditorList>
+    <EditorListHeader>
+      <EditorListTitle>Branches</EditorListTitle>
+      <EditorListAdd onClick={addEntry}>New</EditorListAdd>
+    </EditorListHeader>
+    <EditorListContent>
+      {entries.map((e) => (
+        <EditorListItem key={e.id} label={e.name} summary={e.city} selected={e.id === selectedId}
+          dirty={e.id === selectedId && history.dirty} onClick={() => history.request(() => setSelectedId(e.id))} />
+      ))}
+    </EditorListContent>
+  </EditorList>
+  <EditorDetail>
+    <EditorHeader title={history.draft.name} dirty={history.dirty} problem={problem} actions={<>
+      <EditorUndoButton history={history} />
+      <EditorRedoButton history={history} />
+      <EditorSaveButton disabled={!history.dirty} loading={history.busy} onClick={save} />
+      <EditorCloseButton onClick={() => history.request(onClose)} />
+    </>} />
+    <EditorContent key={selectedId}>
+      <EditorSection title="General">
+        <EditorTextField label="Name" maxLength={32} value={history.draft.name}
+          onValueChange={(name) => history.setDraft({ ...history.draft, name }, "Name changed")} />
+      </EditorSection>
+    </EditorContent>
+  </EditorDetail>
+  <ConfirmDialog {...history.confirmProps} title="Discard changes?" confirmLabel="Discard" destructive />
+</EditorWindow>
+```
+
+For server-side steps use `history.record(label, { undo, redo })` (return `false` when it failed) and
+`history.run(task)` for a busy state with an optional `cooldown`.
 
 ### useListNavigation
 
@@ -1162,6 +1265,9 @@ export function App() {
   );
 }
 ```
+
+Pass `onDeletePreset(preset)` / `onRenamePreset(preset, label)` to let users manage presets they saved (`removable:
+true`, set by "Save as preset"); their tiles get a menu, deleting asks first.
 
 Helpers: `resolveThemeConfig(config)` (→ `applyTokens` / `tokensToCss({ tokens })` input),
 `resolveThemeConfigTokens(config, scheme)`, `checkThemeConfigContrast(config, scheme)`, `defaultThemePresets`.

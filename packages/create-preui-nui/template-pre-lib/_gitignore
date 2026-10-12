@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# web/dist is committed because FiveM loads it (build with: cd web && npm run build)
+
+# Logs, editors, OS
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Release output, never committed
+release/

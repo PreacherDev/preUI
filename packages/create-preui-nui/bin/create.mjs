@@ -4,6 +4,7 @@
 //
 //   npm create @pre_scripts/preui-nui@latest my-shop
 //   npm create @pre_scripts/preui-nui@latest my-shop -- --no-theme --lang en
+//   npm create @pre_scripts/preui-nui@latest pre_shop -- --pre-lib --exact
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
@@ -11,13 +12,19 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "template");
+/** `--pre-lib`: these files replace or add to template/ (same relative paths). */
+const PRE_LIB_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "template-pre-lib");
+/** Files of template/ a pre_lib resource doesn't get (it has client/main.lua and an English README.md). */
+const PRE_LIB_SKIP = new Set(["client.lua", "README.de.md", "README.en.md"]);
+/** The pre_lib tool that exports locales/en.lua for `npm run dev` (pre_lib sits next to the resource). */
+const EXPORT_TEXTS = "node ../../pre_lib/tools/export-ui-texts.mjs ../locales/en.lua src/dev-texts.json";
 const DEFAULT_NAME = "my-nui";
 const LANGS = ["de", "en"];
 /** FiveM resource names: lowercase letters, digits, `_` and `-`; starting with a letter or digit. */
 const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
 /** Files npm would drop or rename when publishing the starter; stored with a `_` prefix in template/. */
-const RENAMES = { _gitignore: ".gitignore" };
+const RENAMES = { _gitignore: ".gitignore", _gitattributes: ".gitattributes", "_luarc.json": ".luarc.json" };
 /** Only these files get placeholders replaced and blocks resolved (everything else is copied as is). */
 const TEXT_EXTENSIONS = new Set([".lua", ".md", ".json", ".ts", ".tsx", ".js", ".css", ".html", ""]);
 
@@ -86,22 +93,26 @@ Scaffolds a FiveM NUI resource (fxmanifest, client.lua, Vite + React + preUI web
 Options (after "--" when started through npm create):
   --lang de|en    language of the texts and the README (default: de)
   --no-theme      without the preui_theme bridge (server-wide theme)
+  --pre-lib       a resource on pre_lib instead: init.lua + nui_bridge.lua, client/, locales/ (en, de, fr),
+                  texts, money, theme and notifications from pre_lib, web/dist committed, DEVELOPMENT.md.
+                  Its files are English; --lang only changes the messages of this tool
   --exact         pin the @pre_scripts packages to exact versions (no ^), e.g. when every resource must use the
                   same build; "prebuild" (preui check-version) then stops a build with any other installed version
   --force         write into a non-empty folder (existing files are overwritten)
   -h, --help      show this help
 `;
 
-/** Parses argv; returns { name, lang, theme, exact, force, help } or throws an Error with a user-facing message. */
+/** Parses argv; returns { name, lang, theme, preLib, exact, force, help } or throws an Error with a user-facing message. */
 export function parseArgs(argv) {
   // Note: through `npm create`, options only arrive after `--`; without it npm consumes them itself.
-  const options = { name: undefined, lang: "de", theme: true, exact: false, force: false, help: false };
+  const options = { name: undefined, lang: "de", theme: true, preLib: false, exact: false, force: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--") continue;
     if (arg === "-h" || arg === "--help") options.help = true;
     else if (arg === "--no-theme") options.theme = false;
     else if (arg === "--theme") options.theme = true;
+    else if (arg === "--pre-lib") options.preLib = true;
     else if (arg === "--exact") options.exact = true;
     else if (arg === "--force" || arg === "-f") options.force = true;
     else if (arg === "--lang" || arg.startsWith("--lang=")) {
@@ -111,6 +122,9 @@ export function parseArgs(argv) {
     } else if (arg.startsWith("-")) throw new Error(`Unknown option "${arg}". Run with --help for the usage.`);
     else if (options.name === undefined) options.name = arg;
     else throw new Error(`Unexpected argument "${arg}" (the name is already "${options.name}").`);
+  }
+  if (options.preLib && !options.theme) {
+    throw new Error("--pre-lib and --no-theme don't go together: with --pre-lib the theme comes from pre_lib.");
   }
   return options;
 }
@@ -184,16 +198,28 @@ function listFiles(dir) {
 }
 
 /** Writes the resource into `targetDir`; returns the list of written paths (relative, with `/`). */
-export function scaffold(targetDir, { name, lang = "de", theme = true, exact = false }) {
+export function scaffold(targetDir, { name, lang = "de", theme = true, preLib = false, exact = false }) {
+  // A pre_lib resource is English throughout (its player texts live in locales/), so the template texts are too.
+  const options = preLib ? { name, lang: "en", theme: true } : { name, lang, theme };
+  const relativeTo = (dir) => (source) => ({ source, rel: relative(dir, source).split(sep).join("/") });
+
+  let sources = listFiles(TEMPLATE_DIR).map(relativeTo(TEMPLATE_DIR));
+  if (preLib) {
+    // Overlay: a file with the same path replaces the one from template/.
+    const overlay = listFiles(PRE_LIB_DIR).map(relativeTo(PRE_LIB_DIR));
+    const replaced = new Set(overlay.map((entry) => entry.rel));
+    sources = [...sources.filter((entry) => !PRE_LIB_SKIP.has(entry.rel) && !replaced.has(entry.rel)), ...overlay];
+  }
+
   const written = [];
-  for (const source of listFiles(TEMPLATE_DIR)) {
-    let rel = relative(TEMPLATE_DIR, source).split(sep).join("/");
+  for (const { source, rel: templateRel } of sources) {
+    let rel = templateRel;
     const file = basename(rel);
 
     // README.de.md / README.en.md → README.md in the chosen language
     const readme = file.match(/^README\.(\w+)\.md$/);
     if (readme) {
-      if (readme[1] !== lang) continue;
+      if (readme[1] !== options.lang) continue;
       rel = rel.slice(0, -file.length) + "README.md";
     }
     if (RENAMES[file]) rel = rel.slice(0, -file.length) + RENAMES[file];
@@ -201,12 +227,22 @@ export function scaffold(targetDir, { name, lang = "de", theme = true, exact = f
     const target = join(targetDir, ...rel.split("/"));
     mkdirSync(dirname(target), { recursive: true });
     const ext = file.includes(".") ? file.slice(file.lastIndexOf(".")) : "";
-    if (TEXT_EXTENSIONS.has(ext)) writeFileSync(target, render(readFileSync(source, "utf8"), { name, lang, theme }));
+    if (TEXT_EXTENSIONS.has(ext)) writeFileSync(target, render(readFileSync(source, "utf8"), options));
     else writeFileSync(target, readFileSync(source));
     written.push(rel);
   }
+  if (preLib) wirePreLib(join(targetDir, "web", "package.json"));
   if (exact) pinExact(join(targetDir, "web", "package.json"));
   return written;
+}
+
+/** pre_lib resources start as a beta and export locales/en.lua for the browser before `dev` and `build`. */
+function wirePreLib(file) {
+  const pkg = JSON.parse(readFileSync(file, "utf8"));
+  pkg.version = "1.0.0-beta.1";
+  pkg.scripts.dev = `${EXPORT_TEXTS} && ${pkg.scripts.dev}`;
+  pkg.scripts.prebuild = `${pkg.scripts.prebuild} && ${EXPORT_TEXTS}`;
+  writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
 /** `"^0.8.0"` → `"0.8.0"` for the @pre_scripts packages in a package.json. */
@@ -256,10 +292,18 @@ async function main() {
     }
   }
 
-  scaffold(targetDir, { name, lang: options.lang, theme: options.theme, exact: options.exact });
+  scaffold(targetDir, {
+    name,
+    lang: options.lang,
+    theme: options.theme,
+    preLib: options.preLib,
+    exact: options.exact,
+  });
 
   const de = options.lang === "de";
-  const lines = de
+  const lines = options.preLib
+    ? preLibLines(name, de)
+    : de
     ? [
         `FiveM-Resource "${name}" erstellt${options.theme ? " (mit preui_theme-Bridge)" : ""}.`,
         "",
@@ -291,6 +335,40 @@ async function main() {
         `In game /${name} opens the window, Esc closes it.`,
       ];
   console.log(`\n${lines.map((line) => (line ? `  ${line}` : "")).join("\n")}\n`);
+}
+
+function preLibLines(name, de) {
+  return de
+    ? [
+        `FiveM-Resource "${name}" auf pre_lib erstellt.`,
+        "",
+        "Nächste Schritte (pre_lib muss im selben Ordner wie die Resource liegen, siehe DEVELOPMENT.md):",
+        `  cd ${name}/web`,
+        "  npm install",
+        "  npm run dev      # im Browser mit Mock-Daten entwickeln",
+        "  npm run build    # web/dist und THIRD_PARTY_LICENSES.txt bauen, beides committen",
+        "",
+        "server.cfg:",
+        "  ensure pre_lib",
+        `  ensure ${name}`,
+        "",
+        `Im Spiel öffnet /${name} das Fenster, Esc oder X schließen es.`,
+      ]
+    : [
+        `Created the FiveM resource "${name}" on pre_lib.`,
+        "",
+        "Next steps (pre_lib must sit in the same folder as the resource, see DEVELOPMENT.md):",
+        `  cd ${name}/web`,
+        "  npm install",
+        "  npm run dev      # develop in the browser with mock data",
+        "  npm run build    # build web/dist and THIRD_PARTY_LICENSES.txt, commit both",
+        "",
+        "server.cfg:",
+        "  ensure pre_lib",
+        `  ensure ${name}`,
+        "",
+        `In game /${name} opens the window, Escape or X close it.`,
+      ];
 }
 
 // Run as a CLI, but not when imported (tests import scaffold / parseArgs). realpath: npm links bins as symlinks.

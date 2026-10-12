@@ -44,6 +44,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  Image as ImageIcon,
+  Table,
 } from "lucide-react";
 import type { IconSet } from "../types";
 
@@ -97,4 +99,6 @@ export const lucideIcons: IconSet = {
   sun: Sun,
   moon: Moon,
   monitor: Monitor,
+  image: ImageIcon,
+  table: Table,
 };

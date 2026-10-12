@@ -30,6 +30,13 @@ export interface ToastOptions extends Omit<BaseAddOptions, "type" | "title"> {
   action?: { label: ReactNode; onClick: (event: MouseEvent<HTMLButtonElement>) => void };
   /** Show the × button on this toast; overrides the `Toaster`'s `closeButton`. */
   closeButton?: boolean;
+  /**
+   * Show this toast at its own corner or edge instead of the `Toaster`'s `position`. Each position used this way gets
+   * its own stack (created when its first toast appears, removed when its last one has closed); the `Toaster`'s
+   * `timeout`, `limit` (per stack), `pauseWhenUnfocused`, `closeButton` and `actions` apply there too. The `Toaster`'s
+   * own position (or none) uses the main stack. Only read when the toast is created.
+   */
+  position?: ToasterPosition;
 }
 
 type ToastMessage = string | ToastOptions;
@@ -41,14 +48,46 @@ export interface ToastPromiseOptions<Value> {
   error: PromiseMessage<unknown>;
 }
 
-/** Module-level manager shared by `toast()` and `<Toaster />`. */
+/** Module-level manager of the main stack, shared by `toast()` and `<Toaster />`. */
 const toastManager = BaseToast.createToastManager();
+
+/** Where the `Toaster` stacks its toasts. */
+export type ToasterPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+
+const allPositions: readonly ToasterPosition[] = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+];
+
+/** One manager per position a toast asked for (`toast({ position })`), created on first use. */
+const positionManagers: Partial<Record<ToasterPosition, ToastManager>> = {};
+
+function getPositionManager(position: ToasterPosition): ToastManager {
+  return (positionManagers[position] ??= BaseToast.createToastManager());
+}
+
+/** Position of the mounted `Toaster`'s main stack; a toast asking for it joins that stack. Set in an effect. */
+let mainPosition: ToasterPosition | undefined;
+
+function managerFor(position: ToasterPosition | undefined): ToastManager {
+  return position && position !== mainPosition && allPositions.includes(position) ? getPositionManager(position) : toastManager;
+}
+
+/** Closes a toast (or all with no id) in every stack. */
+function closeEverywhere(id?: string) {
+  toastManager.close(id);
+  for (const position of allPositions) positionManagers[position]?.close(id);
+}
 
 function isOptions(value: unknown): value is ToastOptions {
   return typeof value === "object" && value !== null && !isValidElement(value);
 }
 
-function toBaseOptions({ action, actionProps, ...options }: ToastOptions): BaseAddOptions {
+function toBaseOptions({ action, actionProps, position: _position, ...options }: ToastOptions): BaseAddOptions {
   if (!action) return { ...options, actionProps };
   return {
     ...options,
@@ -57,7 +96,7 @@ function toBaseOptions({ action, actionProps, ...options }: ToastOptions): BaseA
       children: action.label,
       onClick: (event) => {
         action.onClick(event);
-        if (!event.defaultPrevented && options.id) toastManager.close(options.id);
+        if (!event.defaultPrevented && options.id) closeEverywhere(options.id);
       },
     },
   };
@@ -67,7 +106,7 @@ function create(message: ToastMessage, options?: ToastOptions, type?: ToastType)
   const merged: ToastOptions = isOptions(message) ? { ...message, ...options } : { ...options, title: message };
   // A fixed id lets the action button close its own toast.
   const id = merged.id ?? `pui-toast-${Math.random().toString(36).slice(2)}`;
-  return toastManager.add(toBaseOptions({ ...merged, id, type: type ?? merged.type }));
+  return managerFor(merged.position).add(toBaseOptions({ ...merged, id, type: type ?? merged.type }));
 }
 
 function resolveMessage(message: ReactNode | ToastOptions): BaseUpdateOptions {
@@ -94,16 +133,16 @@ export const toast = Object.assign((message: ToastMessage, options?: ToastOption
   loading: (title: ReactNode, options?: ToastOptions) => create({ ...options, title }, undefined, "loading"),
   /**
    * Shows a loading toast that turns into a success or error toast when the promise settles.
-   * Returns the original promise's result.
+   * Returns the original promise's result. A `position` goes on the `loading` options (the toast stays there).
    */
   promise: <Value,>(promise: Promise<Value>, messages: ToastPromiseOptions<Value>) =>
-    toastManager.promise(promise, {
+    managerFor(isOptions(messages.loading) ? messages.loading.position : undefined).promise(promise, {
       loading: resolveMessage(messages.loading),
       success: resolvePromiseMessage(messages.success),
       error: resolvePromiseMessage(messages.error),
     }),
-  /** Closes one toast, or all toasts when called without an id. */
-  dismiss: (id?: string) => toastManager.close(id),
+  /** Closes one toast, or all toasts (of every position) when called without an id. */
+  dismiss: (id?: string) => closeEverywhere(id),
 });
 
 const typeStyles: Record<ToastType, { icon: IconName; className: string }> = {
@@ -135,9 +174,6 @@ const toastClassName = [
   "data-[ending-style]:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)_+_100%))]",
   "data-[limited]:hidden",
 ];
-
-/** Where the `Toaster` stacks its toasts. */
-export type ToasterPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 
 type SwipeDirection = "up" | "down" | "left" | "right";
 
@@ -184,6 +220,8 @@ function getToastClassName(position: ToasterPosition) {
 function useUnfocusedTimeout(toast: ToastObject, timeout: number, enabled: boolean) {
   const { id, type, transitionStatus, updateKey } = toast;
   const duration = toast.timeout ?? timeout;
+  // The manager of the stack this toast is in (main stack or a `toast({ position })` stack).
+  const { close } = BaseToast.useToastManager();
   useEffect(() => {
     if (!enabled || type === "loading" || !(duration > 0) || transitionStatus === "ending") return;
     let remaining = duration;
@@ -192,7 +230,7 @@ function useUnfocusedTimeout(toast: ToastObject, timeout: number, enabled: boole
     const start = (event?: Event) => {
       if (timer !== undefined || (event && event.target !== window)) return;
       startedAt = Date.now();
-      timer = setTimeout(() => toastManager.close(id), remaining);
+      timer = setTimeout(() => close(id), remaining);
     };
     const stop = (event?: Event) => {
       if (timer === undefined || (event && event.target !== window)) return;
@@ -208,7 +246,7 @@ function useUnfocusedTimeout(toast: ToastObject, timeout: number, enabled: boole
       window.removeEventListener("blur", start);
       window.removeEventListener("focus", stop);
     };
-  }, [enabled, id, type, duration, transitionStatus, updateKey]);
+  }, [enabled, id, type, duration, transitionStatus, updateKey, close]);
 }
 
 /** FiveM NUI (CEF) exposes `GetParentResourceName`; read in an effect only (SSR). */
@@ -312,6 +350,47 @@ function ToastList({
   );
 }
 
+function viewportClassName(position: ToasterPosition) {
+  return [
+    "pointer-events-none fixed",
+    positionConfig[position].viewport,
+    "z-[100] flex w-80 max-w-[calc(100vw-3rem)]",
+    // Newest toast closest to the screen edge.
+    isTopPosition(position) ? "flex-col" : "flex-col-reverse",
+    "gap-2 outline-none",
+  ];
+}
+
+/** The stack of one `toast({ position })` position: rendered only while it has toasts. */
+function PositionStack({
+  position,
+  container,
+  label,
+  listProps,
+}: {
+  position: ToasterPosition;
+  container: BaseToast.Portal.Props["container"];
+  label: string | undefined;
+  listProps: Omit<ToastItemProps, "toast" | "position">;
+}) {
+  const { toasts } = BaseToast.useToastManager();
+  if (toasts.length === 0) return null;
+  return (
+    <BaseToast.Portal data-slot="toaster-portal" container={container}>
+      <PortalContainerScope>
+        <BaseToast.Viewport
+          data-slot="toaster"
+          data-position={position}
+          aria-label={label}
+          className={cn(viewportClassName(position))}
+        >
+          <ToastList {...listProps} position={position} />
+        </BaseToast.Viewport>
+      </PortalContainerScope>
+    </BaseToast.Portal>
+  );
+}
+
 export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.Viewport> {
   /** Default auto-dismiss time in ms (3.2s per design handoff). `0` keeps toasts open. */
   timeout?: number;
@@ -341,15 +420,17 @@ export interface ToasterProps extends ComponentPropsWithoutRef<typeof BaseToast.
   /** Portal container; defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseToast.Portal.Props["container"];
   /**
-   * Corner or edge the toasts stack at (24px inset). Default `"bottom-right"`; can change at runtime.
-   * At the top, the newest toast is on top and toasts slide in downwards.
+   * Corner or edge the toasts stack at (24px inset). Default `"bottom-right"`; can change at runtime (the main stack
+   * moves; toasts with their own `position` stay where they are). At the top, the newest toast is on top and toasts
+   * slide in downwards. `className` and the viewport props apply to this main stack.
    */
   position?: ToasterPosition;
 }
 
 /**
  * Mount once (e.g. next to your app root), then call `toast()` from anywhere. Renders the toasts
- * bottom-right by default (see `position`), 320px wide, newest closest to the screen edge. Types `success`, `error`, `info`, `warning` and
+ * bottom-right by default (see `position`; a single toast can pick its own with `toast({ position })`), 320px wide,
+ * newest closest to the screen edge. Types `success`, `error`, `info`, `warning` and
  * `loading` get an icon and color.
  */
 export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.Viewport>, ToasterProps>(function Toaster(
@@ -371,40 +452,56 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
   // Detected after mounting (never during render, SSR); an explicit prop wins.
   const [inNui, setInNui] = useState(false);
   useEffect(() => setInNui(isFiveMNui()), []);
+  // `toast({ position })` with this Toaster's position joins the main stack instead of opening a second one there.
+  useEffect(() => {
+    mainPosition = position;
+    return () => {
+      if (mainPosition === position) mainPosition = undefined;
+    };
+  }, [position]);
   const closeUnfocused = pauseWhenUnfocused === undefined ? inNui : !pauseWhenUnfocused;
+  const portalContainer = usePortalContainer(container);
+  const listProps: Omit<ToastItemProps, "toast" | "position"> = {
+    timeout,
+    closeUnfocused,
+    closeButton,
+    actions,
+    closeLabel,
+    toastClassName,
+  };
   return (
-    <BaseToast.Provider toastManager={toastManager} timeout={timeout} limit={limit}>
-      <BaseToast.Portal data-slot="toaster-portal" container={usePortalContainer(container)}>
-        <PortalContainerScope>
-          <BaseToast.Viewport
-            ref={ref}
-            data-slot="toaster"
-            data-position={position}
-            className={mergeClassName(
-              [
-                "pointer-events-none fixed",
-                positionConfig[position].viewport,
-                "z-[100] flex w-80 max-w-[calc(100vw-3rem)]",
-                // Newest toast closest to the screen edge.
-                isTopPosition(position) ? "flex-col" : "flex-col-reverse",
-                "gap-2 outline-none",
-              ],
-              className,
-            )}
-            {...props}
-          >
-            <ToastList
-              timeout={timeout}
-              closeUnfocused={closeUnfocused}
-              closeButton={closeButton}
-              actions={actions}
-              closeLabel={closeLabel}
-              toastClassName={toastClassName}
-              position={position}
-            />
-          </BaseToast.Viewport>
-        </PortalContainerScope>
-      </BaseToast.Portal>
-    </BaseToast.Provider>
+    <>
+      <BaseToast.Provider toastManager={toastManager} timeout={timeout} limit={limit}>
+        <BaseToast.Portal data-slot="toaster-portal" container={portalContainer}>
+          <PortalContainerScope>
+            <BaseToast.Viewport
+              ref={ref}
+              data-slot="toaster"
+              data-position={position}
+              className={mergeClassName(viewportClassName(position), className)}
+              {...props}
+            >
+              <ToastList {...listProps} position={position} />
+            </BaseToast.Viewport>
+          </PortalContainerScope>
+        </BaseToast.Portal>
+      </BaseToast.Provider>
+      {/* One provider per position for `toast({ position })`; its viewport only exists while it has toasts. */}
+      {allPositions.map((stackPosition) => (
+        <BaseToast.Provider
+          key={stackPosition}
+          toastManager={getPositionManager(stackPosition)}
+          timeout={timeout}
+          limit={limit}
+        >
+          <PositionStack
+            position={stackPosition}
+            container={portalContainer}
+            label={props["aria-label"]}
+            listProps={listProps}
+          />
+        </BaseToast.Provider>
+      ))}
+    </>
   );
 });

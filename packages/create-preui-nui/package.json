@@ -1,6 +1,6 @@
 {
   "name": "@pre_scripts/create-preui-nui",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Scaffolds a FiveM NUI resource with preUI: npm create @pre_scripts/preui-nui",
   "keywords": [
     "fivem",
@@ -11,7 +11,8 @@
     "vite",
     "create",
     "starter",
-    "template"
+    "template",
+    "template-pre-lib"
   ],
   "author": "PRE_SCRIPTS",
   "license": "MIT",
@@ -26,7 +27,8 @@
   },
   "files": [
     "bin",
-    "template"
+    "template",
+    "template-pre-lib"
   ],
   "engines": {
     "node": ">=18"

@@ -56,6 +56,8 @@ export type IconName =
   | "eye"
   | "sun"
   | "moon"
-  | "monitor";
+  | "monitor"
+  | "image"
+  | "table";
 
 export type IconSet = Record<IconName, IconComponent>;

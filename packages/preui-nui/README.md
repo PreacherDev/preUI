@@ -29,6 +29,8 @@ No dependencies besides `react` and `@pre_scripts/preui` (peer dependencies). Co
 | `formatMoney(amount, { format, decimals, locale, thousands, decimal })` | `1234.5` → `"$1,235"`; the sign goes in front of the template (`-$500`). `thousands` / `decimal` replace the locale's separators (`""` = no grouping). |
 | `<NuiToastRelay readyEvent action />` | Shows notifications Lua hands to this NUI (e.g. while this window has the focus and FiveM draws it above a shared notification UI). Calls `readyEvent` once, then shows every `action` message `{ title?, description, type, duration, position }`. Close button and actions off. |
 | `installAltGrFix()` | Types AltGr characters (`{ } [ ] \ @ € ~ \|` on German and similar keyboards) when the NUI dropped them. Does nothing where the browser typed them itself; call once in `main.tsx`. |
+| `<NuiDragArea event turnSpeed tiltSpeed zoomSpeed onMove disabled />` | A surface without a look of its own behind your panels: dragging turns a game camera, the wheel zooms. Posts `{ yaw, pitch, zoom }` (deltas, radians) to the `event` callback (default `"camera"`) at most once per frame, with pointer capture. Nothing is sent in a browser; `onMove` is called everywhere. |
+| `useLoadscreen()`, `getNuiHandover()`, `debugLoadscreen()` from `@pre_scripts/preui-nui/loadscreen` | Loading screen pages: progress and phase of the game's loading, the data from `deferrals.handover`, and a simulated load in the browser. See [Loading screens](#loading-screens). |
 | `thirdPartyLicenses()` from `@pre_scripts/preui-nui/vite` | Vite plugin (build time): writes `dist/THIRD_PARTY_LICENSES.txt` with name, version, license and license text of every npm package in the bundle, fonts included. |
 
 ```tsx
@@ -92,6 +94,52 @@ cb({ format = '{amount} €', decimals = 2, thousands = ' ', decimal = ',' }) --
 
 Plural keys follow the locale: `cart.items_one` / `cart.items_other` in English and German, plus `_few` / `_many` in
 Polish or Russian; an optional `_zero` is used for 0. `{count}` is filled in with the formatted count.
+
+### Camera drag area
+
+```tsx
+<div className="fixed inset-0">
+  <NuiDragArea event="camera" />            {/* fills the parent, behind the panel */}
+  <VehiclePanel className="absolute right-4 top-4" />
+</div>
+```
+
+```lua
+RegisterNUICallback('camera', function(data, cb)
+  exports.pre_lib:moveVehicleCamera(data.yaw, data.pitch, data.zoom) -- or your own camera code
+  cb({})
+end)
+```
+
+Dragging to the right gives a negative `yaw`, dragging down a positive `pitch`, the wheel towards you a positive
+`zoom`. Defaults: `turnSpeed` 0.008 and `tiltSpeed` 0.004 radians per pixel, `zoomSpeed` 0.0015 per wheel pixel.
+The area sits at `position: absolute; inset: 0` (your `style` wins), shows the grab cursor and sets `data-dragging`
+while dragging. Its own Tailwind classes would not reach your CSS, so it uses inline styles only.
+
+### Loading screens
+
+A separate entry, so normal NUI pages don't carry it:
+
+```tsx
+import { debugLoadscreen, getNuiHandover, useLoadscreen } from "@pre_scripts/preui-nui/loadscreen";
+
+debugLoadscreen({ seconds: 8, handover: { serverName: "Test" } }); // main.tsx, browser only
+
+function Loading() {
+  const { progress, phase } = useLoadscreen(); // 0..1, "core" | "files" | "map" | "session" | "ready"
+  const name = getNuiHandover<string>("serverName"); // what the server passed to deferrals.handover
+  return <Progress value={progress * 100} />;
+}
+```
+
+`useLoadscreen()` listens to the messages FiveM posts to a page set with `loadscreen` in `fxmanifest.lua`
+(`loadProgress`, `startInitFunction`, `startDataFileEntries`, `performMapLoadFunction`, `endInitFunction`,
+`onLogLine`). Progress and phase only move forward (the game repeats phases and `loadFraction` jumps); `phase` becomes
+`"ready"` and `progress` 1 when `INIT_SESSION` ends. `log` is the last log line. `getNuiHandover()` returns
+`window.nuiHandoverData` (or one field of it with a key), `null` when there is none; check what you read.
+`debugLoadscreen({ seconds, handover })` is a no-op inside FiveM; `playLoadscreenDemo(seconds)` plays the same
+messages anywhere (e.g. a preview in an admin tool) and returns a stop function. `reduceLoadscreen(state, message)` is
+the reducer behind the hook.
 
 ### Licenses of the bundled code
 

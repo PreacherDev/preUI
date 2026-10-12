@@ -3,6 +3,65 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.13.0 - 2026-10-12
+
+### Updating from 0.12
+
+- **RichTextEditor** shows two more buttons in the default toolbar (`image`, `table`). Pass your own `toolbar` list to
+  keep the old one. Markdown with images and GFM tables now survives opening in the editor (before, both were dropped).
+- **DataTableColumnHeader** in a reorderable table (`onRowMove`) cycles asc -> desc -> unsorted instead of asc <-> desc.
+- **preui-nui `NuiToastRelay`**: a message's `position` now moves only that notification, not the whole stack. Update
+  `@pre_scripts/preui-nui` to 0.7.0 together with preUI 0.13.0 (it needs `toast({ position })`).
+
+### Added
+
+- **`EditorWindow`** family for list-and-editor admin windows: `EditorList` (`EditorListHeader`, `EditorListTitle`,
+  `EditorListAdd`, `EditorListContent`, `EditorListGroup` with headings, `EditorListItem` with summary, unsaved marker
+  and muted state), `EditorDetail`, `EditorHeader` (title, unsaved badge, status / problem text in a fixed place,
+  actions), `EditorUndoButton` / `EditorRedoButton` (tooltip with the step and shortcut), `EditorSaveButton`,
+  `EditorDeleteButton`, `EditorDiscardButton`, `EditorCloseButton` (`hidden` keeps their space), `EditorContent`,
+  `EditorSection`, `EditorTextField` and `EditorFieldCounter` (live length counter). Texts via `labels`.
+- **`useDraftHistory(saved, options)`**: a draft with an unsaved check, labelled undo / redo steps (typing in one field
+  is one step), entries via `key` (undo jumps back into the entry), app-driven steps (`record`, e.g. a server undo),
+  `run` with a busy state and cooldown, `request` + `confirmProps` to confirm dropping unsaved changes, and Ctrl+Z /
+  Ctrl+Y / Ctrl+Shift+Z outside text fields (FiveM's control characters too). Also exports `stableStringify`.
+- **`ConfirmDialog`**: a ready-made yes/no question on top of `AlertDialog` (`destructive`, `onConfirm`, `onCancel`,
+  `trigger`).
+- **`SortableList`**, `SortableItem`, `SortableItemHandle` and `moveItem(list, from, to)`: a vertical list reordered
+  with the pointer (other items slide live, a see-through copy follows, the scroll box scrolls at its edges) or the
+  keyboard (Space / Enter lifts and drops, arrows / Home / End move, Escape cancels, every step announced via
+  `labels`). Pointer events, no HTML5 drag and drop. The copy's opacity is `--pui-drag-preview-opacity` (0.6).
+- **DataTable row reorder**: `onRowMove(from, to)` (indexes in `data`) adds a drag handle column (`createDragColumn`,
+  `DataTableDragHandle`) with the same sliding and keyboard support; `rowMoveLabels` for all texts. Rows move within
+  the current page; while the table is sorted or filtered the handles are disabled and say why. The header menu
+  offers "Clear sort" (`clearSortLabel`).
+- **`createSelectColumn({ scope: "filtered", max, isLocked })`**: the header selects every matching row across pages,
+  up to `max` (other checkboxes turn disabled at the limit); `isLocked(row)` shows rows as checked and disabled
+  ("already added") outside the selection.
+- **`Combobox` / `Autocomplete` `virtualized`**: the list renders only the rows in view, so lists with thousands of
+  items open instantly. Rows have a fixed `itemHeight` (default 32); grouped items get their label rows from the list
+  (`renderGroupLabel`, `groupLabelHeight`); `overscan`. No extra dependency.
+- **Table `reserveTrack="strip"`**: the horizontal scrollbar gets its own 10px strip below the rows (only while the
+  table overflows sideways), so it never covers a row. New `viewportClassName`. `DataTable` accepts it too.
+- **ThemeEditor**: saved presets can be renamed and deleted. Presets with `removable: true` (set by "Save as preset")
+  get a menu on their tile; `onRenamePreset(preset, label)`, `onDeletePreset(preset)` (after a confirmation). Nothing
+  moves. New labels.
+- **Toast `position` per toast**: `toast("Saved", { position: "top-center" })` shows one toast at its own place. Each
+  position gets its own stack on demand; timeout, `limit` (per stack), `pauseWhenUnfocused`, `closeButton` and
+  `actions` apply there too. Toasts without `position` behave as before.
+- **RichTextEditor images and tables**: inline and linked images, GFM tables with column alignment, Tab between cells
+  (Tab in the last cell adds a row). Toolbar items `image` (URL and alt text) and `table` (insert, add / delete rows
+  and columns). New icons `image` and `table`.
+
+### Fixed
+
+- **CodeEditor** shortcuts in FiveM NUI, which reports Ctrl+letter as a control character with `keyCode` 0: the key is
+  repaired from the character (keyboard layout aware) or `event.code`. No effect in normal browsers.
+
+### Changed
+
+- Kanban uses the shared pointer-drag helpers (no visible change).
+
 ## 0.12.0 - 2026-10-11
 
 ### Updating from 0.11
@@ -429,6 +488,15 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 
 ## @pre_scripts/preui-nui
 
+### 0.7.0 - 2026-10-12
+
+- **`NuiDragArea`**: a surface without a look of its own behind your panels; dragging turns a game camera, the wheel
+  zooms. Posts `{ yaw, pitch, zoom }` deltas to the `event` callback (default `"camera"`) at most once per frame.
+- **Entry `@pre_scripts/preui-nui/loadscreen`**: `useLoadscreen()` (progress and phase of the game's loading),
+  `getNuiHandover()` (data from `deferrals.handover`) and `debugLoadscreen()` (a simulated load in the browser).
+- **`NuiToastRelay`**: a message's `position` applies to that notification only; the others keep theirs (before, it
+  moved the whole stack). Needs `@pre_scripts/preui` 0.13.0 or newer (peer dependency).
+
 ### 0.6.0 - 2026-10-11
 
 - **Money separators:** `MoneyFormat` has optional `thousands` and `decimal`. When set, `formatMoney` and
@@ -488,6 +556,13 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.4.0 - 2026-10-12
+
+- **`--pre-lib`**: a resource on pre_lib instead of the standalone one (theme, language, texts, currency and
+  notifications from pre_lib, locales in en/de/fr, a buyer README, version `1.0.0-beta.1`).
+- **`--exact`**: pins `@pre_scripts/preui` and `@pre_scripts/preui-nui` to exact versions.
+- New resources depend on `@pre_scripts/preui` `^0.13.0` and `@pre_scripts/preui-nui` `^0.7.0`.
 
 ### 0.3.1 - 2026-10-11
 

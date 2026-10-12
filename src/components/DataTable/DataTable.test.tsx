@@ -1,8 +1,12 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { Button } from "../Button/Button";
+import { moveItem } from "../Sortable/Sortable";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../DropdownMenu/DropdownMenu";
-import { DataTable } from "./DataTable";
+import { createDragColumn } from "./createDragColumn";
+import { createSelectColumn } from "./createSelectColumn";
+import { DataTable, type DataTableProps } from "./DataTable";
 import { DataTableColumnHeader } from "./DataTableColumnHeader";
 import { createDataTableColumnHelper } from "./features";
 
@@ -431,5 +435,343 @@ describe("DataTable row activation", () => {
     expect(onRowActivate).not.toHaveBeenCalled();
     await user.click(within(third!).getByText("Tanken 3"));
     expect(onRowActivate).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Row reorder
+// ---------------------------------------------------------------------------------------------------------------------
+
+function ReorderTable({
+  onRowMove,
+  extra,
+  ...props
+}: Partial<DataTableProps<Booking>> & { extra?: Partial<DataTableProps<Booking>> }) {
+  const [data, setData] = useState(bookings);
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      getRowId={(row) => row.id}
+      filterColumn="description"
+      onRowMove={(from, to) => {
+        onRowMove?.(from, to);
+        setData((current) => moveItem(current, from, to));
+      }}
+      {...props}
+      {...extra}
+    />
+  );
+}
+
+const handles = () => screen.queryAllByRole("button", { name: "Drag to reorder" });
+const descriptions = () => bodyRows().map((row) => within(row).getAllByRole("cell")[1]!.textContent);
+
+/** Rows 41px tall without gaps from the body's top (jsdom has no layout). */
+function layoutRows() {
+  const [, body] = screen.getAllByRole("rowgroup");
+  const rect = (top: number, height: number) =>
+    ({ x: 0, y: top, left: 0, top, width: 600, height, right: 600, bottom: top + height, toJSON: () => ({}) }) as DOMRect;
+  body!.getBoundingClientRect = () => rect(40, 410);
+  bodyRows().forEach((row, index) => {
+    row.getBoundingClientRect = () => rect(40 + index * 41, 41);
+  });
+}
+
+function pointerDrag(handle: HTMLElement, fromY: number, toY: number) {
+  fireEvent.pointerDown(handle, { button: 0, clientX: 10, clientY: fromY, pointerId: 1 });
+  act(() => {
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 10, clientY: fromY + 10 }));
+  });
+  act(() => {
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 10, clientY: toY }));
+  });
+}
+
+const releasePointer = () =>
+  act(() => {
+    window.dispatchEvent(new MouseEvent("pointerup", {}));
+  });
+
+afterEach(() => {
+  document.querySelectorAll('[data-slot="data-table-drag-preview"]').forEach((el) => el.parentElement?.remove());
+});
+
+describe("DataTable row reorder", () => {
+  it("prepends a drag column with a handle per row and a hidden header", () => {
+    render(<ReorderTable />);
+    expect(handles()).toHaveLength(10);
+    expect(handles()[0]).toHaveAttribute("data-slot", "data-table-drag-handle");
+    expect(handles()[0]).toHaveAccessibleDescription(/Press Space or Enter to pick the row up/);
+    const [dragHeader] = screen.getAllByRole("columnheader");
+    expect(dragHeader).toHaveTextContent("Reorder");
+    expect(dragHeader).toHaveStyle({ width: "2.75rem" });
+    expect(bodyRows()[0]).toHaveAttribute("data-sortable-id", "b1");
+  });
+
+  it("moves a row with the pointer: rows slide live, a table-shaped copy follows, onRowMove gets data indexes", () => {
+    const onRowMove = vi.fn();
+    render(<ReorderTable onRowMove={onRowMove} />);
+    layoutRows();
+    pointerDrag(handles()[0]!, 60, 150);
+    const preview = document.querySelector<HTMLElement>('[data-slot="data-table-drag-preview"]')!;
+    expect(preview.tagName).toBe("TR");
+    expect(preview.closest("table")).not.toBeNull();
+    expect(preview.parentElement!.closest("div")!.style.opacity).toBe("var(--pui-drag-preview-opacity, 0.6)");
+    expect(bodyRows()[0]).toHaveAttribute("data-dragging", "pointer");
+    // Middle of row 1 at 20.5 + 90 = 110.5: past the middles of rows 2 (61.5) and 3 (102.5), not 4 (143.5).
+    expect(bodyRows()[1]!.style.transform).toBe("translate3d(0px, -41px, 0px)");
+    expect(bodyRows()[2]!.style.transform).toBe("translate3d(0px, -41px, 0px)");
+    expect(bodyRows()[0]!.style.transform).toBe("translate3d(0px, 82px, 0px)");
+    releasePointer();
+    expect(onRowMove).toHaveBeenCalledWith(0, 2);
+    expect(descriptions().slice(0, 3)).toEqual(["Lieferung 2", "Tanken 3", "Tanken 1"]);
+    expect(bodyRows()[0]!.style.transform).toBe("");
+  });
+
+  it("reports indexes in data on later pages", async () => {
+    const user = userEvent.setup();
+    const onRowMove = vi.fn();
+    render(<ReorderTable onRowMove={onRowMove} />);
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
+    layoutRows();
+    pointerDrag(handles()[3]!, 40 + 3 * 41 + 20, 60);
+    releasePointer();
+    expect(onRowMove).toHaveBeenCalledWith(13, 10);
+    expect(descriptions()[0]).toBe("Lieferung 14");
+  });
+
+  it("moves a row with the keyboard and keeps the focus on its handle", async () => {
+    const user = userEvent.setup();
+    const onRowMove = vi.fn();
+    render(<ReorderTable onRowMove={onRowMove} />);
+    layoutRows();
+    handles()[1]!.focus();
+    await user.keyboard(" ");
+    expect(bodyRows()[1]).toHaveAttribute("data-dragging", "keyboard");
+    expect(screen.getByText("Picked up row 2 of 10.")).toHaveAttribute("role", "status");
+    await user.keyboard("{ArrowUp}");
+    expect(screen.getByRole("status")).toHaveTextContent("Row 1 of 10.");
+    expect(bodyRows()[0]!.style.transform).toBe("translate3d(0px, 41px, 0px)");
+    await user.keyboard("{Enter}");
+    expect(onRowMove).toHaveBeenCalledWith(1, 0);
+    expect(descriptions()[0]).toBe("Lieferung 2");
+    expect(within(bodyRows()[0]!).getByRole("button", { name: "Drag to reorder" })).toHaveFocus();
+  });
+
+  it("does not activate the row with a drag or the handle", async () => {
+    const user = userEvent.setup();
+    const onRowActivate = vi.fn();
+    render(<ReorderTable extra={{ onRowActivate }} />);
+    layoutRows();
+    pointerDrag(handles()[0]!, 60, 150);
+    releasePointer();
+    fireEvent.click(bodyRows()[2]!);
+    await user.click(handles()[4]!);
+    expect(onRowActivate).not.toHaveBeenCalled();
+    await user.click(within(bodyRows()[5]!).getByText("Lieferung 6"));
+    expect(onRowActivate).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the handles with a reason while sorted or filtered", async () => {
+    const user = userEvent.setup();
+    const onRowMove = vi.fn();
+    const sortable = helper.columns([
+      helper.accessor("description", { header: "Beschreibung" }),
+      helper.accessor("amount", {
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Betrag" />,
+      }),
+    ]);
+    render(<ReorderTable onRowMove={onRowMove} columns={sortable} rowMoveLabels={{ blocked: "Erst Sortierung aufheben." }} />);
+    const header = within(screen.getByRole("columnheader", { name: "Betrag" })).getByRole("button");
+    await user.click(header);
+    expect(handles()[0]).toHaveAttribute("aria-disabled", "true");
+    expect(handles()[0]).toHaveAttribute("data-blocked");
+    expect(handles()[0]).toHaveAccessibleDescription("Erst Sortierung aufheben.");
+    layoutRows();
+    pointerDrag(handles()[0]!, 60, 150);
+    releasePointer();
+    handles()[0]!.focus();
+    await user.keyboard(" {ArrowDown} ");
+    expect(onRowMove).not.toHaveBeenCalled();
+
+    // Sorting off again (asc → desc → off).
+    await user.click(header);
+    await user.click(header);
+    expect(handles()[0]).not.toHaveAttribute("aria-disabled");
+
+    await user.type(screen.getByRole("searchbox"), "tanken");
+    expect(handles()[0]).toHaveAttribute("aria-disabled", "true");
+    await user.clear(screen.getByRole("searchbox"));
+    expect(handles()[0]).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("offers Clear sort in the header menu of a reorderable table", async () => {
+    const user = userEvent.setup();
+    const menuColumns = helper.columns([
+      helper.accessor("description", { header: "Beschreibung" }),
+      helper.accessor("amount", {
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Betrag" menu clearSortLabel="Unsortiert" />,
+      }),
+    ]);
+    render(<ReorderTable columns={menuColumns} />);
+    await user.click(screen.getByRole("button", { name: "Betrag" }));
+    expect(screen.queryByRole("menuitem", { name: "Unsortiert" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("menuitem", { name: "Desc" }));
+    expect(handles()[0]).toHaveAttribute("aria-disabled", "true");
+    await user.click(screen.getByRole("button", { name: "Betrag" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Unsortiert" }));
+    expect(screen.getByRole("columnheader", { name: "Betrag" })).not.toHaveAttribute("aria-sort");
+    expect(handles()[0]).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("uses a drag column from columns instead of adding one, also next to the select column", () => {
+    render(<ReorderTable columns={[...columns, createDragColumn<Booking>()]} extra={{ enableRowSelection: true }} />);
+    expect(handles()).toHaveLength(10);
+    const cells = within(bodyRows()[0]!).getAllByRole("cell");
+    // select column first (prepended), then the data columns, then the drag column.
+    expect(within(cells[0]!).getByRole("checkbox")).toBeInTheDocument();
+    expect(within(cells[3]!).getByRole("button", { name: "Drag to reorder" })).toBeInTheDocument();
+  });
+
+  it("renders disabled handles from createDragColumn without onRowMove", () => {
+    render(<DataTable columns={[createDragColumn<Booking>(), ...columns]} data={bookings} />);
+    expect(handles()[0]).toBeDisabled();
+    expect(bodyRows()[0]).not.toHaveAttribute("data-sortable-id");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Select column: scope, max, locked rows
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe("DataTable select column options", () => {
+  const counter = () => screen.getByText(/row\(s\) selected\./);
+  const selectAll = () => screen.getByRole("checkbox", { name: "Select all" });
+  const rowBox = (index: number) => within(bodyRows()[index]!).getByRole("checkbox");
+
+  it('scope "filtered" selects every matching row across pages', async () => {
+    const user = userEvent.setup();
+    render(
+      <DataTable
+        columns={[createSelectColumn<Booking>({ scope: "filtered" }), ...columns]}
+        data={bookings}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        filterColumn="description"
+      />,
+    );
+    await user.type(screen.getByRole("searchbox"), "tanken");
+    expect(bodyRows()).toHaveLength(10);
+    expect(selectAll()).toHaveAttribute("data-scope", "filtered");
+    await user.click(selectAll());
+    expect(counter()).toHaveTextContent("13 of 13 row(s) selected.");
+    expect(selectAll()).toHaveAttribute("aria-checked", "true");
+
+    await user.click(rowBox(0));
+    expect(selectAll()).toHaveAttribute("aria-checked", "mixed");
+    await user.click(selectAll());
+    expect(counter()).toHaveTextContent("13 of 13 row(s) selected.");
+    await user.click(selectAll());
+    expect(counter()).toHaveTextContent("0 of 13 row(s) selected.");
+  });
+
+  it('scope "page" (default) still selects only the current page', async () => {
+    const user = userEvent.setup();
+    render(<DataTable columns={[createSelectColumn<Booking>(), ...columns]} data={bookings} enableRowSelection />);
+    await user.click(selectAll());
+    expect(counter()).toHaveTextContent("10 of 25 row(s) selected.");
+  });
+
+  it("stops at max: first rows in the current order, other checkboxes disabled, the header clears again", async () => {
+    const user = userEvent.setup();
+    const onRowSelectionChange = vi.fn();
+    render(
+      <DataTable
+        columns={[createSelectColumn<Booking>({ scope: "filtered", max: 3 }), ...columns]}
+        data={bookings}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        onRowSelectionChange={onRowSelectionChange}
+        initialSorting={[{ id: "amount", desc: true }]}
+      />,
+    );
+    await user.click(selectAll());
+    expect(onRowSelectionChange).toHaveBeenLastCalledWith({ b25: true, b24: true, b23: true }, expect.any(Array));
+    expect(selectAll()).toHaveAttribute("aria-checked", "true");
+    expect(rowBox(0)).toHaveAttribute("aria-checked", "true");
+    expect(rowBox(3)).toHaveAttribute("aria-disabled", "true");
+    // A selected row can still be unselected, which frees a slot.
+    await user.click(rowBox(1));
+    expect(rowBox(3)).not.toHaveAttribute("aria-disabled");
+    expect(selectAll()).toHaveAttribute("aria-checked", "mixed");
+    await user.click(rowBox(5));
+    expect(selectAll()).toHaveAttribute("aria-checked", "true");
+    await user.click(selectAll());
+    expect(counter()).toHaveTextContent("0 of 25 row(s) selected.");
+  });
+
+  it("shows locked rows checked and disabled, outside the selection and the header logic", async () => {
+    const user = userEvent.setup();
+    const onRowSelectionChange = vi.fn();
+    const locked = new Set(["b1", "b2"]);
+    render(
+      <DataTable
+        columns={[
+          createSelectColumn<Booking>({ isLocked: (row) => locked.has(row.original.id), lockedRowLabel: "Bereits hinzugefügt" }),
+          ...columns,
+        ]}
+        data={bookings}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        onRowSelectionChange={onRowSelectionChange}
+      />,
+    );
+    const lockedBox = screen.getAllByRole("checkbox", { name: "Bereits hinzugefügt" })[0]!;
+    expect(lockedBox).toHaveAttribute("aria-checked", "true");
+    expect(lockedBox).toHaveAttribute("aria-disabled", "true");
+    expect(lockedBox).toHaveAttribute("data-locked");
+    expect(selectAll()).toHaveAttribute("aria-checked", "false");
+
+    await user.click(selectAll());
+    const [selection] = onRowSelectionChange.mock.lastCall!;
+    expect(Object.keys(selection)).toHaveLength(8);
+    expect(selection.b1).toBeUndefined();
+    expect(selectAll()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("handles a page where no row can be picked", async () => {
+    const user = userEvent.setup();
+    // Page 1 (b1–b10): all locked → reads as done. Page 2 (b11–b20): not selectable → unavailable.
+    const { unmount } = render(
+      <DataTable
+        columns={[createSelectColumn<Booking>({ isLocked: (row) => Number(row.original.id.slice(1)) <= 10 }), ...columns]}
+        data={bookings}
+        getRowId={(row) => row.id}
+        enableRowSelection={(row) => Number(row.original.id.slice(1)) > 20}
+      />,
+    );
+    expect(selectAll()).toHaveAttribute("aria-checked", "true");
+    expect(selectAll()).toHaveAttribute("aria-disabled", "true");
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
+    expect(selectAll()).toHaveAttribute("aria-checked", "false");
+    expect(selectAll()).toHaveAttribute("aria-disabled", "true");
+    expect(rowBox(0)).toHaveAttribute("aria-disabled", "true");
+    expect(rowBox(0)).toHaveAttribute("aria-checked", "false");
+    unmount();
+
+    // With scope "filtered" the header still reaches the selectable rows on other pages.
+    render(
+      <DataTable
+        columns={[createSelectColumn<Booking>({ scope: "filtered" }), ...columns]}
+        data={bookings}
+        getRowId={(row) => row.id}
+        enableRowSelection={(row) => Number(row.original.id.slice(1)) > 20}
+      />,
+    );
+    expect(selectAll()).not.toHaveAttribute("aria-disabled");
+    await user.click(selectAll());
+    expect(counter()).toHaveTextContent("5 of 25 row(s) selected.");
+    expect(selectAll()).toHaveAttribute("aria-checked", "true");
   });
 });

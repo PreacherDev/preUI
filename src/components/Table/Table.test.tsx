@@ -168,4 +168,40 @@ describe("Table tokens + slots", () => {
     expect(content()).toHaveClass("pb-2.5");
     expect(content()).not.toHaveClass("pr-2.5");
   });
+  it('reserveTrack="strip" gives the horizontal bar its own strip below the rows', () => {
+    render(
+      <Table reserveTrack="strip" viewportClassName="max-h-40">
+        <TableBody>
+          <TableRow>
+            <TableCell>Zelle</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const root = document.querySelector<HTMLElement>("[data-slot=scroll-area]")!;
+    const content = document.querySelector("[data-slot=scroll-area-content]")!;
+    // No room inside the scroll content: the root's padding (only while it overflows sideways) holds the bar.
+    expect(content).not.toHaveClass("pb-2.5");
+    expect(content).not.toHaveClass("pr-2.5");
+    expect(root).toHaveAttribute("data-reserve-track", "strip");
+    expect(root).toHaveClass("data-[has-overflow-x]:pb-2.5");
+    expect(root.className).toContain("!top-[var(--pui-table-header-height,0px)]");
+    expect(document.querySelector("[data-slot=scroll-area-viewport]")).toHaveClass("max-h-40");
+  });
+
+  it("keeps the other reserveTrack values without a strip", () => {
+    render(
+      <Table reserveTrack="both">
+        <TableBody>
+          <TableRow>
+            <TableCell>Zelle</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const root = document.querySelector<HTMLElement>("[data-slot=scroll-area]")!;
+    expect(root).not.toHaveAttribute("data-reserve-track");
+    expect(root).not.toHaveClass("data-[has-overflow-x]:pb-2.5");
+    expect(document.querySelector("[data-slot=scroll-area-content]")).toHaveClass("pb-2.5", "pr-2.5");
+  });
 });

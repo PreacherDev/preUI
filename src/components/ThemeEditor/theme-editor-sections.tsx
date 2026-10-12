@@ -385,7 +385,7 @@ export function SavePresetForm({
     if (!label) return;
     const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "preset";
     const { palette, tokens: ownTokens, fonts } = config;
-    onSave({ id: `${slug}-${Date.now().toString(36)}`, label, config: { v: 1, palette, ...(ownTokens && { tokens: ownTokens }), ...(fonts && { fonts }) } });
+    onSave({ id: `${slug}-${Date.now().toString(36)}`, label, removable: true, config: { v: 1, palette, ...(ownTokens && { tokens: ownTokens }), ...(fonts && { fonts }) } });
     setName("");
     setOpen(false);
   };

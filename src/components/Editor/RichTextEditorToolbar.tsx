@@ -5,11 +5,19 @@ import { useIcon } from "../../icons";
 import type { IconName } from "../../icons";
 import { cn } from "../../utils/cn";
 import { Button } from "../Button/Button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../DropdownMenu/DropdownMenu";
 import { Input } from "../Input/Input";
 import { Popover, PopoverContent, PopoverTrigger } from "../Popover/Popover";
 import { Toggle } from "../Toggle/Toggle";
 import { Toolbar, ToolbarButton, ToolbarGroup, ToolbarSeparator } from "../Toolbar/Toolbar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../Tooltip/Tooltip";
+import { insertTable, isInTable, runTableCommand, tableCommands } from "./rich-text-nodes";
 
 /** One button of the rich-text toolbar. */
 export type RichTextEditorToolbarItem =
@@ -27,7 +35,9 @@ export type RichTextEditorToolbarItem =
   | "blockquote"
   | "codeBlock"
   | "horizontalRule"
-  | "link";
+  | "link"
+  | "image"
+  | "table";
 
 /** Visible and accessible texts of the editor. English defaults, override any subset via `labels`. */
 export interface RichTextEditorLabels {
@@ -52,6 +62,23 @@ export interface RichTextEditorLabels {
   linkPlaceholder: string;
   linkApply: string;
   linkRemove: string;
+  /** Image button and its popover (URL + alt text). */
+  image: string;
+  imageUrl: string;
+  imagePlaceholder: string;
+  imageAlt: string;
+  imageApply: string;
+  imageRemove: string;
+  /** Table button and its menu. */
+  table: string;
+  tableInsert: string;
+  tableAddRowBefore: string;
+  tableAddRowAfter: string;
+  tableAddColumnBefore: string;
+  tableAddColumnAfter: string;
+  tableDeleteRow: string;
+  tableDeleteColumn: string;
+  tableDelete: string;
   /** Accessible label of the character counter, e.g. "Characters". */
   characterCount: string;
 }
@@ -77,6 +104,21 @@ export const defaultRichTextEditorLabels: RichTextEditorLabels = {
   linkPlaceholder: "https://example.com",
   linkApply: "Apply",
   linkRemove: "Remove",
+  image: "Image",
+  imageUrl: "Image URL",
+  imagePlaceholder: "https://example.com/image.png",
+  imageAlt: "Description (alt text)",
+  imageApply: "Apply",
+  imageRemove: "Remove",
+  table: "Table",
+  tableInsert: "Insert table",
+  tableAddRowBefore: "Add row above",
+  tableAddRowAfter: "Add row below",
+  tableAddColumnBefore: "Add column left",
+  tableAddColumnAfter: "Add column right",
+  tableDeleteRow: "Delete row",
+  tableDeleteColumn: "Delete column",
+  tableDelete: "Delete table",
   characterCount: "Characters",
 };
 
@@ -86,7 +128,7 @@ export const richTextEditorToolbarGroups: RichTextEditorToolbarItem[][] = [
   ["heading1", "heading2", "heading3"],
   ["bold", "italic", "strike", "code"],
   ["bulletList", "orderedList", "blockquote", "codeBlock", "horizontalRule"],
-  ["link"],
+  ["link", "image", "table"],
 ];
 
 export const defaultRichTextEditorToolbar: RichTextEditorToolbarItem[] = richTextEditorToolbarGroups.flat();
@@ -104,7 +146,10 @@ interface ItemSpec {
 
 const chain = (editor: Editor) => editor.chain().focus();
 
-const itemSpecs: Record<Exclude<RichTextEditorToolbarItem, "link">, ItemSpec> = {
+/** Items with their own popover / menu instead of a plain button. */
+type PopupItem = "link" | "image" | "table";
+
+const itemSpecs: Record<Exclude<RichTextEditorToolbarItem, PopupItem>, ItemSpec> = {
   undo: {
     icon: "undo",
     shortcut: "Mod+Z",
@@ -276,6 +321,14 @@ export function RichTextEditorToolbar({
           result.link = { active: e.isActive("link"), can: e.isEditable };
           continue;
         }
+        if (item === "image") {
+          result.image = { active: e.isActive("image"), can: e.isEditable };
+          continue;
+        }
+        if (item === "table") {
+          result.table = { active: isInTable(e.state), can: e.isEditable };
+          continue;
+        }
         const spec = itemSpecs[item];
         result[item] = { active: spec.isActive?.(e) ?? false, can: e.isEditable && spec.can(e) };
       }
@@ -308,6 +361,22 @@ export function RichTextEditorToolbar({
                   open={linkOpen}
                   onOpenChange={onLinkOpenChange}
                 />
+              ) : item === "image" ? (
+                <ImageButton
+                  key={item}
+                  editor={editor}
+                  labels={labels}
+                  active={state.image?.active ?? false}
+                  disabled={!(state.image?.can ?? false)}
+                />
+              ) : item === "table" ? (
+                <TableButton
+                  key={item}
+                  editor={editor}
+                  labels={labels}
+                  active={state.table?.active ?? false}
+                  disabled={!(state.table?.can ?? false)}
+                />
               ) : (
                 <ItemButton
                   key={item}
@@ -333,7 +402,7 @@ function ItemButton({
   active,
   disabled,
 }: {
-  item: Exclude<RichTextEditorToolbarItem, "link">;
+  item: Exclude<RichTextEditorToolbarItem, PopupItem>;
   editor: Editor;
   label: string;
   active: boolean;
@@ -480,3 +549,174 @@ function LinkButton({
   );
 }
 
+function ImageButton({
+  editor,
+  labels,
+  active,
+  disabled,
+}: {
+  editor: Editor;
+  labels: RichTextEditorLabels;
+  active: boolean;
+  disabled: boolean;
+}) {
+  const ImageIcon = useIcon("image");
+  const [open, setOpen] = useState(false);
+  const [src, setSrc] = useState("");
+  const [alt, setAlt] = useState("");
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Prefill with the selected image whenever the popover opens.
+  useEffect(() => {
+    if (!open) return;
+    const selected = editor.isActive("image");
+    const attrs = selected ? editor.getAttributes("image") : {};
+    setSrc((attrs.src as string | undefined) ?? "");
+    setAlt((attrs.alt as string | undefined) ?? "");
+    setEditing(selected);
+  }, [open, editor]);
+
+  const apply = (event: FormEvent) => {
+    event.preventDefault();
+    const url = src.trim();
+    if (!url) return;
+    const attrs = { src: url, alt: alt.trim() || null };
+    if (editing && editor.isActive("image")) editor.chain().focus().updateAttributes("image", attrs).run();
+    else editor.chain().focus().insertContent({ type: "image", attrs }).run();
+    setOpen(false);
+  };
+
+  const remove = () => {
+    if (editor.isActive("image")) editor.chain().focus().deleteSelection().run();
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <ToolbarTooltip label={labels.image}>
+        <PopoverTrigger
+          render={
+            <ToolbarButton
+              size="icon-sm"
+              aria-label={labels.image}
+              data-item="image"
+              aria-pressed={active}
+              data-pressed={active ? "" : undefined}
+              disabled={disabled}
+            />
+          }
+        >
+          <ImageIcon aria-hidden="true" />
+        </PopoverTrigger>
+      </ToolbarTooltip>
+      <PopoverContent align="start" className="w-80 p-3" initialFocus={inputRef} finalFocus={false} aria-label={labels.image}>
+        <form data-slot="rich-text-editor-image-form" onSubmit={apply} className="flex flex-col gap-2.5">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-pui-muted-foreground">{labels.imageUrl}</span>
+            <Input
+              ref={inputRef}
+              size="sm"
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+              value={src}
+              placeholder={labels.imagePlaceholder}
+              onChange={(event) => setSrc(event.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-pui-muted-foreground">{labels.imageAlt}</span>
+            <Input size="sm" type="text" autoComplete="off" value={alt} onChange={(event) => setAlt(event.target.value)} />
+          </label>
+          <div data-slot="rich-text-editor-image-actions" className="flex justify-end gap-2">
+            {editing && (
+              <Button type="button" variant="ghost" size="sm" onClick={remove}>
+                {labels.imageRemove}
+              </Button>
+            )}
+            <Button type="submit" size="sm" disabled={!src.trim()}>
+              {labels.imageApply}
+            </Button>
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+type TableAction = keyof typeof tableCommands;
+
+const tableActions: { action: TableAction; label: keyof RichTextEditorLabels; destructive?: boolean }[][] = [
+  [
+    { action: "addRowBefore", label: "tableAddRowBefore" },
+    { action: "addRowAfter", label: "tableAddRowAfter" },
+    { action: "addColumnBefore", label: "tableAddColumnBefore" },
+    { action: "addColumnAfter", label: "tableAddColumnAfter" },
+  ],
+  [
+    { action: "deleteRow", label: "tableDeleteRow", destructive: true },
+    { action: "deleteColumn", label: "tableDeleteColumn", destructive: true },
+    { action: "deleteTable", label: "tableDelete", destructive: true },
+  ],
+];
+
+function TableButton({
+  editor,
+  labels,
+  active,
+  disabled,
+}: {
+  editor: Editor;
+  labels: RichTextEditorLabels;
+  active: boolean;
+  disabled: boolean;
+}) {
+  const TableIcon = useIcon("table");
+  const [open, setOpen] = useState(false);
+  // Read when the menu opens (the selection doesn't change while it is open).
+  const inTable = open && isInTable(editor.state);
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <ToolbarTooltip label={labels.table}>
+        <DropdownMenuTrigger
+          render={
+            <ToolbarButton
+              size="icon-sm"
+              aria-label={labels.table}
+              data-item="table"
+              aria-pressed={active}
+              data-pressed={active ? "" : undefined}
+              disabled={disabled}
+            />
+          }
+        >
+          <TableIcon aria-hidden="true" />
+        </DropdownMenuTrigger>
+      </ToolbarTooltip>
+      {/* finalFocus={false}: the command puts the focus back into the editor; the menu must not take it away. */}
+      <DropdownMenuContent data-slot="rich-text-editor-table-menu" finalFocus={false} className="min-w-48">
+        <DropdownMenuItem data-action="insertTable" disabled={inTable} onClick={() => runTableCommand(editor, insertTable())}>
+          {labels.tableInsert}
+        </DropdownMenuItem>
+        {tableActions.map((group) => (
+          <Fragment key={group[0].action}>
+            <DropdownMenuSeparator />
+            {group.map(({ action, label, destructive }) => (
+              <DropdownMenuItem
+                key={action}
+                data-action={action}
+                variant={destructive ? "destructive" : "default"}
+                disabled={!inTable || !runTableCommand(editor, tableCommands[action], false)}
+                onClick={() => runTableCommand(editor, tableCommands[action])}
+              >
+                {labels[label] as string}
+              </DropdownMenuItem>
+            ))}
+          </Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

@@ -1,5 +1,5 @@
 import { Toaster, toast, type ToasterPosition, type ToasterProps, type ToastType } from "@pre_scripts/preui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useNuiEvent } from "./hooks";
 import { fetchNui } from "./nui";
 
@@ -10,7 +10,7 @@ export interface NuiToastMessage {
   type?: ToastType | (string & {});
   /** ms until it closes. Default: the `Toaster`'s timeout. */
   duration?: number;
-  /** Moves the whole stack (the relay has one `Toaster`). */
+  /** Where this notification shows; other notifications keep theirs. Default: the relay's `defaultPosition`. */
   position?: ToasterPosition;
 }
 
@@ -19,7 +19,7 @@ export interface NuiToastRelayProps extends Omit<ToasterProps, "position"> {
   action?: string;
   /** NUI callback called once on mount, so Lua knows this UI can show notifications now. Off by default. */
   readyEvent?: string;
-  /** Stack position until a message brings its own. @default "top-right" */
+  /** Position of notifications that don't bring their own. @default "top-right" */
   defaultPosition?: ToasterPosition;
 }
 
@@ -43,7 +43,6 @@ export function NuiToastRelay({
   actions = false,
   ...toasterProps
 }: NuiToastRelayProps) {
-  const [position, setPosition] = useState<ToasterPosition>(defaultPosition);
   const readyEventRef = useRef(readyEvent);
 
   useEffect(() => {
@@ -53,15 +52,15 @@ export function NuiToastRelay({
 
   useNuiEvent<NuiToastMessage>(action, (data) => {
     if (!data || typeof data.description !== "string") return;
-    if (data.position) setPosition(data.position);
     toast({
       // A lone description becomes the title, so it gets the title's weight.
       title: data.title ?? data.description,
       description: data.title ? data.description : undefined,
       type: data.type,
       timeout: typeof data.duration === "number" ? data.duration : undefined,
+      position: data.position,
     });
   });
 
-  return <Toaster position={position} closeButton={closeButton} actions={actions} {...toasterProps} />;
+  return <Toaster position={defaultPosition} closeButton={closeButton} actions={actions} {...toasterProps} />;
 }

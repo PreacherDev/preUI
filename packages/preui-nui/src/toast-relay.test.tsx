@@ -31,7 +31,18 @@ describe("NuiToastRelay", () => {
     expect(screen.getByText("Vehicle stored")).toHaveAttribute("data-slot", "toast-title");
     expect(item.querySelector("[data-slot=toast-close]")).toBeNull();
     expect(item.querySelector("[data-slot=toast-action]")).toBeNull();
-    expect(document.querySelector("[data-slot=toaster]")).toHaveAttribute("data-position", "bottom-center");
+    expect(item.closest("[data-slot=toaster]")).toHaveAttribute("data-position", "bottom-center");
+  });
+
+  it("shows each notification at its own position", async () => {
+    render(<NuiToastRelay />);
+    send("toast", { description: "Oben rechts" });
+    send("toast", { description: "Unten mittig", position: "bottom-center" });
+    send("toast", { description: "Wieder oben rechts" });
+    const stackOf = async (text: string) => (await screen.findByText(text)).closest("[data-slot=toaster]");
+    expect(await stackOf("Oben rechts")).toHaveAttribute("data-position", "top-right");
+    expect(await stackOf("Unten mittig")).toHaveAttribute("data-position", "bottom-center");
+    expect(await stackOf("Wieder oben rechts")).toBe(await stackOf("Oben rechts"));
   });
 
   it("keeps title and description apart and ignores malformed messages", async () => {

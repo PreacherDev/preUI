@@ -1,5 +1,5 @@
 import type { RowData } from "@tanstack/react-table";
-import type { HTMLAttributes, ReactNode } from "react";
+import { useContext, type HTMLAttributes, type ReactNode } from "react";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
 import { Button } from "../Button/Button";
@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../DropdownMenu/DropdownMenu";
+import { DataTableRowMoveContext } from "./createDragColumn";
 import type { DataTableColumn } from "./features";
 
 export interface DataTableColumnHeaderProps<TData extends RowData, TValue = unknown>
@@ -24,6 +25,8 @@ export interface DataTableColumnHeaderProps<TData extends RowData, TValue = unkn
   sortAscLabel?: string;
   sortDescLabel?: string;
   hideLabel?: string;
+  /** Menu item that turns sorting off; shown only in tables with row reorder (`onRowMove`) while sorted. */
+  clearSortLabel?: string;
 }
 
 // Ghost button in the header's eyebrow type, pulled out by its padding so the text lines up with the cells.
@@ -32,7 +35,8 @@ const headerButtonClass =
 
 /**
  * Sortable column header. Renders the plain title when the column can't be sorted; honours
- * `meta.align: "right"` by moving the button to the right edge.
+ * `meta.align: "right"` by moving the button to the right edge. In a table with row reorder (`onRowMove`) a click
+ * cycles ascending → descending → unsorted (rows can only be moved while unsorted).
  */
 export function DataTableColumnHeader<TData extends RowData, TValue = unknown>({
   column,
@@ -41,12 +45,14 @@ export function DataTableColumnHeader<TData extends RowData, TValue = unknown>({
   sortAscLabel = "Asc",
   sortDescLabel = "Desc",
   hideLabel = "Hide",
+  clearSortLabel = "Clear sort",
   className,
   ...props
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const ArrowUp = useIcon("arrowUp");
   const ArrowDown = useIcon("arrowDown");
   const ArrowUpDown = useIcon("arrowUpDown");
+  const reorderable = useContext(DataTableRowMoveContext) != null;
 
   const align = column.columnDef.meta?.align;
   const wrapperClass = cn(
@@ -77,7 +83,10 @@ export function DataTableColumnHeader<TData extends RowData, TValue = unknown>({
           size="sm"
           className={buttonClass}
           data-sorted={sorted || undefined}
-          onClick={() => column.toggleSorting(sorted === "asc")}
+          onClick={() => {
+            if (reorderable && sorted === "desc") column.clearSorting();
+            else column.toggleSorting(sorted === "asc");
+          }}
         >
           {align === "right" && icon}
           {title}
@@ -110,6 +119,11 @@ export function DataTableColumnHeader<TData extends RowData, TValue = unknown>({
           >
             {sortDescLabel}
           </DropdownMenuItem>
+          {reorderable && sorted && (
+            <DropdownMenuItem inset onClick={() => column.clearSorting()}>
+              {clearSortLabel}
+            </DropdownMenuItem>
+          )}
           {column.getCanHide() && (
             <>
               <DropdownMenuSeparator />

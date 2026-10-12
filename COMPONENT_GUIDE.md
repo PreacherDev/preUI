@@ -166,7 +166,7 @@ const ChevronDown = useIcon("chevronDown");
 ```
 
 Verfügbar: `spinner check close chevronDown chevronUp chevronLeft chevronRight chevronsUpDown chevronsLeft chevronsRight minus plus
-search more lock info success error warning calendar panelLeft arrowUp arrowDown arrowUpDown gripVertical copy bold italic underline strikethrough code codeBlock heading1 heading2 heading3 list listOrdered quote link undo redo eye sun moon monitor`. Größen laut Handoff: 12 (`size-3`, Badge), 14 (`size-3.5`),
+search more lock info success error warning calendar panelLeft arrowUp arrowDown arrowUpDown gripVertical copy bold italic underline strikethrough code codeBlock heading1 heading2 heading3 list listOrdered quote link undo redo eye sun moon monitor image table`. Größen laut Handoff: 12 (`size-3`, Badge), 14 (`size-3.5`),
 16 (`size-4`, Standard), 18, 24.
 
 ## Tokens (Tailwind-Klassen aus dem Preset)

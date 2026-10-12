@@ -100,3 +100,56 @@ describe("AutocompleteInput icon", () => {
     }
   });
 });
+
+describe("Autocomplete virtualized", () => {
+  const models = Array.from({ length: 826 }, (_, i) => `ped_model_${String(i + 1).padStart(3, "0")}`);
+
+  function VirtualExample() {
+    return (
+      <Autocomplete items={models} virtualized>
+        <AutocompleteInput aria-label="Modell" />
+        <AutocompleteContent>
+          <AutocompleteEmpty>Kein Modell.</AutocompleteEmpty>
+          <AutocompleteList itemHeight={36} overscan={2}>
+            {(model: string) => (
+              <AutocompleteItem key={model} value={model}>
+                {model}
+              </AutocompleteItem>
+            )}
+          </AutocompleteList>
+        </AutocompleteContent>
+      </Autocomplete>
+    );
+  }
+
+  it("renders a window of the suggestions with set size and position", async () => {
+    const user = userEvent.setup();
+    render(<VirtualExample />);
+    await user.type(screen.getByRole("combobox", { name: "Modell" }), "ped");
+    const listbox = await screen.findByRole("listbox");
+    expect(listbox).toHaveAttribute("data-virtualized");
+    const options = screen.getAllByRole("option");
+    expect(options.length).toBeLessThan(20);
+    expect(options[1]).toHaveAttribute("aria-setsize", "826");
+    expect(options[1]).toHaveAttribute("aria-posinset", "2");
+    expect(options[1].parentElement).toHaveAttribute("data-slot", "autocomplete-row");
+    expect((options[1].parentElement as HTMLElement).style.top).toBe("36px");
+    expect(listbox.querySelector('[data-slot="autocomplete-sizer"]')).toHaveStyle({ height: `${826 * 36}px` });
+  });
+
+  it("navigates past the window with the keyboard and fills the input", async () => {
+    const user = userEvent.setup();
+    render(<VirtualExample />);
+    const input = screen.getByRole("combobox", { name: "Modell" });
+    await user.type(input, "ped_model_8");
+    // ped_model_008, 080 … 089, 800 … 826 → wraps to the last one with ArrowUp.
+    await screen.findByRole("listbox");
+    await user.keyboard("{ArrowUp}");
+    await waitFor(() => {
+      const active = document.getElementById(input.getAttribute("aria-activedescendant") ?? "");
+      expect(active).toHaveTextContent("ped_model_826");
+    });
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(input).toHaveValue("ped_model_826"));
+  });
+});

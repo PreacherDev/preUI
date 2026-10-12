@@ -12,14 +12,22 @@ import { useScrollTabStop } from "../../utils/scroll-tab-stop";
 import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { ScrollArea, type ScrollAreaReserveTrack } from "../ScrollArea/ScrollArea";
 
+/** `ScrollArea`'s values, plus `"strip"`: the horizontal bar gets its own 10px strip below the rows. */
+export type TableReserveTrack = ScrollAreaReserveTrack | "strip";
+
 export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
   /** Classes for the bordered wrapper around the scrolling `<table>`, e.g. `max-h-64` or `rounded-none`. */
   containerClassName?: string;
+  /** Classes for the scrolling viewport inside the wrapper (the `ScrollArea` viewport). */
+  viewportClassName?: string;
   /**
    * Reserve room for a scrollbar instead of letting it float over the cells (see `ScrollArea`): `"horizontal"` keeps
-   * the last row free of the horizontal bar, `"vertical"` the last column of the vertical one. @default false
+   * the last row free of the horizontal bar once scrolled to the end (the room is part of the scroll content),
+   * `"vertical"` the last column of the vertical one. `"strip"`: the horizontal bar sits in its own 10px strip below
+   * the scrolling rows — it never covers a row, at any scroll position. The strip is only there while the table is
+   * wider than its container. @default false
    */
-  reserveTrack?: ScrollAreaReserveTrack;
+  reserveTrack?: TableReserveTrack;
 }
 
 /**
@@ -31,13 +39,14 @@ export interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
 const tableHasRules: HasFallbackRule[] = [{ attr: "data-has-checkbox", has: "[role=checkbox]", target: "th, td" }];
 
 export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function Table(
-  { className, containerClassName, reserveTrack = false, ...props },
+  { className, containerClassName, viewportClassName, reserveTrack = false, ...props },
   ref,
 ) {
   const tabStop = useScrollTabStop();
   const tableRef = useHasFallbackRef(ref, tableHasRules);
   const containerRef = useRef<HTMLDivElement>(null);
   useHeaderHeight(containerRef);
+  const strip = reserveTrack === "strip";
   return (
     <div
       ref={containerRef}
@@ -50,11 +59,18 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
     >
       <ScrollArea
         orientation="both"
-        reserveTrack={reserveTrack}
+        reserveTrack={strip ? false : reserveTrack}
         viewportRef={tabStop.viewportRef}
         viewportProps={tabStop.viewportProps}
-        // The vertical scrollbar starts below the sticky header (Base UI sets `top: 0` inline, hence `!`).
-        className="[&>[data-slot=scroll-area-scrollbar][data-orientation=vertical]]:!top-[var(--pui-table-header-height,0px)]"
+        viewportClassName={viewportClassName}
+        data-reserve-track={strip ? "strip" : undefined}
+        className={cn(
+          // The vertical scrollbar starts below the sticky header (Base UI sets `top: 0` inline, hence `!`).
+          "[&>[data-slot=scroll-area-scrollbar][data-orientation=vertical]]:!top-[var(--pui-table-header-height,0px)]",
+          // Strip: the root's bottom padding holds the horizontal bar (absolutely positioned at the root's bottom),
+          // so the viewport with the rows ends above it. Base UI sets `data-has-overflow-x` on the root.
+          strip && "data-[has-overflow-x]:pb-2.5",
+        )}
       >
         <table
           ref={tableRef}

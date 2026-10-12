@@ -317,6 +317,48 @@ describe("CodeEditor", () => {
     expect(view.state.doc.toString()).toBe("abc");
   });
 
+  it("runs shortcuts that FiveM NUI reports as control characters (Ctrl+A = \u0001)", () => {
+    // The key is the control character; keyCode 0, so CodeMirror can't fall back to it by itself.
+    // (With a real keyCode CodeMirror already falls back to it, except for Ctrl+Alt on Windows.)
+    const nuiKey = (char: string, code: string, keyCode = 0, init: KeyboardEventInit = {}) => {
+      const event = new KeyboardEvent("keydown", { key: char, code, ctrlKey: true, bubbles: true, cancelable: true, ...init });
+      Object.defineProperty(event, "keyCode", { value: keyCode });
+      return event;
+    };
+    const ref = createRef<CodeEditorHandle>();
+    render(<CodeEditor ref={ref} defaultValue="" />);
+    const view = ref.current!.view!;
+    act(() => view.dispatch(view.state.replaceSelection("abc")));
+    const content = view.contentDOM;
+    act(() => content.focus());
+
+    // Ctrl+Z (German layout: the Z key has code KeyY) undoes.
+    const undo = nuiKey("\u001a", "KeyY");
+    act(() => {
+      content.dispatchEvent(undo);
+    });
+    expect(undo.defaultPrevented).toBe(true);
+    expect(view.state.doc.toString()).toBe("");
+    // Ctrl+Shift+Z redoes.
+    act(() => {
+      content.dispatchEvent(nuiKey("\u001a", "KeyY", 0, { shiftKey: true }));
+    });
+    expect(view.state.doc.toString()).toBe("abc");
+    // Ctrl+A selects everything.
+    act(() => view.dispatch({ selection: { anchor: 0 } }));
+    act(() => {
+      content.dispatchEvent(nuiKey("\u0001", "KeyA"));
+    });
+    expect(view.state.selection.main.from).toBe(0);
+    expect(view.state.selection.main.to).toBe(3);
+    // Ctrl+C has no editor binding: left to the browser (copy), not prevented.
+    const copy = nuiKey("\u0003", "KeyC");
+    act(() => {
+      content.dispatchEvent(copy);
+    });
+    expect(copy.defaultPrevented).toBe(false);
+  });
+
   it("switches languages without throwing", async () => {
     const ref = createRef<CodeEditorHandle>();
     const { rerender } = render(<CodeEditor ref={ref} defaultValue={'{"a": 1}'} language="json" />);

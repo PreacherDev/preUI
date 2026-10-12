@@ -10,6 +10,8 @@ import {
   type TableOptions,
 } from "@tanstack/react-table";
 import {
+  useCallback,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -19,7 +21,15 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "../../utils/cn";
+import { useSortEngine } from "../../utils/pointer-drag-sort";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type TableProps } from "../Table/Table";
+import {
+  DataTableRowMoveContext,
+  createDragColumn,
+  defaultDataTableRowMoveLabels,
+  type DataTableRowMoveContextValue,
+  type DataTableRowMoveLabels,
+} from "./createDragColumn";
 import { createSelectColumn } from "./createSelectColumn";
 import { DataTablePagination, type DataTablePaginationProps } from "./DataTablePagination";
 import { DataTableToolbar } from "./DataTableToolbar";
@@ -146,6 +156,19 @@ export interface DataTableProps<TData extends RowData> {
    * `onKeyDown` run before the row activation and can stop it with `event.preventDefault()`.
    */
   getRowProps?: (row: DataTableRow<TData>) => DataTableRowProps;
+  /**
+   * Turns on row reordering: a drag handle column (`createDragColumn`, prepended unless a column with id `"drag"`
+   * exists) moves rows with the pointer (the others slide to their new places, a see-through copy follows the
+   * cursor) or the keyboard (Space/Enter, arrows, Escape). Called once per drop with the row's index in `data`
+   * before and after the move; apply it with `moveItem(data, from, to)`.
+   *
+   * Rows move within the current page only. While the table is sorted or filtered the order on screen isn't the
+   * order of `data`, so the handles are disabled and say why (`rowMoveLabels.blocked`). Use stable row ids
+   * (`getRowId`), otherwise selection and focus stick to positions instead of rows.
+   */
+  onRowMove?: (from: number, to: number) => void;
+  /** Texts of the row reorder (partial overrides, English by default). */
+  rowMoveLabels?: Partial<DataTableRowMoveLabels>;
 }
 
 /** Smallest width of a column without `meta.width` in the fixed layout (`meta.minWidth` overrides it). */
@@ -181,16 +204,18 @@ export function DataTable<TData extends RowData>({
   onRowActivate,
   onRowClick,
   getRowProps,
+  onRowMove,
+  rowMoveLabels,
 }: DataTableProps<TData>) {
   const selectable = enableRowSelection !== false;
+  const reorderable = onRowMove != null;
 
-  const tableColumns = useMemo(
-    () =>
-      selectable && !columns.some((column) => column.id === "select")
-        ? [createSelectColumn<TData>(), ...columns]
-        : columns,
-    [columns, selectable],
-  );
+  const tableColumns = useMemo(() => {
+    const extra: DataTableColumnDef<TData>[] = [];
+    if (reorderable && !columns.some((column) => column.id === "drag")) extra.push(createDragColumn<TData>());
+    if (selectable && !columns.some((column) => column.id === "select")) extra.push(createSelectColumn<TData>());
+    return extra.length > 0 ? [...extra, ...columns] : columns;
+  }, [columns, selectable, reorderable]);
 
   // Row selection is controlled so changes can be reported; every other slice is owned by the table.
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -231,13 +256,46 @@ export function DataTable<TData extends RowData>({
   });
 
   const rows = table.getRowModel().rows;
+
+  // Row reorder: the body is the sortable list, rows are its items (keyed by row id). Reports indexes in `data`.
+  const bodyRef = useRef<HTMLTableSectionElement | null>(null);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const onRowMoveRef = useRef(onRowMove);
+  onRowMoveRef.current = onRowMove;
+  const moveLabels = useMemo(() => ({ ...defaultDataTableRowMoveLabels, ...rowMoveLabels }), [rowMoveLabels]);
+  const engineLabels = useMemo(() => ({ ...moveLabels, item: moveLabels.handle }), [moveLabels]);
+  const reorderBlocked =
+    reorderable && (table.atoms.sorting.get().length > 0 || table.atoms.columnFilters.get().length > 0);
+  const handleRowMove = useCallback((fromSlot: number, toSlot: number) => {
+    const pageRows = rowsRef.current;
+    const from = pageRows[fromSlot]?.index;
+    const to = pageRows[toSlot]?.index;
+    if (from == null || to == null) return;
+    onRowMoveRef.current?.(from, to);
+  }, []);
+  const engine = useSortEngine({
+    listRef: bodyRef,
+    onMove: reorderable ? handleRowMove : undefined,
+    labels: engineLabels,
+    disabled: reorderBlocked,
+    previewSlot: "data-table-drag-preview",
+    scrollInsetTop: () => bodyRef.current?.closest("table")?.tHead?.offsetHeight ?? 0,
+  });
+  const instructionsId = useId();
+  const blockedId = useId();
+  const rowMoveContext = useMemo<DataTableRowMoveContextValue | null>(
+    () => (reorderable ? { engine, blocked: reorderBlocked, labels: moveLabels, instructionsId, blockedId } : null),
+    [reorderable, engine, reorderBlocked, moveLabels, instructionsId, blockedId],
+  );
+  const drag = reorderable ? engine.drag : null;
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const showToolbar = filterColumn != null || enableColumnVisibility || toolbar != null;
   const activatable = onRowActivate != null;
   const clickable = activatable || onRowClick != null;
 
   const renderRow = (row: DataTableRow<TData>) => {
-    const { className: rowClassName, onClick, onKeyDown, ...rowProps } = getRowProps?.(row) ?? {};
+    const { className: rowClassName, onClick, onKeyDown, onClickCapture, style, ...rowProps } = getRowProps?.(row) ?? {};
     const cellActivates = (target: EventTarget | null) => {
       const cell = target instanceof Element ? target.closest("td") : null;
       const cellId = cell?.getAttribute("data-column-id");
@@ -250,13 +308,32 @@ export function DataTable<TData extends RowData>({
         data-state={row.getIsSelected() ? "selected" : undefined}
         data-activatable={activatable ? "" : undefined}
         tabIndex={activatable ? 0 : undefined}
+        data-sortable-id={reorderable ? row.id : undefined}
+        data-dragging={drag?.id === row.id ? drag.mode : undefined}
         {...rowProps}
+        style={reorderable ? engine.itemStyle(row.id, style) : style}
         className={cn(
           clickable && "cursor-pointer",
+          reorderable && [
+            // The divider as an inset shadow on the cells: a collapsed border would not move with a shifted row.
+            "relative border-b-0 [&>td]:shadow-[inset_0_-1px_0_hsl(var(--pui-border)/var(--pui-border-opacity,1))] [&:last-child>td]:shadow-none",
+            drag && !engine.settling && "transition-[transform,background-color] duration-pui-base ease-pui",
+            // Pointer: an empty, tinted slot where the row lands. Keyboard: the row itself moves, highlighted.
+            "data-[dragging=pointer]:bg-pui-primary/tint data-[dragging=pointer]:text-transparent [&[data-dragging=pointer]>td>*]:invisible",
+            "data-[dragging=keyboard]:z-10 data-[dragging=keyboard]:bg-pui-primary/tint",
+          ],
           activatable &&
             "focus-visible:bg-pui-accent/40 focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-pui-ring",
           rowClassName,
         )}
+        onClickCapture={(event) => {
+          if (reorderable && engine.consumeDragClick(row.id)) {
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+          }
+          onClickCapture?.(event);
+        }}
         onClick={(event) => {
           onClick?.(event);
           if (!clickable || event.defaultPrevented) return;
@@ -300,71 +377,90 @@ export function DataTable<TData extends RowData>({
       : undefined;
 
   return (
-    <div data-slot="data-table" className={cn("flex flex-col gap-3", className)}>
-      {showToolbar && (
-        <DataTableToolbar
-          table={table}
-          filterColumn={filterColumn}
-          filterPlaceholder={filterPlaceholder}
-          enableColumnVisibility={enableColumnVisibility}
-          viewOptionsProps={viewOptionsProps}
-        >
-          {toolbar}
-        </DataTableToolbar>
-      )}
-      {/* A flex column, so the table container can shrink / grow (`containerClassName="min-h-0 flex-1"`) when the
-          DataTable has a fixed height; with an auto height it changes nothing. */}
-      <div data-slot="data-table-content" className="flex min-h-0 flex-1 flex-col">
-        <Table
-          className={cn(layout === "fixed" && "table-fixed", tableClassName)}
-          style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
-          containerClassName={containerClassName}
-          reserveTrack={reserveTrack}
-        >
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const meta = header.column.columnDef.meta;
-                  const sorted = header.column.getIsSorted();
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan > 1 ? header.colSpan : undefined}
-                      aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}
-                      style={meta?.width ? { width: meta.width } : undefined}
-                      className={cn(getAlignClass(meta?.align), meta?.headerClassName)}
-                    >
-                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {rows.length > 0 ? (
-              rows.map(renderRow)
-            ) : (
-              <TableRow>
-                <TableCell
-                  data-slot="data-table-empty"
-                  colSpan={visibleColumnCount}
-                  className="h-24 text-center text-pui-muted-foreground">
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        <DataTablePagination
-          table={table}
-          pageSizeOptions={pageSizeOptions}
-          showSelectedCount={selectable}
-          {...paginationProps}
-          className={cn("shrink-0", paginationProps?.className)}
-        />
+    <DataTableRowMoveContext.Provider value={rowMoveContext}>
+      <div data-slot="data-table" data-reorderable={reorderable ? "" : undefined} className={cn("flex flex-col gap-3", className)}>
+        {showToolbar && (
+          <DataTableToolbar
+            table={table}
+            filterColumn={filterColumn}
+            filterPlaceholder={filterPlaceholder}
+            enableColumnVisibility={enableColumnVisibility}
+            viewOptionsProps={viewOptionsProps}
+          >
+            {toolbar}
+          </DataTableToolbar>
+        )}
+        {/* A flex column, so the table container can shrink / grow (`containerClassName="min-h-0 flex-1"`) when the
+            DataTable has a fixed height; with an auto height it changes nothing. */}
+        <div data-slot="data-table-content" className="flex min-h-0 flex-1 flex-col">
+          <Table
+            className={cn(layout === "fixed" && "table-fixed", tableClassName)}
+            style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
+            containerClassName={containerClassName}
+            reserveTrack={reserveTrack}
+          >
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const meta = header.column.columnDef.meta;
+                    const sorted = header.column.getIsSorted();
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan > 1 ? header.colSpan : undefined}
+                        aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}
+                        style={meta?.width ? { width: meta.width } : undefined}
+                        className={cn(getAlignClass(meta?.align), meta?.headerClassName)}
+                      >
+                        {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody
+              ref={bodyRef}
+              data-sortable-list={reorderable ? "" : undefined}
+              className={cn(drag?.mode === "pointer" && "select-none")}
+            >
+              {rows.length > 0 ? (
+                rows.map(renderRow)
+              ) : (
+                <TableRow>
+                  <TableCell
+                    data-slot="data-table-empty"
+                    colSpan={visibleColumnCount}
+                    className="h-24 text-center text-pui-muted-foreground">
+                    {emptyMessage}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <DataTablePagination
+            table={table}
+            pageSizeOptions={pageSizeOptions}
+            showSelectedCount={selectable}
+            {...paginationProps}
+            className={cn("shrink-0", paginationProps?.className)}
+          />
+        </div>
+        {reorderable && (
+          <>
+            <span id={instructionsId} hidden>
+              {moveLabels.instructions}
+            </span>
+            <span id={blockedId} hidden>
+              {moveLabels.blocked}
+            </span>
+            <span className="sr-only" role="status" aria-live="assertive" aria-atomic="true">
+              {engine.announcement}
+            </span>
+          </>
+        )}
       </div>
-    </div>
+    </DataTableRowMoveContext.Provider>
   );
 }

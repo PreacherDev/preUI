@@ -234,4 +234,19 @@ export const defaultIcons: IconSet = {
       <path d="M8 21h8M12 17v4" />
     </>,
   ),
+  image: createIcon(
+    <>
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </>,
+  ),
+  table: createIcon(
+    <>
+      <path d="M12 3v18" />
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M3 15h18" />
+    </>,
+  ),
 };

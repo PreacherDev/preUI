@@ -56,6 +56,7 @@ import {
 } from "./theme-editor-config";
 import { AdvancedSection, FontSection, ImportSection, SavePresetForm, StyleSection } from "./theme-editor-sections";
 import { ThemeEditorPreview, type ThemeEditorPreviewLabels } from "./ThemeEditorPreview";
+import { PresetActionDialogs, PresetActionsMenu, type PendingPresetAction } from "./theme-editor-preset-actions";
 
 // ------------------------------------------------------------------------------------------------
 // Labels
@@ -137,6 +138,15 @@ export interface ThemeEditorLabels {
   savePreset: string;
   presetName: string;
   savePresetConfirm: string;
+  /** Accessible name of the menu button on a saved preset, e.g. `"Actions for My theme"`. */
+  presetActions: (preset: string) => string;
+  renamePreset: string;
+  renamePresetTitle: string;
+  renamePresetConfirm: string;
+  deletePreset: string;
+  deletePresetTitle: (preset: string) => string;
+  deletePresetText: string;
+  deletePresetConfirm: string;
   cancel: string;
   advanced: string;
   advancedHint: string;
@@ -249,6 +259,14 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
   savePreset: "Save as preset",
   presetName: "Preset name",
   savePresetConfirm: "Save preset",
+  presetActions: (preset) => `Actions for ${preset}`,
+  renamePreset: "Rename",
+  renamePresetTitle: "Rename preset",
+  renamePresetConfirm: "Rename",
+  deletePreset: "Delete",
+  deletePresetTitle: (preset) => `Delete "${preset}"?`,
+  deletePresetText: "The preset is removed from the list. The theme you are editing stays as it is.",
+  deletePresetConfirm: "Delete",
   cancel: "Cancel",
   advanced: "All colours",
   advancedHint: "Every colour token of this scheme. Values set here win over the base colours above.",
@@ -351,6 +369,13 @@ export interface ThemeEditorProps
    * in `presets` (e.g. a server's `presets.lua`).
    */
   onSavePreset?: (preset: ThemePreset) => void;
+  /**
+   * Shows "Delete" in the menu of presets marked `removable` (the ones saved with "Save as preset" are). Called after
+   * the user confirmed; remove the preset from `presets`. The theme being edited doesn't change.
+   */
+  onDeletePreset?: (preset: ThemePreset) => void;
+  /** Shows "Rename" in the menu of presets marked `removable`; called with the new name (trimmed, not empty). */
+  onRenamePreset?: (preset: ThemePreset, label: string) => void;
   /**
    * The saved theme, for "unsaved changes" and "Discard changes". Default: the value the editor opened with, then
    * whatever was last saved through `onSave`.
@@ -466,6 +491,8 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     importable = false,
     onImport,
     onSavePreset,
+    onDeletePreset,
+    onRenamePreset,
     savedValue,
     sections: sectionsProp,
     defaultSample = "web",
@@ -770,6 +797,8 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
                   labels={labels}
                   minContrast={minContrast}
                   onPick={(preset) => update((current) => applyPreset(current, preset))}
+                  onDelete={onDeletePreset}
+                  onRename={onRenamePreset}
                 />
               )}
               {onSavePreset && <SavePresetForm config={config} labels={labels} onSave={onSavePreset} />}
@@ -1064,13 +1093,18 @@ function PresetPicker({
   labels,
   minContrast,
   onPick,
+  onDelete,
+  onRename,
 }: {
   presets: readonly ThemePreset[];
   config: ThemeConfig;
   labels: ThemeEditorLabels;
   minContrast: number;
   onPick: (preset: ThemePreset) => void;
+  onDelete?: (preset: ThemePreset) => void;
+  onRename?: (preset: ThemePreset, label: string) => void;
 }) {
+  const [pending, setPending] = useState<PendingPresetAction>(null);
   const Check = useIcon("check");
   const Warning = useIcon("warning");
   const id = useId();
@@ -1103,50 +1137,71 @@ function PresetPicker({
       <div role="group" aria-labelledby={`${id}-presets`} className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-1.5">
         {info.map(({ preset, problems, swatches }) => {
           const selected = matchesPreset(config, preset);
+          const actions = preset.removable === true && Boolean(onDelete || onRename);
           return (
-            <button
-              key={preset.id}
-              type="button"
-              data-slot="theme-editor-preset"
-              data-preset={preset.id}
-              data-selected={selected ? "" : undefined}
-              data-contrast={problems === 0 ? "pass" : "fail"}
-              aria-pressed={selected}
-              title={preset.description}
-              onClick={() => onPick(preset)}
-              className={cn(
-                "flex min-w-0 flex-col gap-1.5 rounded-pui-md border p-1.5 text-left text-xs font-medium outline-none",
-                "transition-colors duration-pui-fast ease-pui focus-visible:ring-pui focus-visible:ring-pui-ring",
-                selected
-                  ? "border-pui-primary/tint-border bg-pui-primary/tint text-pui-foreground"
-                  : "border-pui-border text-pui-muted-foreground hover:bg-pui-accent hover:text-pui-accent-foreground",
-              )}
-            >
-              {/* Dark | light: background with the primary as a dot. */}
-              <span aria-hidden="true" className="flex h-7 w-full overflow-hidden rounded-pui-sm border border-pui-border">
-                {swatches.map((swatch, index) => (
-                  <span
-                    key={index}
-                    className="flex h-full min-w-0 flex-1 basis-0 items-center justify-center"
-                    style={{ backgroundColor: `hsl(${swatch.background})` }}
-                  >
-                    <span className="size-3 rounded-full" style={{ backgroundColor: `hsl(${swatch.primary})` }} />
-                  </span>
-                ))}
-              </span>
-              <span className="flex w-full min-w-0 items-center gap-1 px-0.5">
-                <span className="min-w-0 flex-1 truncate">{preset.label}</span>
-                {problems === 0 ? (
-                  <Check className="size-3.5 shrink-0 text-pui-positive" aria-hidden="true" />
-                ) : (
-                  <Warning className="size-3.5 shrink-0 text-pui-warning" aria-hidden="true" />
+            // The wrapper holds the tile and, for saved presets, the menu button next to (not inside) it.
+            <div key={preset.id} data-slot="theme-editor-preset-item" className="relative flex min-w-0">
+              <button
+                type="button"
+                data-slot="theme-editor-preset"
+                data-preset={preset.id}
+                data-selected={selected ? "" : undefined}
+                data-contrast={problems === 0 ? "pass" : "fail"}
+                aria-pressed={selected}
+                title={preset.description ?? (actions ? preset.label : undefined)}
+                onClick={() => onPick(preset)}
+                className={cn(
+                  "flex w-full min-w-0 flex-col gap-1.5 rounded-pui-md border p-1.5 text-left text-xs font-medium outline-none",
+                  "transition-colors duration-pui-fast ease-pui focus-visible:ring-pui focus-visible:ring-pui-ring",
+                  selected
+                    ? "border-pui-primary/tint-border bg-pui-primary/tint text-pui-foreground"
+                    : "border-pui-border text-pui-muted-foreground hover:bg-pui-accent hover:text-pui-accent-foreground",
                 )}
-                <span className="sr-only">{problems === 0 ? labels.presetReadable : labels.presetProblems(problems)}</span>
-              </span>
-            </button>
+              >
+                {/* Dark | light: background with the primary as a dot. */}
+                <span aria-hidden="true" className="flex h-7 w-full overflow-hidden rounded-pui-sm border border-pui-border">
+                  {swatches.map((swatch, index) => (
+                    <span
+                      key={index}
+                      className="flex h-full min-w-0 flex-1 basis-0 items-center justify-center"
+                      style={{ backgroundColor: `hsl(${swatch.background})` }}
+                    >
+                      <span className="size-3 rounded-full" style={{ backgroundColor: `hsl(${swatch.primary})` }} />
+                    </span>
+                  ))}
+                </span>
+                <span className="flex w-full min-w-0 items-center gap-1 px-0.5">
+                  <span className="min-w-0 flex-1 truncate">{preset.label}</span>
+                  {problems === 0 ? (
+                    <Check className="size-3.5 shrink-0 text-pui-positive" aria-hidden="true" />
+                  ) : (
+                    <Warning className="size-3.5 shrink-0 text-pui-warning" aria-hidden="true" />
+                  )}
+                  <span className="sr-only">{problems === 0 ? labels.presetReadable : labels.presetProblems(problems)}</span>
+                  {/* Room for the menu button, which lies over it. */}
+                  {actions && <span aria-hidden="true" className="h-4 w-5 shrink-0" />}
+                </span>
+              </button>
+              {actions && (
+                <PresetActionsMenu
+                  preset={preset}
+                  labels={labels}
+                  canRename={Boolean(onRename)}
+                  canDelete={Boolean(onDelete)}
+                  onAction={setPending}
+                />
+              )}
+            </div>
           );
         })}
       </div>
+      <PresetActionDialogs
+        pending={pending}
+        labels={labels}
+        onClose={() => setPending(null)}
+        onDelete={onDelete}
+        onRename={onRename}
+      />
     </section>
   );
 }

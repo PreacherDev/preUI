@@ -276,4 +276,121 @@ describe("Toast", () => {
     const item = await screen.findByRole("dialog");
     expect(item.querySelector("[data-slot=toast-action]")).toBeNull();
   });
+
+  describe("position per toast", () => {
+    const stacks = () => Array.from(document.querySelectorAll<HTMLElement>("[data-slot=toaster]"));
+    const stackOf = (text: string) => screen.getByText(text).closest<HTMLElement>("[data-slot=toaster]")!;
+
+    it("renders only the main stack while no toast asks for its own position", async () => {
+      render(<Toaster />);
+      act(() => {
+        toast("Normal");
+      });
+      await screen.findByText("Normal");
+      expect(stacks()).toHaveLength(1);
+      expect(stackOf("Normal")).toHaveAttribute("data-position", "bottom-right");
+    });
+
+    it("opens a stack per used position on demand and removes it after its last toast", async () => {
+      render(<Toaster />);
+      act(() => {
+        toast("Unten rechts");
+        toast.success("Oben links", { position: "top-left" });
+        toast({ title: "Oben mittig", position: "top-center" });
+      });
+      expect(await screen.findByText("Oben links")).toBeInTheDocument();
+      expect(stacks()).toHaveLength(3);
+      expect(stackOf("Unten rechts")).toHaveAttribute("data-position", "bottom-right");
+      const topLeft = stackOf("Oben links");
+      expect(topLeft).toHaveAttribute("data-position", "top-left");
+      expect(topLeft).toHaveClass("fixed", "top-6", "left-6", "flex-col", "w-80", "z-[100]");
+      expect(topLeft).toHaveAttribute("role", "region");
+      // Top position: slides down from above, swipes up.
+      expect(screen.getByText("Oben links").closest("[data-slot=toast]")).toHaveClass(
+        "data-[starting-style]:[transform:translateY(-0.5rem)]",
+      );
+      expect(stackOf("Oben mittig")).toHaveAttribute("data-position", "top-center");
+
+      act(() => toast.dismiss());
+      await waitFor(() => expect(stacks()).toHaveLength(1));
+    });
+
+    it("joins the main stack when the position is the Toaster's own", async () => {
+      render(<Toaster position="top-right" />);
+      act(() => {
+        toast("Erster");
+        toast("Zweiter", { position: "top-right" });
+      });
+      expect(await screen.findByText("Zweiter")).toBeInTheDocument();
+      expect(stacks()).toHaveLength(1);
+      expect(stackOf("Zweiter")).toBe(stackOf("Erster"));
+    });
+
+    it("keeps positioned toasts in place when the Toaster moves its main stack", async () => {
+      const { rerender } = render(<Toaster />);
+      act(() => {
+        toast("Haupt");
+        toast("Fest", { position: "top-left" });
+      });
+      await screen.findByText("Fest");
+      rerender(<Toaster position="bottom-center" />);
+      expect(stackOf("Haupt")).toHaveAttribute("data-position", "bottom-center");
+      expect(stackOf("Fest")).toHaveAttribute("data-position", "top-left");
+    });
+
+    it("dismisses a positioned toast by id and runs its action", async () => {
+      const user = userEvent.setup();
+      const onUndo = vi.fn();
+      render(<Toaster />);
+      let id = "";
+      act(() => {
+        id = toast("Weg damit", { position: "bottom-left" });
+        toast("Mit Aktion", { position: "top-right", action: { label: "Rückgängig", onClick: onUndo } });
+      });
+      expect(await screen.findByText("Weg damit")).toBeInTheDocument();
+      act(() => toast.dismiss(id));
+      await waitFor(() => expect(screen.queryByText("Weg damit")).not.toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Rückgängig" }));
+      expect(onUndo).toHaveBeenCalledOnce();
+      await waitFor(() => expect(screen.queryByText("Mit Aktion")).not.toBeInTheDocument());
+    });
+
+    it("applies the Toaster's timeout, closeButton and pauseWhenUnfocused to positioned stacks", async () => {
+      render(<Toaster timeout={100} closeButton={false} pauseWhenUnfocused={false} />);
+      const user = userEvent.setup();
+      act(() => {
+        toast("Oben", { position: "top-center" });
+      });
+      const item = await screen.findByRole("dialog");
+      expect(item.querySelector("[data-slot=toast-close]")).toBeNull();
+      await user.hover(item);
+      act(() => {
+        window.dispatchEvent(new FocusEvent("blur"));
+      });
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), { timeout: 2000 });
+    });
+
+    it("toast.promise takes the position from its loading options", async () => {
+      render(<Toaster />);
+      let resolve: (value: string) => void = () => {};
+      const promise = new Promise<string>((r) => {
+        resolve = r;
+      });
+      act(() => {
+        toast.promise(promise, {
+          loading: { title: "Lädt …", position: "top-center" },
+          success: "Fertig",
+          error: "Fehler",
+        });
+      });
+      await screen.findByText("Lädt …");
+      expect(stackOf("Lädt …")).toHaveAttribute("data-position", "top-center");
+      await act(async () => {
+        resolve("ok");
+        await promise;
+      });
+      await screen.findByText("Fertig");
+      expect(stackOf("Fertig")).toHaveAttribute("data-position", "top-center");
+    });
+  });
 });

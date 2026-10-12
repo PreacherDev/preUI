@@ -58,6 +58,7 @@ export * from "./components/Badge";
 export * from "./components/BentoGrid";
 export * from "./components/Card";
 export * from "./components/Collapsible";
+export * from "./components/EditorWindow";
 export * from "./components/Empty";
 export * from "./components/Item";
 export * from "./components/Kanban";
@@ -67,6 +68,7 @@ export * from "./components/Progress";
 export * from "./components/ScrollArea";
 export * from "./components/Separator";
 export * from "./components/Skeleton";
+export * from "./components/Sortable";
 export * from "./components/Spinner";
 export * from "./components/Table";
 

@@ -1,0 +1,14 @@
+{
+  "ui.title": "Shop",
+  "ui.close": "Close",
+  "ui.loading": "Loading ...",
+  "ui.empty": "Nothing for sale right now.",
+  "ui.buy": "Buy",
+  "ui.sold_out": "Sold out",
+  "ui.stock_one": "{count} left",
+  "ui.stock_other": "{count} left",
+  "items.water": "Water bottle",
+  "items.sandwich": "Sandwich",
+  "items.first_aid": "First aid kit",
+  "notify.bought": "You bought {item} for {amount}."
+}

@@ -111,6 +111,93 @@ describe("create-preui-nui", () => {
     expect(result.stdout).toContain("Next steps");
   });
 
+  it("--pre-lib writes a resource wired to pre_lib", () => {
+    const result = run(["pre_demo", "--pre-lib", "--exact"]);
+    expect(result.status, result.stderr).toBe(0);
+
+    const root = join(cwd, "pre_demo");
+    for (const file of [
+      "fxmanifest.lua",
+      "config.lua",
+      "client/main.lua",
+      "locales/en.lua",
+      "locales/de.lua",
+      "locales/fr.lua",
+      "README.md",
+      "DEVELOPMENT.md",
+      "CHANGELOG.md",
+      ".gitignore",
+      ".gitattributes",
+      ".luarc.json",
+      "web/package.json",
+      "web/vite.config.ts",
+      "web/src/App.tsx",
+      "web/src/main.tsx",
+      "web/src/index.css",
+      "web/src/dev-texts.json",
+    ]) {
+      expect(existsSync(join(root, file)), file).toBe(true);
+    }
+    for (const file of ["client.lua", "_gitignore", "_gitattributes", "_luarc.json", "README.en.md"]) {
+      expect(existsSync(join(root, file)), file).toBe(false);
+    }
+
+    const manifest = read("pre_demo", "fxmanifest.lua");
+    expect(manifest).toContain("name('pre_demo')");
+    expect(manifest).toContain("version('1.0.0-beta.1')");
+    expect(manifest).toContain("dependency('pre_lib')");
+    expect(manifest).toContain("pre_lib_min_version('1.5.0')");
+    expect(manifest).toContain("'@pre_lib/init.lua'");
+    expect(manifest).toContain("'@pre_lib/nui_bridge.lua'");
+    expect(manifest).toContain("'client/main.lua'");
+    expect(manifest).toContain("'locales/*.lua'");
+    expect(manifest).not.toContain("preui_theme");
+
+    // web/dist ships with the resource, release output never does
+    const gitignore = read("pre_demo", ".gitignore");
+    expect(gitignore).not.toMatch(/^web\/dist\/?$/m);
+    expect(gitignore).toMatch(/^release\/$/m);
+
+    const pkg = JSON.parse(read("pre_demo", "web", "package.json")) as {
+      version: string;
+      scripts: Record<string, string>;
+      dependencies: Record<string, string>;
+    };
+    const exportTexts = "node ../../pre_lib/tools/export-ui-texts.mjs ../locales/en.lua src/dev-texts.json";
+    expect(pkg.version).toBe("1.0.0-beta.1");
+    expect(pkg.scripts.dev).toBe(`${exportTexts} && vite`);
+    expect(pkg.scripts.prebuild).toBe(`preui check-version && ${exportTexts}`);
+    expect(pkg.dependencies["@pre_scripts/preui"]).toMatch(/^\d+\.\d+\.\d+$/);
+
+    expect(read("pre_demo", "web", "vite.config.ts")).toContain('thirdPartyLicenses({ copyTo: "../THIRD_PARTY_LICENSES.txt" })');
+
+    const app = read("pre_demo", "web", "src", "App.tsx");
+    for (const part of ["<NuiTextsProvider fallback={devTexts}", "<NuiThemeBridge", "useNuiMoney({ locale })", '<NuiToastRelay readyEvent="preLibNotifyReady" action="preLibNotify" />', "colorScheme={false}"]) {
+      expect(app).toContain(part);
+    }
+    expect(read("pre_demo", "web", "src", "index.css")).toContain("--pui-ring-width: 0px !important");
+
+    const readme = read("pre_demo", "README.md");
+    const sections = [...readme.matchAll(/^## (.+)$/gm)].map((match) => match[1]);
+    expect(sections).toEqual(["Requirements", "Installation", "Configuration", "Commands", "Updating", "Licenses"]);
+    expect(readme).toContain("pre_lib 1.5.0 or newer");
+    expect(readme).not.toMatch(/npm|web\/src/);
+    expect(read("pre_demo", "DEVELOPMENT.md")).toContain("npm run build");
+
+    for (const file of ["fxmanifest.lua", "config.lua", "client/main.lua", "README.md", "DEVELOPMENT.md", "web/src/App.tsx", "web/index.html"]) {
+      expect(read("pre_demo", file), file).not.toMatch(/__NAME__|__T_[A-Z0-9_]+__|@preui-(no-)?theme:/);
+    }
+    expect(read("pre_demo", "web", "index.html")).toContain('<html lang="en"');
+    expect(result.stdout).toContain("ensure pre_lib");
+  });
+
+  it("--pre-lib refuses --no-theme", () => {
+    const result = run(["pre_demo", "--pre-lib", "--no-theme"]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("--pre-lib and --no-theme");
+    expect(existsSync(join(cwd, "pre_demo"))).toBe(false);
+  });
+
   it("asks for the name when none is given", () => {
     const result = run([], "asked-name\n");
     expect(result.status, result.stderr).toBe(0);
@@ -182,6 +269,44 @@ describe("template versions", () => {
   });
 });
 
+describe("--pre-lib template texts", () => {
+  const file = (path: string) => readFileSync(fileURLToPath(new URL(`../template-pre-lib/${path}`, import.meta.url)), "utf8");
+
+  /** Flat keys of a locale file (`return { ui = { title = '...' } }` → `ui.title`); enough for these files. */
+  function localeKeys(source: string) {
+    const keys: string[] = [];
+    const path: string[] = [];
+    for (const line of source.split("\n")) {
+      const open = line.match(/^\s*(\w+)\s*=\s*\{\s*$/);
+      const value = line.match(/^\s*(\w+)\s*=\s*['"]/);
+      if (open) path.push(open[1]);
+      else if (value) keys.push([...path, value[1]].join("."));
+      else if (/^\s*\},?\s*$/.test(line)) path.pop();
+    }
+    return keys.sort();
+  }
+
+  const en = localeKeys(file("locales/en.lua"));
+
+  it("de and fr have the same keys as en", () => {
+    expect(en.length).toBeGreaterThan(0);
+    expect(localeKeys(file("locales/de.lua"))).toEqual(en);
+    expect(localeKeys(file("locales/fr.lua"))).toEqual(en);
+  });
+
+  it("dev-texts.json is the export of en.lua", () => {
+    expect(Object.keys(JSON.parse(file("web/src/dev-texts.json"))).sort()).toEqual(en);
+  });
+
+  it("every text App.tsx and client/main.lua use exists", () => {
+    const app = file("web/src/App.tsx");
+    for (const [, key] of app.matchAll(/\bt\("([\w.]+)"/g)) expect(en, key).toContain(key);
+    for (const [, key] of app.matchAll(/\bt\.plural\("([\w.]+)"/g)) expect(en, key).toContain(`${key}_other`);
+    const lua = file("client/main.lua");
+    for (const [, key] of lua.matchAll(/'((?:items|notify|ui)\.[\w.]+)'/g)) expect(en, key).toContain(key);
+  });
+});
+
 describe("helpers", () => {
   it("validateName", () => {
     expect(validateName("my-shop")).toBeUndefined();
@@ -197,6 +322,7 @@ describe("helpers", () => {
       name: "x",
       lang: "en",
       theme: false,
+      preLib: false,
       exact: true,
       force: true,
       help: false,

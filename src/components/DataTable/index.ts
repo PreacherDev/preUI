@@ -9,6 +9,8 @@ export type { DataTableViewOptionsProps } from "./DataTableViewOptions";
 export { DataTableToolbar } from "./DataTableToolbar";
 export type { DataTableToolbarProps } from "./DataTableToolbar";
 export { createSelectColumn } from "./createSelectColumn";
+export { DataTableDragHandle, createDragColumn, defaultDataTableRowMoveLabels } from "./createDragColumn";
+export type { CreateDragColumnOptions, DataTableDragHandleProps, DataTableRowMoveLabels } from "./createDragColumn";
 export type { CreateSelectColumnOptions } from "./createSelectColumn";
 export { createDataTableColumnHelper, dataTableFeatures } from "./features";
 export type {

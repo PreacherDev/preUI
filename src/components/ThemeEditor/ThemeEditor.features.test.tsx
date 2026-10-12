@@ -124,7 +124,73 @@ describe("ThemeEditor features", () => {
     expect(onSavePreset).toHaveBeenCalledWith({
       id: expect.stringMatching(/^server-rot-/),
       label: "Server Rot",
+      removable: true,
       config: { v: 1, palette: { dark: { primary: "#fb7185" } } },
+    });
+  });
+
+  describe("saved presets: rename and delete", () => {
+    const builtIn = { id: "blue", label: "Blau", config: { v: 1 as const, palette: { dark: { primary: "#529dff" } } } };
+    const saved = { id: "mine", label: "Mein Theme", removable: true, config: { v: 1 as const, palette: { dark: { primary: "#fb7185" } } } };
+
+    it("shows the menu only on removable presets, and only with a handler", () => {
+      const { container, unmount } = render(<ThemeEditor presets={[builtIn, saved]} preview={false} />);
+      expect(container.querySelector('[data-slot="theme-editor-preset-actions"]')).toBeNull();
+      unmount();
+      const view = render(<ThemeEditor presets={[builtIn, saved]} preview={false} onDeletePreset={() => {}} />);
+      const menus = view.container.querySelectorAll('[data-slot="theme-editor-preset-actions"]');
+      expect(menus).toHaveLength(1);
+      expect(menus[0]).toHaveAccessibleName("Actions for Mein Theme");
+      expect(menus[0]).toHaveClass("absolute");
+      // Every tile has the same structure; the saved one reserves the button's room in its label row.
+      const tiles = view.container.querySelectorAll('[data-slot="theme-editor-preset-item"]');
+      expect(tiles).toHaveLength(2);
+      expect(tiles[1]).toContainElement(menus[0] as HTMLElement);
+      expect(tiles[1].querySelector("button[data-preset] span.w-5")).not.toBeNull();
+      expect(tiles[0].querySelector("button[data-preset] span.w-5")).toBeNull();
+    });
+
+    it("deletes a preset after the confirmation, and not when cancelled", async () => {
+      const user = userEvent.setup();
+      const onDeletePreset = vi.fn();
+      const onChange = vi.fn();
+      render(<ThemeEditor presets={[builtIn, saved]} preview={false} onDeletePreset={onDeletePreset} onChange={onChange} />);
+      await user.click(screen.getByRole("button", { name: "Actions for Mein Theme" }));
+      expect(screen.queryByRole("menuitem", { name: "Rename" })).toBeNull();
+      await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent('Delete "Mein Theme"?');
+      await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      expect(onDeletePreset).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("button", { name: "Actions for Mein Theme" }));
+      await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
+      await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+      expect(onDeletePreset).toHaveBeenCalledWith(saved);
+      // Opening the menu or deleting doesn't apply the preset.
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("renames a preset with the new name, trimmed", async () => {
+      const user = userEvent.setup();
+      const onRenamePreset = vi.fn();
+      render(
+        <ThemeEditor
+          presets={[saved]}
+          preview={false}
+          onRenamePreset={onRenamePreset}
+          onDeletePreset={() => {}}
+          labels={{ renamePreset: "Umbenennen", presetName: "Name" }}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Actions for Mein Theme" }));
+      await user.click(await screen.findByRole("menuitem", { name: "Umbenennen" }));
+      const input = await screen.findByRole("textbox", { name: "Name" });
+      expect(input).toHaveValue("Mein Theme");
+      await user.clear(input);
+      await user.type(input, "  Server Blau  {Enter}");
+      expect(onRenamePreset).toHaveBeenCalledWith(saved, "Server Blau");
+      await waitFor(() => expect(screen.queryByRole("textbox", { name: "Name" })).not.toBeInTheDocument());
     });
   });
 

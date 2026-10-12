@@ -13,3 +13,5 @@ export type { FormatMoneyOptions, MoneyFormat, NuiMoney, ResolvedMoneyFormat, Us
 export { NuiToastRelay } from "./toast-relay";
 export type { NuiToastMessage, NuiToastRelayProps } from "./toast-relay";
 export { installAltGrFix } from "./altgr-fix";
+export { NuiDragArea } from "./drag-area";
+export type { NuiDragAreaProps, NuiDragMove } from "./drag-area";

@@ -41,6 +41,7 @@ import { cn } from "../../utils/cn";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { defaultEditorPhrases, preuiEditorTheme, preuiHighlightStyle } from "./editor-theme";
 import { altGrGuard } from "./altgr-guard";
+import { controlKeyGuard } from "./control-key-guard";
 import { outsideClickGuard } from "./outside-click-guard";
 
 export interface CodeEditorHandle {
@@ -354,6 +355,8 @@ export const CodeEditor = /* @__PURE__ */ forwardRef<CodeEditorHandle, CodeEdito
         offscreenCursorGuard(viewport, root),
         // AltGr characters ({ [ ] } \ @ … on German layouts arrive as Ctrl+Alt) must type, not run a shortcut.
         altGrGuard,
+        // FiveM NUI reports Ctrl+letter as a control character (Ctrl+A = "\u0001"); repair it so shortcuts still run.
+        controlKeyGuard,
         keymap.of([
           ...closeBracketsKeymap,
           ...defaultKeymap,

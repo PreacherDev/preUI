@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The game shows through the page */
+html,
+body {
+  background: transparent;
+}
+
+/*
+ * No color-scheme on <html>. FiveM shows every NUI page in an iframe, and Chromium paints an opaque canvas behind an
+ * iframe whose color-scheme differs from its parent.
+ */
+
+/*
+ * No focus rings, since Tab would light them up everywhere. The theme sets --pui-ring-width at runtime, hence
+ * !important.
+ */
+:root,
+[data-theme],
+[data-scheme] {
+  --pui-ring-width: 0px !important;
+  --pui-ring-offset: 0px !important;
+}
+
+*:focus,
+*:focus-visible {
+  outline: none;
+}
+
+/* The keyboard position looks like a picked option */
+[data-nav]:focus-visible {
+  border-color: hsl(var(--pui-primary));
+  background-color: hsl(var(--pui-accent));
+}

@@ -1,5 +1,5 @@
 import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
-import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type ReactNode } from "react";
+import { forwardRef, useCallback, useContext, useState, type ComponentPropsWithoutRef, type ComponentRef, type ReactNode } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
 import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
@@ -21,9 +21,29 @@ import {
   type FieldSize,
 } from "../Select/select-styles";
 import { renderListInScrollArea } from "../Select/list-scroll-area";
+import {
+  VirtualBridgeContext,
+  VirtualListBody,
+  useVirtualRoot,
+  useVirtualRow,
+  type VirtualListOptions,
+} from "../Combobox/virtual-list";
 
-/** Free-text input with suggestions. Pass `items` and render `AutocompleteList` with a function child. */
-export const Autocomplete = BaseAutocomplete.Root;
+function AutocompleteRoot(props: Parameters<typeof BaseAutocomplete.Root>[0]) {
+  const { bridge, onItemHighlighted } = useVirtualRoot(props.virtualized, props.onItemHighlighted);
+  return (
+    <VirtualBridgeContext.Provider value={bridge}>
+      <BaseAutocomplete.Root {...props} onItemHighlighted={onItemHighlighted} />
+    </VirtualBridgeContext.Provider>
+  );
+}
+
+/**
+ * Free-text input with suggestions. Pass `items` and render `AutocompleteList` with a function child.
+ * With `virtualized` (Base UI's prop), `AutocompleteList` renders only the visible rows — for long lists; see
+ * `AutocompleteList`'s `itemHeight`.
+ */
+export const Autocomplete = AutocompleteRoot as typeof BaseAutocomplete.Root;
 export const AutocompleteValue = BaseAutocomplete.Value;
 export const AutocompleteCollection = BaseAutocomplete.Collection;
 export const AutocompleteRow = BaseAutocomplete.Row;
@@ -158,15 +178,56 @@ export const AutocompleteContent = /* @__PURE__ */ forwardRef<ComponentRef<typeo
   },
 );
 
-export interface AutocompleteListProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.List> {}
+export interface AutocompleteListProps extends ComponentPropsWithoutRef<typeof BaseAutocomplete.List>, VirtualListOptions {}
 
 /**
  * The scrolling list. It is rendered as the viewport of a preUI ScrollArea (floating thumb, no native
  * scrollbar); `className` applies to that scrolling element, e.g. `max-h-96`.
+ *
+ * On an `<Autocomplete virtualized items={…}>` it renders only the rows in view (plus `overscan`): pass a function
+ * child `(item, index) => <AutocompleteItem …/>`; every row is `itemHeight` px tall (default 32). Grouped `items` get
+ * their group and label rows from the list itself (`renderGroupLabel`, `groupLabelHeight`).
  */
 export const AutocompleteList = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.List>, AutocompleteListProps>(
-  function AutocompleteList({ className, ...props }, ref) {
-    return <BaseAutocomplete.List ref={ref} className={mergeClassName(listClass, className)} render={renderListInScrollArea} {...props} />;
+  function AutocompleteList({ className, children, itemHeight, groupLabelHeight, overscan, renderGroupLabel, ...props }, ref) {
+    const bridge = useContext(VirtualBridgeContext);
+    const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+    const setRef = useCallback(
+      (element: HTMLDivElement | null) => {
+        setScroller(element);
+        if (typeof ref === "function") ref(element);
+        else if (ref) ref.current = element;
+      },
+      [ref],
+    );
+    if (!bridge) {
+      return (
+        <BaseAutocomplete.List ref={ref} className={mergeClassName(listClass, className)} render={renderListInScrollArea} {...props}>
+          {children}
+        </BaseAutocomplete.List>
+      );
+    }
+    return (
+      <BaseAutocomplete.List
+        ref={setRef}
+        data-virtualized=""
+        className={mergeClassName(listClass, className)}
+        render={renderListInScrollArea}
+        {...props}
+      >
+        <VirtualListBody
+          scroller={scroller}
+          bridge={bridge}
+          slot="autocomplete"
+          itemHeight={itemHeight}
+          groupLabelHeight={groupLabelHeight}
+          overscan={overscan}
+          renderGroupLabel={renderGroupLabel}
+        >
+          {children}
+        </VirtualListBody>
+      </BaseAutocomplete.List>
+    );
   },
 );
 
@@ -175,7 +236,19 @@ export interface AutocompleteItemProps extends ComponentPropsWithoutRef<typeof B
 /** Suggestion row. */
 export const AutocompleteItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseAutocomplete.Item>, AutocompleteItemProps>(
   function AutocompleteItem({ className, ...props }, ref) {
-    return <BaseAutocomplete.Item ref={ref} data-slot="autocomplete-item" className={mergeClassName(plainOptionClass, className)} {...props} />;
+    // Inside a virtualized list: index for Base UI, set size / position for screen readers.
+    const row = useVirtualRow();
+    return (
+      <BaseAutocomplete.Item
+        ref={ref}
+        data-slot="autocomplete-item"
+        className={mergeClassName(plainOptionClass, className)}
+        index={row?.index}
+        aria-setsize={row?.setSize}
+        aria-posinset={row?.posInSet}
+        {...props}
+      />
+    );
   },
 );
 

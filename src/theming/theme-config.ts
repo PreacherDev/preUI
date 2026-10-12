@@ -59,6 +59,11 @@ export interface ThemePreset {
   description?: string;
   /** Applied as the new palette + tokens (and scheme / theme when set). */
   config: ThemeConfig;
+  /**
+   * A preset the user saved (`ThemeEditor`'s "Save as preset" sets it): its tile gets a menu to rename it
+   * (`onRenamePreset`) and to delete it after a confirmation (`onDeletePreset`). Built-in presets leave it out.
+   */
+  removable?: boolean;
 }
 
 const schemeDefaults = (scheme: PreuiScheme) => (scheme === "light" ? lightTokens : tokens) as Record<string, string>;

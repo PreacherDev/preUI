@@ -17,6 +17,7 @@ import { cn } from "../../utils/cn";
 import { guardOutsideCaret } from "../../utils/outside-caret-guard";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { proseClassName } from "./prose";
+import { RichTextMediaKit } from "./rich-text-nodes";
 import {
   RichTextEditorToolbar,
   defaultRichTextEditorLabels,
@@ -98,13 +99,22 @@ const editorContentClassName = [
   "[&.ProseMirror_pre]:overflow-x-visible [&.ProseMirror_pre]:!whitespace-pre-wrap [&.ProseMirror_pre_code]:!whitespace-pre-wrap",
   // Node selection (e.g. a clicked divider)
   "[&_.ProseMirror-selectednode]:outline [&_.ProseMirror-selectednode]:outline-1 [&_.ProseMirror-selectednode]:outline-offset-2 [&_.ProseMirror-selectednode]:outline-pui-ring",
+  // Images: like the Markdown renderer's (inline, never wider than the text column).
+  "[&_img]:inline-block [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-pui [&_img]:align-middle",
+  // GFM tables: full width, hairline grid, cells wrap their text. Header cells keep their typed text (no
+  // uppercase eyebrow like `Table`), so what you see is what is stored.
+  "[&_table]:w-full [&_table]:table-fixed [&_table]:border-collapse [&_table]:text-sm",
+  "[&_:is(td,th)]:relative [&_:is(td,th)]:border [&_:is(td,th)]:border-pui-border [&_:is(td,th)]:px-3 [&_:is(td,th)]:py-1.5 [&_:is(td,th)]:align-top [&_:is(td,th)]:text-left",
+  "[&_th]:bg-pui-muted/50 [&_th]:font-semibold",
+  // Cells selected by dragging across them (prosemirror-tables).
+  "[&_.selectedCell]:bg-pui-primary/tint [&_.selectedCell]:caret-transparent",
 ].join(" ");
 
 /**
  * WYSIWYG editor that reads and writes Markdown (Tiptap 3 + @tiptap/markdown).
  *
  * Supports bold, italic, strike, inline code, headings 1–3, lists, quotes, code blocks,
- * dividers and links. Markdown shortcuts work while typing ("## ", "- ", "> ", "```" …).
+ * dividers, links, images and GFM tables. Markdown shortcuts work while typing ("## ", "- ", "> ", "```" …).
  */
 export const RichTextEditor = /* @__PURE__ */ forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
   {
@@ -227,6 +237,8 @@ export const RichTextEditor = /* @__PURE__ */ forwardRef<RichTextEditorHandle, R
         }),
         Placeholder.configure({ placeholder: () => latest.current.placeholder ?? "" }),
         CharacterCount.configure({ limit: characterLimit ?? null }),
+        // Images and GFM tables: Markdown containing them must survive a round trip through the editor.
+        RichTextMediaKit,
         Markdown,
         linkShortcut,
         contentAttributes,

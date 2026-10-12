@@ -14,6 +14,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "../../utils/cn";
+import { autoScroll, createDragPreview, startPointerDrag } from "../../utils/pointer-drag";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Types
@@ -95,9 +96,6 @@ function useKanban(part: string) {
 const COLUMN_SELECTOR = '[data-slot="kanban-column"]';
 const CONTENT_SELECTOR = '[data-slot="kanban-column-content"]';
 const CARD_SELECTOR = '[data-slot="kanban-card"]';
-const DRAG_THRESHOLD = 4;
-const AUTO_SCROLL_EDGE = 40;
-const AUTO_SCROLL_STEP = 12;
 
 function columnsOf(board: HTMLElement): HTMLElement[] {
   return Array.from(board.querySelectorAll<HTMLElement>(COLUMN_SELECTOR)).filter(
@@ -146,47 +144,6 @@ function indexAt(column: HTMLElement, y: number, exclude: string) {
     if (y > rect.top + rect.height / 2) index += 1;
   }
   return index;
-}
-
-function autoScroll(element: HTMLElement | null, x: number, y: number, axis: "x" | "y") {
-  if (!element) return;
-  const rect = element.getBoundingClientRect();
-  if (axis === "y") {
-    if (y < rect.top + AUTO_SCROLL_EDGE) element.scrollTop -= AUTO_SCROLL_STEP;
-    else if (y > rect.bottom - AUTO_SCROLL_EDGE) element.scrollTop += AUTO_SCROLL_STEP;
-  } else if (x < rect.left + AUTO_SCROLL_EDGE) element.scrollLeft -= AUTO_SCROLL_STEP;
-  else if (x > rect.right - AUTO_SCROLL_EDGE) element.scrollLeft += AUTO_SCROLL_STEP;
-}
-
-/** A detached copy of the card that follows the pointer (inherits the scheme/theme of the board). */
-function createPreview(card: HTMLElement, board: HTMLElement) {
-  const rect = card.getBoundingClientRect();
-  const clone = card.cloneNode(true) as HTMLElement;
-  clone.removeAttribute("id");
-  clone.removeAttribute("tabindex");
-  clone.removeAttribute("aria-describedby");
-  clone.removeAttribute("data-dragging");
-  clone.setAttribute("aria-hidden", "true");
-  clone.setAttribute("data-slot", "kanban-drag-preview");
-  const scope = board.closest("[data-scheme]");
-  const wrapper = document.createElement("div");
-  if (scope) wrapper.setAttribute("data-scheme", scope.getAttribute("data-scheme")!);
-  const theme = board.closest("[data-theme]");
-  if (theme) wrapper.setAttribute("data-theme", theme.getAttribute("data-theme")!);
-  Object.assign(wrapper.style, {
-    position: "fixed",
-    left: `${rect.left}px`,
-    top: `${rect.top}px`,
-    width: `${rect.width}px`,
-    pointerEvents: "none",
-    zIndex: "2147483647",
-    margin: "0",
-    willChange: "transform",
-  });
-  clone.style.boxShadow = "var(--pui-shadow-floating)";
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
-  return wrapper;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -283,72 +240,41 @@ export const Kanban = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanProps>(fu
       const card = event.currentTarget;
       const from = locate(cardId);
       if (!from) return;
-      const startX = event.clientX;
-      const startY = event.clientY;
       let preview: HTMLElement | null = null;
-      let active = false;
-
-      const move = (e: PointerEvent) => {
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        if (!active) {
-          if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-          active = true;
-          preview = createPreview(card, board);
-          window.getSelection?.()?.removeAllRanges();
-          setAnnouncement(labelsRef.current.pickedUp(columnName(columnById(board, from.columnId)), from.index + 1));
-        }
-        preview!.style.transform = `translate(${dx}px, ${dy}px)`;
-        const hit = document.elementFromPoint(e.clientX, e.clientY);
-        const column = hit?.closest<HTMLElement>(COLUMN_SELECTOR) ?? null;
-        autoScroll(board, e.clientX, e.clientY, "x");
-        if (!column || !board.contains(column) || column.hasAttribute("data-disabled")) {
-          update({ cardId, from, to: null, indicatorY: null, mode: "pointer" });
-          return;
-        }
-        autoScroll(contentOf(column), e.clientX, e.clientY, "y");
-        const index = indexAt(column, e.clientY, cardId);
-        const current = dragRef.current;
-        const columnId = column.dataset.columnId!;
-        if (current?.to?.columnId === columnId && current.to.index === index) return;
-        update({ cardId, from, to: { columnId, index }, indicatorY: indicatorFor(column, index, cardId), mode: "pointer" });
-      };
-
-      const end = (commit: boolean) => {
-        cleanup();
-        if (!active) return;
-        // A click that follows the drag on this card must not trigger its onClick.
-        draggedClickRef.current = cardId;
-        finish(dragRef.current, commit);
-      };
-      const up = () => end(true);
-      const cancel = () => end(false);
-      const key = (e: KeyboardEvent) => {
-        if (e.key !== "Escape" || !active) return;
-        // Don't let the Escape also close a surrounding dialog.
-        e.stopPropagation();
-        e.preventDefault();
-        end(false);
-      };
-
-      function cleanup() {
-        window.removeEventListener("pointermove", move);
-        window.removeEventListener("pointerup", up);
-        window.removeEventListener("pointercancel", cancel);
-        window.removeEventListener("blur", cancel);
-        window.removeEventListener("keydown", key, true);
-        preview?.remove();
-        preview = null;
-        cleanupRef.current = null;
-      }
 
       cleanupRef.current?.();
-      cleanupRef.current = cleanup;
-      window.addEventListener("pointermove", move);
-      window.addEventListener("pointerup", up);
-      window.addEventListener("pointercancel", cancel);
-      window.addEventListener("blur", cancel);
-      window.addEventListener("keydown", key, true);
+      cleanupRef.current = startPointerDrag(event, {
+        onActivate: () => {
+          preview = createDragPreview(card, board, { slot: "kanban-drag-preview" });
+          setAnnouncement(labelsRef.current.pickedUp(columnName(columnById(board, from.columnId)), from.index + 1));
+        },
+        onMove: (e, dx, dy) => {
+          preview!.style.transform = `translate(${dx}px, ${dy}px)`;
+          const hit = document.elementFromPoint(e.clientX, e.clientY);
+          const column = hit?.closest<HTMLElement>(COLUMN_SELECTOR) ?? null;
+          autoScroll(board, e.clientX, e.clientY, "x");
+          if (!column || !board.contains(column) || column.hasAttribute("data-disabled")) {
+            update({ cardId, from, to: null, indicatorY: null, mode: "pointer" });
+            return;
+          }
+          autoScroll(contentOf(column), e.clientX, e.clientY, "y");
+          const index = indexAt(column, e.clientY, cardId);
+          const current = dragRef.current;
+          const columnId = column.dataset.columnId!;
+          if (current?.to?.columnId === columnId && current.to.index === index) return;
+          update({ cardId, from, to: { columnId, index }, indicatorY: indicatorFor(column, index, cardId), mode: "pointer" });
+        },
+        onEnd: (commit) => {
+          // A click that follows the drag on this card must not trigger its onClick.
+          draggedClickRef.current = cardId;
+          finish(dragRef.current, commit);
+        },
+        onCleanup: () => {
+          preview?.remove();
+          preview = null;
+          cleanupRef.current = null;
+        },
+      });
     },
     [finish, locate, movable, update],
   );

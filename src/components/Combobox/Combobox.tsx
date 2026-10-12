@@ -1,5 +1,5 @@
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
-import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type ReactNode } from "react";
+import { forwardRef, useCallback, useContext, useState, type ComponentPropsWithoutRef, type ComponentRef, type ReactNode } from "react";
 import { useIcon } from "../../icons";
 import { mergeClassName } from "../../utils/cn";
 import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
@@ -22,9 +22,29 @@ import {
   type FieldSize,
 } from "../Select/select-styles";
 import { renderListInScrollArea } from "../Select/list-scroll-area";
+import {
+  VirtualBridgeContext,
+  VirtualListBody,
+  useVirtualRoot,
+  useVirtualRow,
+  type VirtualListOptions,
+} from "./virtual-list";
 
-/** Pass `items` and render `ComboboxList` with a function child to get filtering for free. */
-export const Combobox = BaseCombobox.Root;
+function ComboboxRoot(props: Parameters<typeof BaseCombobox.Root>[0]) {
+  const { bridge, onItemHighlighted } = useVirtualRoot(props.virtualized, props.onItemHighlighted);
+  return (
+    <VirtualBridgeContext.Provider value={bridge}>
+      <BaseCombobox.Root {...props} onItemHighlighted={onItemHighlighted} />
+    </VirtualBridgeContext.Provider>
+  );
+}
+
+/**
+ * Pass `items` and render `ComboboxList` with a function child to get filtering for free.
+ * With `virtualized` (Base UI's prop), `ComboboxList` renders only the visible rows — for long lists
+ * (hundreds of items, pictures); see `ComboboxList`'s `itemHeight`.
+ */
+export const Combobox = ComboboxRoot as typeof BaseCombobox.Root;
 export const ComboboxValue = BaseCombobox.Value;
 export const ComboboxCollection = BaseCombobox.Collection;
 export const ComboboxRow = BaseCombobox.Row;
@@ -240,17 +260,58 @@ export const ComboboxContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof Ba
   },
 );
 
-export interface ComboboxListProps extends ComponentPropsWithoutRef<typeof BaseCombobox.List> {}
+export interface ComboboxListProps extends ComponentPropsWithoutRef<typeof BaseCombobox.List>, VirtualListOptions {}
 
 /**
  * The scrolling list. It is rendered as the viewport of a preUI ScrollArea (floating thumb, no native
  * scrollbar); `className` applies to that scrolling element, e.g. `max-h-96`.
+ *
+ * On a `<Combobox virtualized items={…}>` it renders only the rows in view (plus `overscan`): pass a function child
+ * `(item, index) => <ComboboxItem …/>`; every row is `itemHeight` px tall (default 32). Grouped `items` get their
+ * group and label rows from the list itself (`renderGroupLabel`, `groupLabelHeight`).
  */
 export const ComboboxList = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.List>, ComboboxListProps>(function ComboboxList(
-  { className, ...props },
+  { className, children, itemHeight, groupLabelHeight, overscan, renderGroupLabel, ...props },
   ref,
 ) {
-  return <BaseCombobox.List ref={ref} className={mergeClassName(listClass, className)} render={renderListInScrollArea} {...props} />;
+  const bridge = useContext(VirtualBridgeContext);
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const setRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      setScroller(element);
+      if (typeof ref === "function") ref(element);
+      else if (ref) ref.current = element;
+    },
+    [ref],
+  );
+  if (!bridge) {
+    return (
+      <BaseCombobox.List ref={ref} className={mergeClassName(listClass, className)} render={renderListInScrollArea} {...props}>
+        {children}
+      </BaseCombobox.List>
+    );
+  }
+  return (
+    <BaseCombobox.List
+      ref={setRef}
+      data-virtualized=""
+      className={mergeClassName(listClass, className)}
+      render={renderListInScrollArea}
+      {...props}
+    >
+      <VirtualListBody
+        scroller={scroller}
+        bridge={bridge}
+        slot="combobox"
+        itemHeight={itemHeight}
+        groupLabelHeight={groupLabelHeight}
+        overscan={overscan}
+        renderGroupLabel={renderGroupLabel}
+      >
+        {children}
+      </VirtualListBody>
+    </BaseCombobox.List>
+  );
 });
 
 export interface ComboboxItemProps extends ComponentPropsWithoutRef<typeof BaseCombobox.Item> {}
@@ -261,8 +322,18 @@ export const ComboboxItem = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseC
   ref,
 ) {
   const Check = useIcon("check");
+  // Inside a virtualized list: index for Base UI, set size / position for screen readers (only a window is in the DOM).
+  const row = useVirtualRow();
   return (
-    <BaseCombobox.Item ref={ref} data-slot="combobox-item" className={mergeClassName(optionClass, className)} {...props}>
+    <BaseCombobox.Item
+      ref={ref}
+      data-slot="combobox-item"
+      className={mergeClassName(optionClass, className)}
+      index={row?.index}
+      aria-setsize={row?.setSize}
+      aria-posinset={row?.posInSet}
+      {...props}
+    >
       <span data-slot="combobox-item-text" className="min-w-0 flex-1 truncate">{children}</span>
       <BaseCombobox.ItemIndicator data-slot="combobox-item-indicator" className={optionIndicatorClass}>
         <Check aria-hidden="true" />
