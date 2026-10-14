@@ -170,4 +170,36 @@ describe("Combobox virtualized", () => {
     expect(rendered()[0]).not.toHaveAttribute("aria-setsize");
     expect(screen.getByRole("listbox")).not.toHaveAttribute("data-virtualized");
   });
+
+  it("makes the popup wider than the input with minWidth", async () => {
+    const user = userEvent.setup();
+    render(
+      <Combobox items={blips} virtualized itemToStringLabel={(blip: Blip) => blip.label}>
+        <ComboboxInput aria-label="Symbol" />
+        <ComboboxContent minWidth="22rem">
+          <ComboboxList itemHeight={40}>
+            {(blip: Blip) => (
+              <ComboboxItem key={blip.id} value={blip}>
+                {blip.label}
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>,
+    );
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await screen.findByRole("listbox");
+    const popup = document.querySelector<HTMLElement>("[data-slot=combobox-content]")!;
+    expect(popup.style.minWidth).toBe("min(22rem, var(--available-width))");
+    expect(popup.className).toContain("min-w-[var(--anchor-width)]");
+  });
+
+  it("leaves the popup at the anchor width without minWidth", async () => {
+    const user = userEvent.setup();
+    render(<VirtualExample />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await screen.findByRole("listbox");
+    const popup = document.querySelector<HTMLElement>("[data-slot=combobox-content]")!;
+    expect(popup.style.minWidth).toBe("");
+  });
 });

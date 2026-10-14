@@ -39,12 +39,28 @@ export interface ThemeConfig {
   fonts?: { sans?: ThemeFontSource; mono?: ThemeFontSource };
 }
 
+/** One file of a font family, with the weight (and style) it serves — `src` entries of a `ThemeFontSource`. */
+export interface ThemeFontFile {
+  /** `url(…)` target: a `.woff2` path or URL, e.g. `"https://cfx-nui-my_lib/fonts/poppins-700.woff2"`. */
+  url: string;
+  /** `font-weight` this file serves, e.g. `"700"` or `"100 900"` for a variable file. Default: the family's `weight`. */
+  weight?: string;
+  /** Default: the family's `style`, else `"normal"`. */
+  style?: string;
+}
+
 /** One font family and its files (`url(…)` targets: `.woff2` paths or URLs, e.g. `https://cfx-nui-my_lib/fonts/x.woff2`). */
 export interface ThemeFontSource {
   /** The family name used in `--pui-font-sans`, e.g. `"Rajdhani"`. */
   family: string;
-  /** One file, or several (e.g. per weight: give `weight` as `"400 700"` for a variable font instead). */
-  src: string | string[];
+  /**
+   * The file(s) of the family:
+   * - one path / URL, or a variable file plus `weight` (`"100 900"`),
+   * - `{ url, weight }` entries for one file **per weight** — each becomes its own `@font-face`, so bold text really
+   *   uses the bold file,
+   * - several plain strings: one `@font-face` whose sources are tried in order (a fallback chain, same weight).
+   */
+  src: string | string[] | ThemeFontFile[];
   /** `font-weight` range of the file(s), e.g. `"400 700"`. @default "100 900" */
   weight?: string;
   /** @default "normal" */

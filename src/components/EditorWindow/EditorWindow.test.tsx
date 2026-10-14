@@ -25,6 +25,7 @@ import {
   EditorUndoButton,
   EditorWindow,
 } from "./EditorWindow";
+import { TooltipProvider } from "../Tooltip/Tooltip";
 import { renderToStringAndHydrate } from "../../test-utils/ssr";
 import { useDraftHistory } from "./use-draft-history";
 
@@ -542,5 +543,60 @@ describe("SSR", () => {
     expect(result.html).toContain('data-slot="editor-field-counter"');
     expect(result.errors).toEqual([]);
     result.unmount();
+  });
+});
+
+describe("EditorWindow button tooltips", () => {
+  it("shows the close label as a tooltip and lets it be turned off", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<EditorCloseButton labels={{ close: "Schliessen" }} tooltip={{ delay: 0 }} />);
+    await user.hover(screen.getByRole("button", { name: "Schliessen" }));
+    expect(await screen.findByText("Schliessen")).toHaveAttribute("data-slot", "tooltip-content");
+    unmount();
+
+    render(<EditorCloseButton tooltip={false} />);
+    expect(screen.getByRole("button", { name: "Close" })).not.toHaveAttribute("data-slot", "tooltip-trigger");
+  });
+
+  it("iconOnly action buttons keep their text as label and tooltip", async () => {
+    const user = userEvent.setup();
+    render(
+      <EditorSaveButton icon={<svg data-testid="save-icon" />} iconOnly tooltip={{ delay: 0, side: "bottom" }} />,
+    );
+    const save = screen.getByRole("button", { name: "Save" });
+    expect(save).toHaveAttribute("data-size", "icon-sm");
+    expect(save).toHaveTextContent("");
+    await user.hover(save);
+    const popup = await screen.findByText("Save");
+    expect(popup).toHaveAttribute("data-side", "bottom");
+  });
+
+  it("keeps the text when iconOnly has no icon, and shows no tooltip without iconOnly", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <EditorDiscardButton iconOnly />
+        <EditorDeleteButton icon={<svg />} />
+      </>,
+    );
+    expect(screen.getByRole("button", { name: "Discard" })).toHaveTextContent("Discard");
+    const remove = screen.getByRole("button", { name: "Delete" });
+    await user.hover(remove);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(remove).not.toHaveAttribute("data-slot", "tooltip-trigger");
+  });
+
+  it("undo / redo take the shared delay of a TooltipProvider", async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider delay={0}>
+        <EditorWindow labels={{ redoStep: (step) => `Wiederholen: ${step}` }}>
+          <EditorRedoButton step="Name geändert" />
+        </EditorWindow>
+      </TooltipProvider>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Redo" }));
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(screen.getByText("Wiederholen: Name geändert")).toBeInTheDocument();
   });
 });

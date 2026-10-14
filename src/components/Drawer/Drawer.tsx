@@ -17,6 +17,7 @@ import {
   type ModalContentOptions,
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 export type DrawerProps = BaseDrawer.Root.Props;
 
@@ -128,6 +129,11 @@ export interface DrawerPopupProps extends ComponentPropsWithoutRef<typeof BaseDr
   showCloseButton?: boolean;
   /** Accessible label of the close button. */
   closeLabel?: string;
+  /**
+   * Tooltip of the close (X) button: `false` = none, a string or node = other text, an options object =
+   * text plus `side` / `align` / `delay`. Default: the `closeLabel`.
+   */
+  closeTooltip?: IconTooltip;
 }
 
 /**
@@ -136,7 +142,10 @@ export interface DrawerPopupProps extends ComponentPropsWithoutRef<typeof BaseDr
  * Opening focuses the panel itself (Base UI default); an `initialFocus` target is focused without scrolling.
  */
 export const DrawerPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDrawer.Popup>, DrawerPopupProps>(
-  function DrawerPopup({ className, children, showCloseButton = false, closeLabel = "Close", initialFocus, ...props }, ref) {
+  function DrawerPopup(
+    { className, children, showCloseButton = false, closeLabel = "Close", closeTooltip, initialFocus, ...props },
+    ref,
+  ) {
     const CloseIcon = useIcon("close");
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref, true);
@@ -170,9 +179,11 @@ export const DrawerPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDr
             </NestedModalContext.Provider>
           </BaseDrawer.Content>
           {showCloseButton && (
-            <BaseDrawer.Close aria-label={closeLabel} data-slot="drawer-close" className={cn(modalCloseClassName)}>
-              <CloseIcon className="size-4" aria-hidden="true" />
-            </BaseDrawer.Close>
+            <WithTooltip tooltip={closeTooltip} label={closeLabel}>
+              <BaseDrawer.Close aria-label={closeLabel} data-slot="drawer-close" className={cn(modalCloseClassName)}>
+                <CloseIcon className="size-4" aria-hidden="true" />
+              </BaseDrawer.Close>
+            </WithTooltip>
           )}
         </BaseDrawer.Popup>
       </BaseDrawer.Viewport>

@@ -1,7 +1,8 @@
-export { defaultThemeEditorFonts, defaultThemeEditorLabels, ThemeEditor } from "./ThemeEditor";
+export { defaultThemeEditorLabels, ThemeEditor } from "./ThemeEditor";
+export { defaultThemeEditorFonts, resolveThemeEditorFonts, themeEditorFontSource } from "./theme-editor-fonts";
+export type { ThemeEditorFont, ThemeEditorFontFile } from "./theme-editor-fonts";
 export type {
   ThemeEditorExportFormat,
-  ThemeEditorFont,
   ThemeEditorLabels,
   ThemeEditorProps,
   ThemeEditorSample,

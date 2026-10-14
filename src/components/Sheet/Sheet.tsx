@@ -18,6 +18,7 @@ import {
   type ModalContentOptions,
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 export const Sheet = BaseDialog.Root;
 
@@ -101,6 +102,11 @@ export interface SheetPopupProps extends ComponentPropsWithoutRef<typeof BaseDia
   showCloseButton?: boolean;
   /** Accessible label of the close button. */
   closeLabel?: string;
+  /**
+   * Tooltip of the close (X) button: `false` = none, a string or node = other text, an options object =
+   * text plus `side` / `align` / `delay`. Default: the `closeLabel`.
+   */
+  closeTooltip?: IconTooltip;
 }
 
 /**
@@ -109,7 +115,16 @@ export interface SheetPopupProps extends ComponentPropsWithoutRef<typeof BaseDia
  * Initial focus goes to the first tabbable element without scrolling the page or a parent frame.
  */
 export const SheetPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Popup>, SheetPopupProps>(function SheetPopup(
-  { className, children, side = "right", showCloseButton = true, closeLabel = "Close", initialFocus, ...props },
+  {
+    className,
+    children,
+    side = "right",
+    showCloseButton = true,
+    closeLabel = "Close",
+    closeTooltip,
+    initialFocus,
+    ...props
+  },
   ref,
 ) {
   const CloseIcon = useIcon("close");
@@ -139,9 +154,11 @@ export const SheetPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDia
         </ModalSections>
       </NestedModalContext.Provider>
       {showCloseButton && (
-        <BaseDialog.Close aria-label={closeLabel} data-slot="sheet-close" className={cn(modalCloseClassName)}>
-          <CloseIcon className="size-4" aria-hidden="true" />
-        </BaseDialog.Close>
+        <WithTooltip tooltip={closeTooltip} label={closeLabel}>
+          <BaseDialog.Close aria-label={closeLabel} data-slot="sheet-close" className={cn(modalCloseClassName)}>
+            <CloseIcon className="size-4" aria-hidden="true" />
+          </BaseDialog.Close>
+        </WithTooltip>
       )}
     </BaseDialog.Popup>
   );

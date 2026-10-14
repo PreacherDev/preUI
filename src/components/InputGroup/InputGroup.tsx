@@ -5,6 +5,7 @@ import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type Mous
 import { cn, mergeClassName } from "../../utils/cn";
 import { useHasFallbackRef, type HasFallbackRule } from "../../utils/use-has-fallback";
 import { Button, type ButtonProps } from "../Button/Button";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 export type InputGroupProps = ComponentPropsWithoutRef<"div">;
 
@@ -146,22 +147,29 @@ export type InputGroupButtonSize = NonNullable<VariantProps<typeof inputGroupBut
 
 export interface InputGroupButtonProps extends Omit<ButtonProps, "size"> {
   size?: InputGroupButtonSize;
+  /**
+   * Tooltip for an icon-only button: a string or node = that text, an options object = text plus
+   * `side` / `align` / `delay`, `true` = the `aria-label`. Default: none.
+   */
+  tooltip?: IconTooltip;
 }
 
-/** Compact button for use inside an addon (ghost by default). */
+/** Compact button for use inside an addon (ghost by default). Icon-only ones should get `aria-label` + `tooltip`. */
 export const InputGroupButton = /* @__PURE__ */ forwardRef<HTMLElement, InputGroupButtonProps>(function InputGroupButton(
-  { className, variant = "ghost", size = "xs", ...props },
+  { className, variant = "ghost", size = "xs", tooltip, ...props },
   ref,
 ) {
   return (
-    <Button
-      ref={ref}
-      variant={variant}
-      data-slot="input-group-button"
-      data-size={size}
-      className={mergeClassName(inputGroupButtonVariants({ size }), className)}
-      {...props}
-    />
+    <WithTooltip tooltip={tooltip ?? false} label={props["aria-label"]}>
+      <Button
+        ref={ref}
+        variant={variant}
+        data-slot="input-group-button"
+        data-size={size}
+        className={mergeClassName(inputGroupButtonVariants({ size }), className)}
+        {...props}
+      />
+    </WithTooltip>
   );
 });
 

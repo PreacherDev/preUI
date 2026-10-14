@@ -475,7 +475,13 @@ function sortByConfigOrder<T>(config: ChartConfig, items: T[], getKey: (item: T)
     .map(({ item }) => item);
 }
 
-/** The config key for a tooltip/legend item (see `getPayloadConfigFromPayload`), or `undefined`. */
+/**
+ * The config key for a tooltip/legend item (see `getPayloadConfigFromPayload`), or `undefined`.
+ *
+ * Candidates in order: the item's own field (`item[key]`), the data row behind it (`item.payload[key]`) and `key`
+ * itself — the first one that is a config key wins. The row has to be tried as well because recharts puts its own
+ * `type` (the legend icon, e.g. `"rect"`) on every legend item, which would otherwise shadow a `nameKey="type"`.
+ */
 function getPayloadConfigKey(config: ChartConfig, payload: unknown, key: string): string | undefined {
   if (typeof payload !== "object" || payload === null) return undefined;
 
@@ -484,16 +490,12 @@ function getPayloadConfigKey(config: ChartConfig, payload: unknown, key: string)
       ? (payload.payload as Record<string, unknown>)
       : undefined;
 
-  let configLabelKey = key;
   const direct = (payload as Record<string, unknown>)[key];
-  if (typeof direct === "string") {
-    configLabelKey = direct;
-  } else if (payloadPayload && typeof payloadPayload[key] === "string") {
-    configLabelKey = payloadPayload[key] as string;
+  const candidates = [direct, payloadPayload?.[key], key];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate in config) return candidate;
   }
-
-  if (configLabelKey in config) return configLabelKey;
-  return key in config ? key : undefined;
+  return undefined;
 }
 
 /** Finds the config entry for a tooltip/legend item: via `item[key]`, `item.payload[key]` or `key` itself. */

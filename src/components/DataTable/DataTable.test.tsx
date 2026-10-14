@@ -775,3 +775,219 @@ describe("DataTable select column options", () => {
     expect(selectAll()).toHaveAttribute("aria-checked", "true");
   });
 });
+
+describe("DataTable with server data", () => {
+  it("pages manually with a row count and reports the new page", async () => {
+    const user = userEvent.setup();
+    const onPaginationChange = vi.fn();
+    // The server sent the first page only; the footer still knows there are four.
+    render(
+      <DataTable
+        columns={columns}
+        data={bookings.slice(0, 10)}
+        manualPagination
+        rowCount={37}
+        onPaginationChange={onPaginationChange}
+      />,
+    );
+    expect(bodyRows()).toHaveLength(10);
+    expect(screen.getByText("Page 1 of 4")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
+    expect(onPaginationChange).toHaveBeenLastCalledWith({ pageIndex: 1, pageSize: 10 });
+    expect(screen.getByText("Page 2 of 4")).toBeInTheDocument();
+  });
+
+  it("takes pageCount over rowCount and keeps the page controlled", async () => {
+    const user = userEvent.setup();
+    const onPaginationChange = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={bookings.slice(0, 5)}
+        manualPagination
+        pageCount={9}
+        paginationState={{ pageIndex: 2, pageSize: 5 }}
+        onPaginationChange={onPaginationChange}
+      />,
+    );
+    expect(screen.getByText("Page 3 of 9")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Go to last page" }));
+    expect(onPaginationChange).toHaveBeenLastCalledWith({ pageIndex: 8, pageSize: 5 });
+    // Controlled: the page only changes when the prop does.
+    expect(screen.getByText("Page 3 of 9")).toBeInTheDocument();
+  });
+
+  it("leaves the row order to the server with manualSorting", async () => {
+    const user = userEvent.setup();
+    const onSortingChange = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={bookings.slice(0, 3)}
+        manualSorting
+        sorting={[{ id: "amount", desc: true }]}
+        onSortingChange={onSortingChange}
+      />,
+    );
+    const header = screen.getByRole("columnheader", { name: "Betrag" });
+    expect(header).toHaveAttribute("aria-sort", "descending");
+    // Rows stay in the order the server sent them.
+    expect(firstCellTexts()).toEqual(["Tanken 1", "Lieferung 2", "Tanken 3"]);
+
+    await user.click(within(header).getByRole("button", { name: "Betrag" }));
+    expect(onSortingChange).toHaveBeenLastCalledWith([{ id: "amount", desc: false }]);
+    expect(firstCellTexts()).toEqual(["Tanken 1", "Lieferung 2", "Tanken 3"]);
+  });
+
+  it("reports the sorting without controlling it", async () => {
+    const user = userEvent.setup();
+    const onSortingChange = vi.fn();
+    render(<DataTable columns={columns} data={bookings} onSortingChange={onSortingChange} />);
+    await user.click(within(screen.getByRole("columnheader", { name: "Betrag" })).getByRole("button"));
+    expect(onSortingChange).toHaveBeenLastCalledWith([{ id: "amount", desc: false }]);
+    // Not controlled: the table still sorts itself.
+    expect(within(bodyRows()[0]!).getAllByRole("cell")[1]).toHaveTextContent("$100");
+  });
+
+  it("hides the footer and shows every row with pagination={false}", () => {
+    render(<DataTable columns={columns} data={bookings} pagination={false} />);
+    expect(bodyRows()).toHaveLength(25);
+    expect(document.querySelector("[data-slot=data-table-pagination]")).toBeNull();
+  });
+
+  it("shows the footer in auto mode only for more than one page", () => {
+    const { unmount } = render(<DataTable columns={columns} data={bookings.slice(0, 7)} pagination="auto" />);
+    expect(document.querySelector("[data-slot=data-table-pagination]")).toBeNull();
+    expect(bodyRows()).toHaveLength(7);
+    unmount();
+
+    render(<DataTable columns={columns} data={bookings} pagination="auto" />);
+    expect(document.querySelector("[data-slot=data-table-pagination]")).not.toBeNull();
+    expect(bodyRows()).toHaveLength(10);
+  });
+
+  it("controls the toolbar search from outside", async () => {
+    const user = userEvent.setup();
+    const onFilterValueChange = vi.fn();
+    function Example() {
+      const [value, setValue] = useState("");
+      return (
+        <>
+          <Button
+            onClick={() => {
+              setValue("");
+              onFilterValueChange("");
+            }}
+          >
+            Zurücksetzen
+          </Button>
+          <DataTable
+            columns={columns}
+            data={bookings}
+            filterColumn="description"
+            filterPlaceholder="Suchen…"
+            filterValue={value}
+            onFilterValueChange={(next) => {
+              setValue(next);
+              onFilterValueChange(next);
+            }}
+          />
+        </>
+      );
+    }
+    render(<Example />);
+    const search = screen.getByRole("searchbox", { name: "Suchen…" });
+    await user.type(search, "tanken 2");
+    expect(onFilterValueChange).toHaveBeenLastCalledWith("tanken 2");
+    expect(search).toHaveValue("tanken 2");
+    expect(firstCellTexts()).toEqual(["Tanken 21", "Tanken 23", "Tanken 25"]);
+
+    await user.click(screen.getByRole("button", { name: "Zurücksetzen" }));
+    expect(search).toHaveValue("");
+    expect(bodyRows()).toHaveLength(10);
+  });
+
+  it("filters from a controlled filterValue alone", () => {
+    render(
+      <DataTable columns={columns} data={bookings} filterColumn="description" filterValue="lieferung 1" />,
+    );
+    expect(firstCellTexts()).toEqual(["Lieferung 10", "Lieferung 12", "Lieferung 14", "Lieferung 16", "Lieferung 18"]);
+    expect(screen.getByRole("searchbox")).toHaveValue("lieferung 1");
+  });
+
+  it("reports the search without controlling it", async () => {
+    const user = userEvent.setup();
+    const onFilterValueChange = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={bookings}
+        filterColumn="description"
+        onFilterValueChange={onFilterValueChange}
+      />,
+    );
+    await user.type(screen.getByRole("searchbox"), "tanken 25");
+    expect(onFilterValueChange).toHaveBeenLastCalledWith("tanken 25");
+    expect(firstCellTexts()).toEqual(["Tanken 25"]);
+  });
+
+  it("moves rows across the whole list without paging", async () => {
+    const onRowMove = vi.fn();
+    function Example() {
+      const [data, setData] = useState(bookings.slice(0, 12));
+      return (
+        <DataTable
+          columns={columns}
+          data={data}
+          getRowId={(row) => row.id}
+          pagination={false}
+          onRowMove={(from, to) => {
+            onRowMove(from, to);
+            setData((current) => moveItem(current, from, to));
+          }}
+        />
+      );
+    }
+    render(<Example />);
+    const handles = screen.getAllByRole("button", { name: "Drag to reorder" });
+    expect(handles).toHaveLength(12);
+    // Keyboard move: the first row walks down to the last one, which lives on page 2 with the default page size.
+    handles[0]!.focus();
+    await userEvent.keyboard(" ");
+    for (let i = 0; i < 11; i += 1) await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+    expect(onRowMove).toHaveBeenLastCalledWith(0, 11);
+    // Cell 0 is the drag handle column, cell 1 the description.
+    expect(within(bodyRows()[11]!).getAllByRole("cell")[1]).toHaveTextContent("Tanken 1");
+  });
+});
+
+describe("DataTablePagination tooltips", () => {
+  it("shows the page-button labels as tooltips", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataTable
+        columns={columns}
+        data={bookings}
+        pageSize={5}
+        paginationProps={{ nextPageLabel: "Naechste Seite", pageTooltip: { delay: 0, side: "top" } }}
+      />,
+    );
+    await user.hover(screen.getByRole("button", { name: "Naechste Seite" }));
+    const popup = await screen.findByText("Naechste Seite");
+    expect(popup).toHaveAttribute("data-slot", "tooltip-content");
+    expect(popup).toHaveAttribute("data-side", "top");
+  });
+
+  it("can be turned off and still pages", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataTable columns={columns} data={bookings} pageSize={5} paginationProps={{ pageTooltip: false }} />,
+    );
+    const next = screen.getByRole("button", { name: "Go to next page" });
+    expect(next).not.toHaveAttribute("data-slot", "tooltip-trigger");
+    await user.click(next);
+    expect(screen.getByText("Page 2 of 5")).toBeInTheDocument();
+  });
+});

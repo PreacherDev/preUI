@@ -2,6 +2,7 @@ import { Toggle as BaseToggle } from "@base-ui/react/toggle";
 import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
 import { mergeClassName } from "../../utils/cn";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 /**
  * Classes for a two-state button.
@@ -56,22 +57,32 @@ export type ToggleSize = NonNullable<ToggleVariantProps["size"]>;
 export interface ToggleProps extends ComponentPropsWithoutRef<typeof BaseToggle> {
   variant?: ToggleVariant;
   size?: ToggleSize;
+  /**
+   * Tooltip for an icon-only toggle: a string or node = that text, an options object = text plus
+   * `side` / `align` / `delay`, `true` = the `aria-label`. Default: none.
+   */
+  tooltip?: IconTooltip;
 }
 
-/** Two-state button (`pressed` / `defaultPressed` / `onPressedChange`). Give icon-only toggles an `aria-label`. */
+/**
+ * Two-state button (`pressed` / `defaultPressed` / `onPressedChange`). Give icon-only toggles an `aria-label`,
+ * and `tooltip` (or `tooltip={true}` for the `aria-label`) so sighted users can read it too.
+ */
 export const Toggle = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToggle>, ToggleProps>(function Toggle(
-  { className, variant, size, type = "button", ...props },
+  { className, variant, size, tooltip, type = "button", ...props },
   ref,
 ) {
   return (
-    <BaseToggle
-      ref={ref}
-      type={type}
-      data-slot="toggle"
-      data-variant={variant ?? "default"}
-      data-size={size ?? "default"}
-      className={mergeClassName(toggleVariants({ variant, size }), className)}
-      {...props}
-    />
+    <WithTooltip tooltip={tooltip ?? false} label={props["aria-label"]}>
+      <BaseToggle
+        ref={ref}
+        type={type}
+        data-slot="toggle"
+        data-variant={variant ?? "default"}
+        data-size={size ?? "default"}
+        className={mergeClassName(toggleVariants({ variant, size }), className)}
+        {...props}
+      />
+    </WithTooltip>
   );
 });

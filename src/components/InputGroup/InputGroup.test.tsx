@@ -177,3 +177,18 @@ describe("InputGroup :has() fallback (Chromium < 105)", () => {
     }
   });
 });
+
+describe("InputGroupButton tooltip", () => {
+  it("has none by default and shows the aria-label when asked", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<InputGroupButton aria-label="Leeren" />);
+    await user.hover(screen.getByRole("button", { name: "Leeren" }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole("button", { name: "Leeren" })).not.toHaveAttribute("data-slot", "tooltip-trigger");
+    unmount();
+
+    render(<InputGroupButton aria-label="Leeren" tooltip={{ delay: 0 }} />);
+    await user.hover(screen.getByRole("button", { name: "Leeren" }));
+    expect(await screen.findByText("Leeren")).toHaveAttribute("data-slot", "tooltip-content");
+  });
+});

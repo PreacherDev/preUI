@@ -441,6 +441,25 @@ describe("ChartLegendContent", () => {
     expect(Array.from(root.children, (item) => item.textContent)).toEqual(["Lebensmittel", "Baustoffe", "sonstiges"]);
   });
 
+  it('resolves nameKey="type" from the data row, not from recharts\' own legend type', () => {
+    const pieConfig = {
+      atm: { label: "ATM", color: "red" },
+      transfer: { label: "Transfer", color: "blue" },
+    } satisfies ChartConfig;
+    // recharts puts its icon shape on every legend item as `type`, which must not shadow the data field.
+    const piePayload = [
+      { value: "transfer", color: "blue", type: "rect" as const, payload: { type: "transfer", expense: 3 } },
+      { value: "atm", color: "red", type: "rect" as const, payload: { type: "atm", expense: 5 } },
+    ];
+    render(
+      <WithConfig chartConfig={pieConfig}>
+        <ChartLegendContent payload={piePayload} nameKey="type" />
+      </WithConfig>,
+    );
+    const root = screen.getByText("ATM").parentElement!;
+    expect(Array.from(root.children, (item) => item.textContent)).toEqual(["ATM", "Transfer"]);
+  });
+
   it("spaces itself below the chart when verticalAlign is top", () => {
     render(
       <WithConfig>

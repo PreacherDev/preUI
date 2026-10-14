@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { licenseFileName, packageRootOf, renderGroupedLicenses, renderThirdPartyLicenses, thirdPartyLicenses } from "./vite";
+import { licenseFileName, packageRootOf, renderGroupedLicenses, renderThirdPartyLicenses, thirdPartyLicenses, vendoredLicenses } from "./vite";
 
 describe("thirdPartyLicenses", () => {
   it("finds the package root of a module id", () => {
@@ -96,6 +96,42 @@ describe("thirdPartyLicenses", () => {
     expect(text).toContain(["a 2.0.0", "  Copyright (c) Al", "b 1.0.0", "  Copyright (c) Bea"].join("\n"));
     expect(text.indexOf("\nMIT\n")).toBeLessThan(text.indexOf("\nISC\n")); // bigger groups first
     expect(text).toContain(["d 4.0.0", "  NOTICE:", "  NOTICE: Dee"].join("\n"));
+  });
+
+  it("reads lib-vendor licenses and takes a manual text for a package that ships none", () => {
+    // A package like victory-vendor: no LICENSE of its own, the vendored code's licenses in lib-vendor/*.
+    const base = new URL("../../../node_modules/.cache/preui-licenses-manual/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    const pkg = `${base}node_modules/vendor-pkg`;
+    mkdirSync(`${pkg}/lib-vendor/d3-array`, { recursive: true });
+    writeFileSync(`${pkg}/package.json`, JSON.stringify({ name: "vendor-pkg", version: "1.2.3", license: "MIT AND ISC" }));
+    writeFileSync(`${pkg}/lib-vendor/d3-array/LICENSE`, "Copyright (c) D3 contributors\nISC terms.");
+    writeFileSync(`${base}manual.txt`, "Victory MIT\nCopyright (c) Formidable");
+
+    expect(vendoredLicenses(pkg)).toContain("Vendored in lib-vendor/d3-array:");
+
+    const run = (options: Parameters<typeof thirdPartyLicenses>[0]) => {
+      const plugin = thirdPartyLicenses({ group: false, ...options });
+      plugin.configResolved({ root: base.replace(/\/$/, "") });
+      const emitted: { fileName: string; source: string }[] = [];
+      plugin.generateBundle.call(
+        { emitFile: (file) => (emitted.push(file), "id") },
+        {},
+        { "index.js": { type: "chunk", moduleIds: [`${pkg}/dist/index.js`] } },
+      );
+      return emitted[0].source;
+    };
+
+    const vendored = run({});
+    expect(vendored).toContain("vendor-pkg@1.2.3 — MIT AND ISC");
+    expect(vendored).toContain("Copyright (c) D3 contributors");
+    expect(vendored).not.toContain("no license file in the package");
+
+    const manual = run({ manual: { "vendor-pkg": "manual.txt" } });
+    expect(manual).toContain("Copyright (c) Formidable");
+    expect(manual).not.toContain("Copyright (c) D3 contributors");
+
+    // The text itself works as well (no such file).
+    expect(run({ manual: { "vendor-pkg": "Inline license text" } })).toContain("Inline license text");
   });
 
   it("finds fonts referenced with url() in CSS, honours include, writes copyTo", () => {

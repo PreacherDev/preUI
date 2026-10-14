@@ -80,6 +80,78 @@ describe("ConfirmDialog", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
+  it("tells the cancel reasons apart", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    function Example() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Öffnen
+          </button>
+          <ConfirmDialog open={open} onOpenChange={setOpen} title="Sicher?" onCancel={onCancel} />
+        </>
+      );
+    }
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Öffnen" }));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(onCancel).toHaveBeenLastCalledWith("button"));
+
+    await user.click(screen.getByRole("button", { name: "Öffnen" }));
+    await screen.findByRole("alertdialog");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(onCancel).toHaveBeenLastCalledWith("escape"));
+  });
+
+  it("disables the confirming button with confirmDisabled and spins with confirmLoading", async () => {
+    const onConfirm = vi.fn();
+    const { rerender } = render(<ConfirmDialog defaultOpen title="Titel" confirmDisabled onConfirm={onConfirm} />);
+    const confirm = await screen.findByRole("button", { name: "Confirm" });
+    expect(confirm).toBeDisabled();
+    await userEvent.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+
+    rerender(<ConfirmDialog defaultOpen title="Titel" confirmLoading onConfirm={onConfirm} />);
+    const loading = screen.getByRole("button", { name: "Confirm" });
+    expect(loading).toBeDisabled();
+    expect(loading).toHaveAttribute("data-loading", "true");
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  });
+
+  it("stays open with a spinner while onConfirm's promise runs and closes when it resolves", async () => {
+    const user = userEvent.setup();
+    let resolve: (value: boolean) => void = () => {};
+    const onConfirm = vi.fn(() => new Promise<boolean>((done) => (resolve = done)));
+    const onCancel = vi.fn();
+    render(<ConfirmDialog defaultOpen title="Speichern?" onConfirm={onConfirm} onCancel={onCancel} />);
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-loading", "true"));
+    resolve(true);
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dialog open when onConfirm resolves false", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn(() => Promise.resolve(false));
+    render(<ConfirmDialog defaultOpen title="Speichern?" onConfirm={onConfirm} />);
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirm" })).not.toHaveAttribute("data-loading"));
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("keeps the dialog open when onConfirm returns false", async () => {
+    const user = userEvent.setup();
+    render(<ConfirmDialog defaultOpen title="Speichern?" onConfirm={() => false} />);
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+
   it("passes contentProps to the surface", async () => {
     render(<ConfirmDialog defaultOpen title="Titel" contentProps={{ className: "max-w-sm", "data-testid": "surface" } as never} />);
     expect(await screen.findByTestId("surface")).toHaveClass("max-w-sm");

@@ -4,6 +4,7 @@
 // Actions
 export * from "./components/Button";
 export * from "./components/ButtonGroup";
+export * from "./components/IconButton";
 export * from "./components/Toggle";
 export * from "./components/ToggleGroup";
 export * from "./components/Toolbar";
@@ -51,6 +52,7 @@ export * from "./components/Tooltip";
 
 // Display & layout
 export * from "./components/Accordion";
+export * from "./components/ActionReason";
 export * from "./components/Alert";
 export * from "./components/AspectRatio";
 export * from "./components/Avatar";
@@ -70,6 +72,7 @@ export * from "./components/Separator";
 export * from "./components/Skeleton";
 export * from "./components/Sortable";
 export * from "./components/Spinner";
+export * from "./components/StatTile";
 export * from "./components/Table";
 
 // Game UI

@@ -10,6 +10,7 @@ export {
   worstTintContrast,
 } from "./contrast";
 export type { ContrastLevel, TokenContrastResult } from "./contrast";
+export { CHART_COLOR_COUNT, chartColor, chartColors } from "./chart-colors";
 export { deriveTokens } from "./derive";
 export type { DeriveTokensBase } from "./derive";
 export { runtimeTokenSelectors, toHslChannels } from "./token-css";
@@ -22,5 +23,5 @@ export {
   resolveThemePalette,
   THEME_CONFIG_VERSION,
 } from "./theme-config";
-export type { ThemeConfig, ThemeFontSource, ThemePalette, ThemePreset } from "./theme-config";
+export type { ThemeConfig, ThemeFontFile, ThemeFontSource, ThemePalette, ThemePreset } from "./theme-config";
 export { loadThemeFont, loadThemeFonts } from "./theme-fonts";

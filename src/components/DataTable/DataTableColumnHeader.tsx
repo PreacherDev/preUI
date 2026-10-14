@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../DropdownMenu/DropdownMenu";
+import { sortHeadButtonClass } from "../Table/TableSortHead";
 import { DataTableRowMoveContext } from "./createDragColumn";
 import type { DataTableColumn } from "./features";
 
@@ -29,9 +30,9 @@ export interface DataTableColumnHeaderProps<TData extends RowData, TValue = unkn
   clearSortLabel?: string;
 }
 
-// Ghost button in the header's eyebrow type, pulled out by its padding so the text lines up with the cells.
-const headerButtonClass =
-  "h-7 gap-1.5 px-2 text-pui-eyebrow font-semibold uppercase data-[sorted]:text-pui-foreground [&_svg]:size-3.5";
+// Ghost button in the header's eyebrow type, pulled out by its padding so the text lines up with the cells
+// (shared with `TableSortHead`, the same header for the plain `Table`).
+const headerButtonClass = sortHeadButtonClass;
 
 /**
  * Sortable column header. Renders the plain title when the column can't be sorted; honours

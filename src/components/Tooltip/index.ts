@@ -1,3 +1,5 @@
+export { WithTooltip } from "./IconTooltip";
+export type { IconTooltip, IconTooltipOptions, WithTooltipProps } from "./IconTooltip";
 export {
   Tooltip,
   TooltipContent,

@@ -251,3 +251,13 @@ describe("nested modals in a drawer", () => {
     await waitFor(() => expect(drawer).not.toHaveAttribute("data-nested-dialog-open"));
   });
 });
+
+describe("DrawerPopup close tooltip", () => {
+  it("shows the closeLabel as a tooltip on the close X", async () => {
+    const user = userEvent.setup();
+    render(<Example showCloseButton closeLabel="Schliessen" closeTooltip={{ delay: 0 }} />);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    await user.hover(await screen.findByRole("button", { name: "Schliessen" }));
+    expect(await screen.findByText("Schliessen")).toHaveAttribute("data-slot", "tooltip-content");
+  });
+});

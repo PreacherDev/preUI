@@ -23,6 +23,7 @@ import { useInitialFocusWithoutScroll } from "../../utils/modal-focus";
 import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
 import { useScrollTabStop } from "../../utils/scroll-tab-stop";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 /** Shared overlay styles (also used by AlertDialog and Sheet). */
 export const modalOverlayClassName =
@@ -276,6 +277,11 @@ export interface DialogPopupProps extends ComponentPropsWithoutRef<typeof BaseDi
   showCloseButton?: boolean;
   /** Accessible label of the close button. */
   closeLabel?: string;
+  /**
+   * Tooltip of the close (X) button: `false` = none, a string or node = other text, an options object =
+   * text plus `side` / `align` / `delay`. Default: the `closeLabel`.
+   */
+  closeTooltip?: IconTooltip;
 }
 
 /**
@@ -285,7 +291,10 @@ export interface DialogPopupProps extends ComponentPropsWithoutRef<typeof BaseDi
  * (as in Base UI) but never scrolls the page or a parent frame; `initialFocus` / `finalFocus` pass through.
  */
 export const DialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Popup>, DialogPopupProps>(
-  function DialogPopup({ className, children, showCloseButton = true, closeLabel = "Close", initialFocus, ...props }, ref) {
+  function DialogPopup(
+    { className, children, showCloseButton = true, closeLabel = "Close", closeTooltip, initialFocus, ...props },
+    ref,
+  ) {
     const CloseIcon = useIcon("close");
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref);
@@ -308,9 +317,11 @@ export const DialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDi
           </ModalSections>
         </NestedModalContext.Provider>
         {showCloseButton && (
-          <BaseDialog.Close aria-label={closeLabel} data-slot="dialog-close" className={cn(modalCloseClassName)}>
-            <CloseIcon className="size-4" aria-hidden="true" />
-          </BaseDialog.Close>
+          <WithTooltip tooltip={closeTooltip} label={closeLabel}>
+            <BaseDialog.Close aria-label={closeLabel} data-slot="dialog-close" className={cn(modalCloseClassName)}>
+              <CloseIcon className="size-4" aria-hidden="true" />
+            </BaseDialog.Close>
+          </WithTooltip>
         )}
       </BaseDialog.Popup>
     );

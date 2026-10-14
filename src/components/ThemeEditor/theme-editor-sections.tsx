@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Slider, SliderLabel, SliderValue } from "../Slider/Slider";
 import { Textarea } from "../Textarea/Textarea";
 import type { SchemePreference } from "../Theme/theme-script";
-import type { ThemeEditorFont, ThemeEditorLabels } from "./ThemeEditor";
+import type { ThemeEditorLabels } from "./ThemeEditor";
+import { themeEditorFontSource, type ThemeEditorFont } from "./theme-editor-fonts";
 import {
   getSharedToken,
   getStyleToken,
@@ -31,11 +32,6 @@ const eyebrow = "text-pui-eyebrow font-semibold uppercase text-pui-muted-foregro
 const DEFAULT_FONT = "__preui-default-font__";
 
 type Update = (recipe: (current: ThemeConfig) => ThemeConfig) => void;
-
-/** First family of a `font-family` value: `'"Rajdhani", sans-serif'` → `Rajdhani`. */
-export function firstFontFamily(value: string): string {
-  return (value.split(",")[0] ?? "").trim().replace(/^["']|["']$/g, "");
-}
 
 // ------------------------------------------------------------------------------------------------
 // Style
@@ -164,7 +160,13 @@ export function FontSection({
   const id = useId();
   const font = getSharedToken(config, "font-sans");
   const items = useMemo(() => {
-    const list = [{ value: DEFAULT_FONT, label: labels.fontDefault }, ...fonts.map((item) => ({ value: item.value, label: item.label }))];
+    const defaultValue = (tokens as Record<string, string>)["--pui-font-sans"];
+    const list = [{ value: DEFAULT_FONT, label: labels.fontDefault }];
+    for (const item of fonts) {
+      // The token default (Inter) is already the first option, and no value may appear twice in the Select.
+      if (item.value === defaultValue || list.some((entry) => entry.value === item.value)) continue;
+      list.push({ value: item.value, label: item.label });
+    }
     if (font && !fonts.some((item) => item.value === font)) list.push({ value: font, label: labels.fontCustom });
     return list;
   }, [fonts, font, labels.fontDefault, labels.fontCustom]);
@@ -179,9 +181,7 @@ export function FontSection({
       const picked = !value || value === DEFAULT_FONT ? undefined : fonts.find((item) => item.value === value);
       let next = setSharedToken(current, "font-sans", !value || value === DEFAULT_FONT ? undefined : value);
       const { sans: _old, ...otherFonts } = next.fonts ?? {};
-      const sans = picked?.src
-        ? { family: picked.family ?? firstFontFamily(picked.value), src: picked.src, ...(picked.weight && { weight: picked.weight }) }
-        : undefined;
+      const sans = picked ? themeEditorFontSource(picked) : undefined;
       const fontsField = sans ? { ...otherFonts, sans } : otherFonts;
       next = { ...next, fonts: Object.keys(fontsField).length > 0 ? fontsField : undefined };
       if (!next.fonts) delete next.fonts;
@@ -213,7 +213,8 @@ export function FontSection({
 function FontOption({ item, fonts }: { item: { value: string; label: string }; fonts: readonly ThemeEditorFont[] }) {
   const source = fonts.find((font) => font.value === item.value);
   useEffect(() => {
-    if (source?.src) void loadThemeFont({ family: source.family ?? firstFontFamily(source.value), src: source.src, weight: source.weight });
+    const loadable = source && themeEditorFontSource(source);
+    if (loadable) void loadThemeFont(loadable);
   }, [source]);
   return <span style={item.value === DEFAULT_FONT ? undefined : { fontFamily: item.value }}>{item.label}</span>;
 }

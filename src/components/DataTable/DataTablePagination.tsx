@@ -4,6 +4,7 @@ import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
 import { Button } from "../Button/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Select/Select";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 import type { DataTableInstance } from "./features";
 
 export interface DataTablePaginationProps<TData extends RowData> {
@@ -19,6 +20,11 @@ export interface DataTablePaginationProps<TData extends RowData> {
   previousPageLabel?: string;
   nextPageLabel?: string;
   lastPageLabel?: string;
+  /**
+   * Tooltips of the four page buttons, each showing its own label: `false` = none, a string or node = the same text
+   * for all of them, an options object = `side` / `align` / `delay`. Default: the labels.
+   */
+  pageTooltip?: IconTooltip;
   className?: string;
 }
 
@@ -27,6 +33,29 @@ const defaultPageLabel = (page: number, pageCount: number) => `Page ${page} of $
 
 // Round ghost controls inside the pill (handoff: 28px).
 const controlClass = "size-7 rounded-full";
+
+/** One page button of the pill: icon only, so its label is both `aria-label` and tooltip. */
+function PageButton({
+  label,
+  tooltip,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  tooltip?: IconTooltip;
+  disabled: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <WithTooltip tooltip={tooltip} label={label}>
+      <Button variant="ghost" size="icon-sm" className={controlClass} aria-label={label} disabled={disabled} onClick={onClick}>
+        {children}
+      </Button>
+    </WithTooltip>
+  );
+}
 
 /**
  * Footer of a DataTable: selected-rows counter, rows-per-page select and the pill-shaped
@@ -43,6 +72,7 @@ export function DataTablePagination<TData extends RowData>({
   previousPageLabel = "Go to previous page",
   nextPageLabel = "Go to next page",
   lastPageLabel = "Go to last page",
+  pageTooltip,
   className,
 }: DataTablePaginationProps<TData>) {
   const ChevronLeft = useIcon("chevronLeft");
@@ -95,52 +125,44 @@ export function DataTablePagination<TData extends RowData>({
           data-slot="data-table-pagination-nav"
           className="flex items-center gap-1 rounded-full border border-pui-border bg-pui-card p-0.5"
         >
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={controlClass}
-            aria-label={firstPageLabel}
+          <PageButton
+            label={firstPageLabel}
+            tooltip={pageTooltip}
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.firstPage()}
           >
             <ChevronsLeft aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={controlClass}
-            aria-label={previousPageLabel}
+          </PageButton>
+          <PageButton
+            label={previousPageLabel}
+            tooltip={pageTooltip}
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
           >
             <ChevronLeft aria-hidden="true" />
-          </Button>
+          </PageButton>
           <span
             data-slot="data-table-pagination-page"
             className="whitespace-nowrap px-2 font-medium tabular-nums text-pui-foreground"
           >
             {pageLabel(pageIndex + 1, pageCount)}
           </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={controlClass}
-            aria-label={nextPageLabel}
+          <PageButton
+            label={nextPageLabel}
+            tooltip={pageTooltip}
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
           >
             <ChevronRight aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={controlClass}
-            aria-label={lastPageLabel}
+          </PageButton>
+          <PageButton
+            label={lastPageLabel}
+            tooltip={pageTooltip}
             disabled={!table.getCanNextPage()}
             onClick={() => table.lastPage()}
           >
             <ChevronsRight aria-hidden="true" />
-          </Button>
+          </PageButton>
         </div>
       </div>
     </div>

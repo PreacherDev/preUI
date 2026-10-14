@@ -8,6 +8,8 @@ export {
   TableCell,
   TableCaption,
 } from "./Table";
+export { TableSortHead } from "./TableSortHead";
+export type { TableSortHeadProps, TableSortDirection } from "./TableSortHead";
 export type {
   TableProps,
   TableReserveTrack,

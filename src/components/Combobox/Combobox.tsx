@@ -232,14 +232,24 @@ export interface ComboboxContentProps extends ComponentPropsWithoutRef<typeof Ba
   positionerProps?: Omit<PositionerProps, "side" | "align" | "sideOffset" | "alignOffset">;
   /** Element the portal renders into (Base UI Portal `container`); defaults to the container of the nearest `PortalContainerProvider`, else `document.body`. */
   container?: BaseCombobox.Portal.Props["container"];
+  /**
+   * Smallest width of the popup as a CSS length. By default the popup is as wide as the field
+   * (`var(--anchor-width)`) and grows with wider options — but in a `virtualized` list the rows are positioned
+   * absolutely and have no content width, so the popup stays exactly as wide as the field and long labels are
+   * cut. Give it a width then, e.g. `minWidth="22rem"` or `minWidth="calc(var(--anchor-width) + 8rem)"`.
+   * The popup never grows past the available space (`var(--available-width)`).
+   */
+  minWidth?: string;
 }
 
 /** Portal + Positioner + Popup in one. Put `ComboboxEmpty` and `ComboboxList` inside. */
 export const ComboboxContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Popup>, ComboboxContentProps>(
   function ComboboxContent(
-    { className, side = "bottom", align = "start", sideOffset = 4, alignOffset = 0, positionerProps, container, ...props },
+    { className, side = "bottom", align = "start", sideOffset = 4, alignOffset = 0, positionerProps, container, minWidth, style, ...props },
     ref,
   ) {
+    // `min()` keeps the popup inside the available space — a min-width would otherwise outrank the max-width.
+    const widthStyle = minWidth ? { minWidth: `min(${minWidth}, var(--available-width))`, ...style } : style;
     return (
       <BaseCombobox.Portal container={usePortalContainer(container)}>
         <PortalContainerScope>
@@ -252,7 +262,13 @@ export const ComboboxContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof Ba
             {...positionerProps}
             className={mergeClassName(listPositionerClass, positionerProps?.className)}
           >
-            <BaseCombobox.Popup ref={ref} data-slot="combobox-content" className={mergeClassName(listPopupClass, className)} {...props} />
+            <BaseCombobox.Popup
+              ref={ref}
+              data-slot="combobox-content"
+              className={mergeClassName(listPopupClass, className)}
+              style={widthStyle}
+              {...props}
+            />
           </BaseCombobox.Positioner>
         </PortalContainerScope>
       </BaseCombobox.Portal>

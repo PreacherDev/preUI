@@ -19,7 +19,7 @@ import { Item, ItemContent, ItemMedia } from "../Item/Item";
 import { Kbd, KbdGroup } from "../Kbd/Kbd";
 import { ScrollArea, type ScrollAreaProps } from "../ScrollArea/ScrollArea";
 import { Textarea } from "../Textarea/Textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../Tooltip/Tooltip";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 import type { DraftHistory } from "./use-draft-history";
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -400,6 +400,11 @@ export interface EditorHistoryButtonProps extends Omit<ButtonProps, "children">,
   step?: string;
   /** Only the icon (the text is the `aria-label`). Undo: `false`, redo: `true` by default. */
   iconOnly?: boolean;
+  /**
+   * Tooltip: `false` = none, a string or node = other text, an options object = text plus
+   * `side` / `align` / `delay`. Default: the step text ("Undo: Name changed") with the shortcut keys.
+   */
+  tooltip?: IconTooltip;
   labels?: Partial<EditorWindowLabels>;
 }
 
@@ -409,6 +414,7 @@ function HistoryButton({
   step: stepProp,
   iconOnly,
   hidden,
+  tooltip,
   labels: ownLabels,
   disabled,
   onClick,
@@ -425,39 +431,40 @@ function HistoryButton({
   const tip = step !== undefined ? (undo ? labels.undoStep(step) : labels.redoStep(step)) : undo ? labels.nothingToUndo : labels.nothingToRedo;
   const keys = undo ? labels.undoKeys : labels.redoKeys;
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            ref={buttonRef}
-            variant="ghost"
-            size={iconOnly ? "icon-sm" : "sm"}
-            leftIcon={iconOnly ? undefined : <Icon aria-hidden="true" />}
-            aria-label={iconOnly ? text : undefined}
-            data-slot={undo ? "editor-undo" : "editor-redo"}
-            disabled={disabled ?? (!available || history?.busy === true)}
-            className={cn(keepSpace(hidden), className)}
-            onClick={(event) => {
-              onClick?.(event);
-              if (!event.defaultPrevented && history) void (undo ? history.undo() : history.redo());
-            }}
-            {...props}
-          >
-            {iconOnly ? <Icon aria-hidden="true" /> : text}
-          </Button>
-        }
-      />
-      <TooltipContent className="flex items-center gap-2">
-        <span>{tip}</span>
-        {keys.length > 0 && (
-          <KbdGroup>
-            {keys.map((key) => (
-              <Kbd key={key}>{key}</Kbd>
-            ))}
-          </KbdGroup>
-        )}
-      </TooltipContent>
-    </Tooltip>
+    <WithTooltip
+      tooltip={tooltip}
+      className="flex items-center gap-2"
+      label={
+        <>
+          <span>{tip}</span>
+          {keys.length > 0 && (
+            <KbdGroup>
+              {keys.map((key) => (
+                <Kbd key={key}>{key}</Kbd>
+              ))}
+            </KbdGroup>
+          )}
+        </>
+      }
+    >
+      <Button
+        ref={buttonRef}
+        variant="ghost"
+        size={iconOnly ? "icon-sm" : "sm"}
+        leftIcon={iconOnly ? undefined : <Icon aria-hidden="true" />}
+        aria-label={iconOnly ? text : undefined}
+        data-slot={undo ? "editor-undo" : "editor-redo"}
+        disabled={disabled ?? (!available || history?.busy === true)}
+        className={cn(keepSpace(hidden), className)}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented && history) void (undo ? history.undo() : history.redo());
+        }}
+        {...props}
+      >
+        {iconOnly ? <Icon aria-hidden="true" /> : text}
+      </Button>
+    </WithTooltip>
   );
 }
 
@@ -480,27 +487,54 @@ export const EditorRedoButton = /* @__PURE__ */ forwardRef<HTMLElement, EditorHi
 export interface EditorActionButtonProps extends ButtonProps, HiddenProp {
   /** Icon before the text (preUI has no save / delete icon; pass your own, e.g. from lucide). */
   icon?: ReactNode;
+  /**
+   * Only the `icon` (the text becomes the `aria-label` and the tooltip); needs an `icon`.
+   * The size changes to the square `icon-sm` unless a `size` is given. @default false
+   */
+  iconOnly?: boolean;
+  /**
+   * Tooltip: `false` = none, a string or node = other text, an options object = text plus
+   * `side` / `align` / `delay`. Default: the button text while `iconOnly`, otherwise none.
+   */
+  tooltip?: IconTooltip;
   labels?: Partial<EditorWindowLabels>;
 }
 
 function actionButton(slot: string, label: "save" | "delete" | "discard", defaults: Pick<ButtonProps, "variant">) {
   return function ActionButton(
-    { hidden, icon, labels: ownLabels, children, className, variant, size = "sm", ...props }: EditorActionButtonProps,
+    {
+      hidden,
+      icon,
+      iconOnly = false,
+      tooltip,
+      labels: ownLabels,
+      children,
+      className,
+      variant,
+      size,
+      ...props
+    }: EditorActionButtonProps,
     ref: Ref<HTMLElement>,
   ) {
     const labels = useEditorLabels(ownLabels);
+    const text = children ?? labels[label];
+    // Without an icon there would be nothing left to see, so the text stays.
+    const onlyIcon = iconOnly && icon != null;
     return (
-      <Button
-        ref={ref}
-        variant={variant ?? defaults.variant}
-        size={size}
-        leftIcon={icon}
-        data-slot={slot}
-        className={cn(keepSpace(hidden), className)}
-        {...props}
-      >
-        {children ?? labels[label]}
-      </Button>
+      <WithTooltip tooltip={tooltip ?? onlyIcon} label={text}>
+        <Button
+          ref={ref}
+          variant={variant ?? defaults.variant}
+          size={size ?? (onlyIcon ? "icon-sm" : "sm")}
+          leftIcon={onlyIcon ? undefined : icon}
+          aria-label={onlyIcon && typeof text === "string" ? text : undefined}
+          data-slot={slot}
+          className={cn(keepSpace(hidden), className)}
+          {...props}
+        >
+          {onlyIcon ? icon : text}
+        </Button>
+      </WithTooltip>
     );
   };
 }
@@ -521,28 +555,38 @@ export const EditorDiscardButton = /* @__PURE__ */ forwardRef<HTMLElement, Edito
 );
 
 export interface EditorCloseButtonProps extends Omit<ButtonProps, "children">, HiddenProp {
+  /**
+   * Tooltip: `false` = none, a string or node = other text, an options object = text plus
+   * `side` / `align` / `delay`. Default: `labels.close`.
+   */
+  tooltip?: IconTooltip;
   labels?: Partial<Pick<EditorWindowLabels, "close">>;
 }
 
-/** The close X of the window (`aria-label` from `labels.close`). Ask first with `history.request(onClose)`. */
+/**
+ * The close X of the window (`aria-label` and tooltip from `labels.close`).
+ * Ask first with `history.request(onClose)`.
+ */
 export const EditorCloseButton = /* @__PURE__ */ forwardRef<HTMLElement, EditorCloseButtonProps>(function EditorCloseButton(
-  { hidden, labels: ownLabels, className, variant = "ghost", size = "icon-sm", ...props },
+  { hidden, tooltip, labels: ownLabels, className, variant = "ghost", size = "icon-sm", ...props },
   ref,
 ) {
   const labels = useEditorLabels(ownLabels);
   const Close = useIcon("close");
   return (
-    <Button
-      ref={ref}
-      variant={variant}
-      size={size}
-      aria-label={labels.close}
-      data-slot="editor-close"
-      className={cn(keepSpace(hidden), className)}
-      {...props}
-    >
-      <Close aria-hidden="true" />
-    </Button>
+    <WithTooltip tooltip={tooltip} label={labels.close}>
+      <Button
+        ref={ref}
+        variant={variant}
+        size={size}
+        aria-label={labels.close}
+        data-slot="editor-close"
+        className={cn(keepSpace(hidden), className)}
+        {...props}
+      >
+        <Close aria-hidden="true" />
+      </Button>
+    </WithTooltip>
   );
 });
 

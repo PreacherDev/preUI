@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ComponentPropsWithoutRef } from "react";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName, type StateClassName } from "../../utils/cn";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 export const numberFieldVariants = /* @__PURE__ */ cva(
   [
@@ -61,6 +62,11 @@ export interface NumberFieldProps extends BaseNumberField.Root.Props {
   decrementLabel?: string;
   /** Accessible label of the plus button. */
   incrementLabel?: string;
+  /**
+   * Tooltips of the -/+ buttons, each showing its own label: `false` = none, a string or node = the same text for
+   * both, an options object = `side` / `align` / `delay`. Default: the labels.
+   */
+  stepperTooltip?: IconTooltip;
   inputClassName?: StateClassName<BaseNumberField.Input.State>;
   /** Extra props for the inner `<input>` (e.g. `aria-label`, `aria-describedby`). */
   inputProps?: Omit<ComponentPropsWithoutRef<typeof BaseNumberField.Input>, "className">;
@@ -79,6 +85,7 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
     placeholder,
     decrementLabel = "Decrease",
     incrementLabel = "Increase",
+    stepperTooltip,
     inputClassName,
     inputProps,
     locale = "en-US",
@@ -101,13 +108,15 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
     >
       <BaseNumberField.Group data-slot="number-field-group" className="flex min-w-0 flex-1 items-stretch">
         {steppers && (
-          <BaseNumberField.Decrement
-            data-slot="number-field-decrement"
-            aria-label={decrementLabel}
-            className={cn(stepperClassName, "border-r border-solid border-pui-input")}
-          >
-            <Minus className="size-3.5" aria-hidden="true" />
-          </BaseNumberField.Decrement>
+          <WithTooltip tooltip={stepperTooltip} label={decrementLabel}>
+            <BaseNumberField.Decrement
+              data-slot="number-field-decrement"
+              aria-label={decrementLabel}
+              className={cn(stepperClassName, "border-r border-solid border-pui-input")}
+            >
+              <Minus className="size-3.5" aria-hidden="true" />
+            </BaseNumberField.Decrement>
+          </WithTooltip>
         )}
         <BaseNumberField.Input
           data-slot="number-field-input"
@@ -123,13 +132,15 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
           )}
         />
         {steppers && (
-          <BaseNumberField.Increment
-            data-slot="number-field-increment"
-            aria-label={incrementLabel}
-            className={cn(stepperClassName, "border-l border-solid border-pui-input")}
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-          </BaseNumberField.Increment>
+          <WithTooltip tooltip={stepperTooltip} label={incrementLabel}>
+            <BaseNumberField.Increment
+              data-slot="number-field-increment"
+              aria-label={incrementLabel}
+              className={cn(stepperClassName, "border-l border-solid border-pui-input")}
+            >
+              <Plus className="size-3.5" aria-hidden="true" />
+            </BaseNumberField.Increment>
+          </WithTooltip>
         )}
       </BaseNumberField.Group>
     </BaseNumberField.Root>

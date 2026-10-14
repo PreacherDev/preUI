@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { checkThemeConfigContrast, type ThemeConfig } from "../../theming/theme-config";
 import { ThemeEditor } from "./ThemeEditor";
+import { defaultThemeEditorFonts } from "./theme-editor-fonts";
 
 const slot = (container: HTMLElement, name: string) => container.querySelector<HTMLElement>(`[data-slot="${name}"]`);
 
@@ -250,6 +251,50 @@ describe("ThemeEditor features", () => {
     expect(onChange).toHaveBeenLastCalledWith({ v: 1, scheme: "dark", palette: {} });
   });
 
+  it("fontSrcBase turns the file names of a font choice into per-weight sources", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const fonts = [
+      {
+        label: "Poppins",
+        value: '"Poppins", system-ui, sans-serif',
+        files: [
+          { file: "poppins-400.woff2", weight: "400" },
+          { file: "poppins-700.woff2", weight: "700" },
+        ],
+      },
+    ];
+    const { unmount } = render(
+      <ThemeEditor onChange={onChange} presets={[]} preview={false} fonts={fonts} fontSrcBase="https://cfx-nui-pre_lib/theme/fonts/" />,
+    );
+    await user.click(screen.getByRole("combobox", { name: "Font" }));
+    await user.click(await screen.findByRole("option", { name: "Poppins" }));
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        fonts: {
+          sans: {
+            family: "Poppins",
+            src: [
+              { url: "https://cfx-nui-pre_lib/theme/fonts/poppins-400.woff2", weight: "400" },
+              { url: "https://cfx-nui-pre_lib/theme/fonts/poppins-700.woff2", weight: "700" },
+            ],
+          },
+        },
+      }),
+    );
+    unmount();
+
+    // Without a base URL the family is still offered, but nothing is loaded and no file is stored.
+    const second = vi.fn();
+    render(<ThemeEditor onChange={second} presets={[]} preview={false} fonts={fonts} />);
+    await user.click(screen.getByRole("combobox", { name: "Font" }));
+    await user.click(await screen.findByRole("option", { name: "Poppins" }));
+    expect(second).toHaveBeenLastCalledWith(
+      expect.objectContaining({ tokens: { shared: { "font-sans": '"Poppins", system-ui, sans-serif' } } }),
+    );
+    expect(second.mock.calls[second.mock.calls.length - 1][0].fonts).toBeUndefined();
+  });
+
   it("the split preview switches between the interface and the game sample", async () => {
     const user = userEvent.setup();
     const { container } = render(<ThemeEditor layout="split" presets={[]} preview={false} />);
@@ -261,12 +306,17 @@ describe("ThemeEditor features", () => {
     expect(within(pane).getByText("Karin Sultan")).toBeInTheDocument();
   });
 
-  it("offers the two shipped fonts by default; fonts={[]} hides the section", async () => {
+  it("offers the curated font list by default; fonts={[]} hides the section", async () => {
     const user = userEvent.setup();
     const { container, unmount } = render(<ThemeEditor presets={[]} preview={false} />);
     await user.click(screen.getByRole("combobox", { name: "Font" }));
     const names = (await screen.findAllByRole("option")).map((option) => option.textContent);
-    expect(names).toEqual(["Inter (default)", "JetBrains Mono"]);
+    // One option per shipped family: Inter is the "default" option, every other entry follows in order.
+    expect(names).toHaveLength(defaultThemeEditorFonts.length);
+    expect(names[0]).toBe("Inter (default)");
+    expect(names.filter((name) => name === "Inter")).toHaveLength(0);
+    expect(names).toContain("JetBrains Mono");
+    expect(names).toContain("Space Mono");
     await user.keyboard("{Escape}");
     unmount();
     const hidden = render(<ThemeEditor presets={[]} preview={false} fonts={[]} />);

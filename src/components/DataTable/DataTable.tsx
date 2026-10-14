@@ -1,8 +1,10 @@
 import {
   functionalUpdate,
   useTable,
+  type ColumnFiltersState,
   type ColumnVisibilityState,
   type OnChangeFn,
+  type PaginationState,
   type Row,
   type RowData,
   type RowSelectionState,
@@ -94,6 +96,14 @@ export interface DataTableProps<TData extends RowData> {
   filterColumn?: string;
   filterPlaceholder?: string;
   /**
+   * Controlled text of the toolbar's search input (filters `filterColumn`). Pass it together with
+   * `onFilterValueChange` to clear the search from outside (a "Reset filters" button) or to run it on the server.
+   * Without it the search is internal state.
+   */
+  filterValue?: string;
+  /** Called with the new search text whenever the user types in the toolbar's search input. */
+  onFilterValueChange?: (value: string) => void;
+  /**
    * Enables row selection: prepends a checkbox column (unless a column with id `"select"` exists — see
    * `createSelectColumn`) and shows the selected-rows counter. A function decides per row.
    */
@@ -107,8 +117,40 @@ export interface DataTableProps<TData extends RowData> {
   /** Rows per page. */
   pageSize?: number;
   pageSizeOptions?: number[];
+  /**
+   * Whether the footer (rows-per-page select, pager, selected-rows counter) is rendered: `true` (default) always,
+   * `"auto"` only while there is more than one page, `false` never — then the table doesn't page at all and shows
+   * every row of `data`. Don't confuse it with `paginationState`, which holds the current page.
+   */
+  pagination?: boolean | "auto";
   /** Labels and options of the footer (see `DataTablePagination`). */
   paginationProps?: Omit<DataTablePaginationProps<TData>, "table" | "pageSizeOptions" | "showSelectedCount">;
+  /**
+   * Server-side paging: `data` already contains the rows of the current page and the table doesn't slice it.
+   * Pass `rowCount` (or `pageCount`) so the footer knows how many pages there are, and `onPaginationChange` to
+   * load the page the user asked for. @default false
+   */
+  manualPagination?: boolean;
+  /** Total number of rows on the server (manual paging); the page count follows from it and the page size. */
+  rowCount?: number;
+  /** Total number of pages on the server (manual paging), `-1` when unknown. Wins over `rowCount`. */
+  pageCount?: number;
+  /**
+   * Controlled page and page size (`{ pageIndex, pageSize }`). Without it the table owns them (`pageSize` seeds
+   * the initial size) and only reports changes through `onPaginationChange`.
+   */
+  paginationState?: PaginationState;
+  /** Called with the new `{ pageIndex, pageSize }` whenever the page or the page size changes. */
+  onPaginationChange?: (pagination: PaginationState) => void;
+  /**
+   * Server-side sorting: `data` already arrives sorted and the table doesn't sort it. Pair it with `sorting` /
+   * `onSortingChange` and sort on the server. @default false
+   */
+  manualSorting?: boolean;
+  /** Controlled sorting state. Without it the table owns it (`initialSorting` seeds it). */
+  sorting?: SortingState;
+  /** Called with the new sorting state whenever a column header changes the sort order. */
+  onSortingChange?: (sorting: SortingState) => void;
   /** Content of the single row shown when no rows match. */
   emptyMessage?: ReactNode;
   /** Extra controls in the toolbar, right of the search input (e.g. a select). */
@@ -162,9 +204,10 @@ export interface DataTableProps<TData extends RowData> {
    * cursor) or the keyboard (Space/Enter, arrows, Escape). Called once per drop with the row's index in `data`
    * before and after the move; apply it with `moveItem(data, from, to)`.
    *
-   * Rows move within the current page only. While the table is sorted or filtered the order on screen isn't the
-   * order of `data`, so the handles are disabled and say why (`rowMoveLabels.blocked`). Use stable row ids
-   * (`getRowId`), otherwise selection and focus stick to positions instead of rows.
+   * Rows move within the current page only — `pagination={false}` (or a page size that holds every row) renders
+   * the whole list, so rows can be moved from the first to the last one. While the table is sorted or filtered the
+   * order on screen isn't the order of `data`, so the handles are disabled and say why (`rowMoveLabels.blocked`).
+   * Use stable row ids (`getRowId`), otherwise selection and focus stick to positions instead of rows.
    */
   onRowMove?: (from: number, to: number) => void;
   /** Texts of the row reorder (partial overrides, English by default). */
@@ -175,22 +218,55 @@ export interface DataTableProps<TData extends RowData> {
 const DEFAULT_MIN_COLUMN_WIDTH = "8rem";
 
 /**
+ * A table state slice the caller may control (`controlled`) or only listen to (`notify`). `active` says whether the
+ * slice is handed to the table as controlled state at all — without `controlled` and `notify` the table keeps
+ * owning it, exactly as before.
+ */
+function useTableSlice<S>(getInitial: () => S, controlled: S | undefined, notify: ((next: S) => void) | undefined) {
+  const [internal, setInternal] = useState(getInitial);
+  const isControlled = controlled !== undefined;
+  const value = isControlled ? controlled : internal;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const onChange: OnChangeFn<S> = (updater) => {
+    const next = functionalUpdate(updater, valueRef.current);
+    valueRef.current = next;
+    if (!isControlled) setInternal(next);
+    notify?.(next);
+  };
+  return { active: isControlled || notify != null, value, onChange };
+}
+
+/**
  * Data table built on TanStack Table v9 and the preUI `Table` parts: optional search toolbar with column
  * visibility, sortable headers (`DataTableColumnHeader`), row selection and client-side pagination.
- * Use `meta: { align: "right" }` on money/number columns.
+ * Use `meta: { align: "right" }` on money/number columns. For data the server pages and sorts, pass
+ * `manualPagination` / `manualSorting` with `rowCount` (or `pageCount`), `onPaginationChange` and
+ * `sorting` / `onSortingChange`.
  */
 export function DataTable<TData extends RowData>({
   columns,
   data,
   filterColumn,
   filterPlaceholder,
+  filterValue,
+  onFilterValueChange,
   enableRowSelection = false,
   onRowSelectionChange,
   enableColumnVisibility = false,
   viewOptionsProps,
   pageSize = 10,
   pageSizeOptions = [10, 20, 30, 40, 50],
+  pagination = true,
   paginationProps,
+  manualPagination = false,
+  rowCount,
+  pageCount,
+  paginationState,
+  onPaginationChange,
+  manualSorting = false,
+  sorting,
+  onSortingChange,
   emptyMessage = "No results.",
   toolbar,
   getRowId,
@@ -240,19 +316,74 @@ export function DataTable<TData extends RowData>({
     }
   };
 
+  // Sorting, paging and the search filter stay the table's own state until the caller controls or watches them
+  // (server-side paging / sorting, a search reset from outside).
+  const sortingSlice = useTableSlice<SortingState>(() => initialSorting ?? [], sorting, onSortingChange);
+  const paginationSlice = useTableSlice<PaginationState>(
+    () => ({ pageIndex: 0, pageSize }),
+    paginationState,
+    onPaginationChange,
+  );
+  const filterColumnFilters = useMemo<ColumnFiltersState>(
+    () => (filterColumn && filterValue ? [{ id: filterColumn, value: filterValue }] : []),
+    [filterColumn, filterValue],
+  );
+  const notifyFilterValue = onFilterValueChange
+    ? (next: ColumnFiltersState) => {
+        const raw = filterColumn ? next.find((filter) => filter.id === filterColumn)?.value : undefined;
+        onFilterValueChange(typeof raw === "string" ? raw : raw == null ? "" : String(raw));
+      }
+    : undefined;
+  const filterSlice = useTableSlice<ColumnFiltersState>(
+    () => [],
+    filterValue !== undefined ? filterColumnFilters : undefined,
+    notifyFilterValue,
+  );
+
+  const controlledState: {
+    rowSelection: RowSelectionState;
+    sorting?: SortingState;
+    pagination?: PaginationState;
+    columnFilters?: ColumnFiltersState;
+  } = { rowSelection };
+  // Keys are added only when the slice is controlled: a key with `undefined` would replace the table's own updater.
+  const changeHandlers: {
+    onSortingChange?: OnChangeFn<SortingState>;
+    onPaginationChange?: OnChangeFn<PaginationState>;
+    onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
+  } = {};
+  if (sortingSlice.active) {
+    controlledState.sorting = sortingSlice.value;
+    changeHandlers.onSortingChange = sortingSlice.onChange;
+  }
+  if (paginationSlice.active) {
+    controlledState.pagination = paginationSlice.value;
+    changeHandlers.onPaginationChange = paginationSlice.onChange;
+  }
+  if (filterSlice.active) {
+    controlledState.columnFilters = filterSlice.value;
+    changeHandlers.onColumnFiltersChange = filterSlice.onChange;
+  }
+
   const table = useTable({
     features: dataTableFeatures,
     columns: tableColumns,
     data,
     getRowId,
     enableRowSelection,
+    manualSorting,
+    // `pagination={false}` means "no paging at all": every row of `data` is rendered.
+    manualPagination: manualPagination || pagination === false,
+    pageCount,
+    rowCount,
     initialState: {
       sorting: initialSorting ?? [],
       columnVisibility: initialColumnVisibility ?? {},
       pagination: { pageIndex: 0, pageSize },
     },
-    state: { rowSelection },
+    state: controlledState,
     onRowSelectionChange: handleRowSelectionChange,
+    ...changeHandlers,
   });
 
   const rows = table.getRowModel().rows;
@@ -291,6 +422,7 @@ export function DataTable<TData extends RowData>({
   const drag = reorderable ? engine.drag : null;
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const showToolbar = filterColumn != null || enableColumnVisibility || toolbar != null;
+  const showPagination = pagination === "auto" ? table.getPageCount() > 1 : pagination !== false;
   const activatable = onRowActivate != null;
   const clickable = activatable || onRowClick != null;
 
@@ -439,13 +571,15 @@ export function DataTable<TData extends RowData>({
               )}
             </TableBody>
           </Table>
-          <DataTablePagination
-            table={table}
-            pageSizeOptions={pageSizeOptions}
-            showSelectedCount={selectable}
-            {...paginationProps}
-            className={cn("shrink-0", paginationProps?.className)}
-          />
+          {showPagination && (
+            <DataTablePagination
+              table={table}
+              pageSizeOptions={pageSizeOptions}
+              showSelectedCount={selectable}
+              {...paginationProps}
+              className={cn("shrink-0", paginationProps?.className)}
+            />
+          )}
         </div>
         {reorderable && (
           <>

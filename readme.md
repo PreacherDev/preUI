@@ -76,19 +76,19 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 
 | Group | Components (`@pre_scripts/preui`) |
 |---|---|
-| Actions | Button, ButtonGroup, Toggle, ToggleGroup, Toolbar |
-| Forms | Checkbox, CheckboxGroup, ColorPicker, Field, Form, Input, InputGroup, InputOTP, Label, NumberField (`steppers={false}` hides -/+), RadioGroup, Slider, Switch, Textarea |
+| Actions | Button, ButtonGroup, IconButton, Toggle, ToggleGroup, Toolbar |
+| Forms | Checkbox, CheckboxGroup, ColorPicker, Field, Form, Input, InputGroup, InputOTP, Label, NumberField (`steppers={false}` hides -/+), RadioGroup (`items`, `orientation`), Slider, Switch, Textarea |
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
-| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SortableList, Spinner, Table |
+| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ActionReason, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SortableList, Spinner, StatTile, Table |
 | Game UI | KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle (see [Game UI](#game-ui)) |
 
 Components that build on another library have their own entry point, so you only install what you use:
 
 | Import from | Components | Install |
 |---|---|---|
-| `@pre_scripts/preui/chart` | ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle, `useChart` | `recharts` `react-is` |
+| `@pre_scripts/preui/chart` | ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle, `useChart`, `chartColor`, `chartColors` | `recharts` `react-is` |
 | `@pre_scripts/preui/calendar` | Calendar, CalendarDayButton, DatePicker, DateRangePicker | `react-day-picker` |
 | `@pre_scripts/preui/carousel` | Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, `useCarousel` | `embla-carousel-react` |
 | `@pre_scripts/preui/command` | Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator, CommandShortcut | `cmdk` |
@@ -281,6 +281,21 @@ visible, give the parent a flex column and the table `min-h-0 flex-1` twice:
 
 Long unbreakable cell text (ids, URLs) wraps inside its cell.
 
+### DataTable with server data
+
+```tsx
+<DataTable columns={columns} data={page.rows} getRowId={(r) => r.id}
+  manualPagination rowCount={page.total} onPaginationChange={load}
+  manualSorting sorting={sorting} onSortingChange={setSorting}
+  filterValue={search} onFilterValueChange={setSearch} />
+```
+
+`manualPagination` means `data` is already the current page; `rowCount` or `pageCount` feeds the footer. `manualSorting`
+hands sorting to the server. `filterValue` makes the toolbar search controllable, so a "reset filters" button outside
+the table can clear it. `pagination="auto"` shows the footer only from the second page on, `pagination={false}` hides it
+and puts every row on one page. For a plain `Table`, `TableSortHead` gives the same sortable header
+(`sorted`, `onSort`, `clearable`).
+
 ### DataTable: reorder rows, select all matches
 
 ```tsx
@@ -295,7 +310,7 @@ unfiltered (the handles say why otherwise). Use `getRowId` so selection and focu
 matching row across pages (up to `max`) and shows locked rows as checked and disabled.
 
 `reserveTrack="strip"` (also on `Table`) gives the horizontal scrollbar its own strip below the rows, so it never covers
-one.
+one. `ComboboxContent` / `AutocompleteContent` take `minWidth` when the popup must be wider than the field.
 
 ### Sidebar: named group
 
@@ -518,6 +533,34 @@ function child; every row is `itemHeight` px tall (default 32):
 
 Grouped `items` get their heading rows from the list (`renderGroupLabel`, `groupLabelHeight`); `overscan` sets how
 many extra rows render above and below.
+
+### IconButton and tooltips on icon buttons
+
+```tsx
+<IconButton label="Edit" icon={<Pencil />} />
+<IconButton label="More" icon={<MoreHorizontal />} render={<DropdownMenuTrigger />} />
+```
+
+`label` is both `aria-label` and tooltip text. `tooltip` overrides it (`false` turns it off, or
+`{ content, side, align, delay }`), `size` takes every Button size.
+
+preUI's own icon-only buttons show their label too: the close X of `DialogContent`, `SheetContent` and `DrawerContent`
+(`closeTooltip`), the steppers of `NumberField` (`stepperTooltip`), the page buttons of `DataTablePagination`
+(`pageTooltip`) and the `EditorWindow` buttons (`tooltip`, the action buttons with `iconOnly`). `Toggle` and
+`InputGroupButton` take `tooltip` as well (off by default). One `<TooltipProvider delay={100}>` at the app root sets
+the open delay for all of them; `WithTooltip` wraps your own buttons the same way.
+
+### StatTile and ActionReason
+
+```tsx
+<StatTile label="Balance" value="$ 12,480" hint="+12 % vs. the last 30 days" trend="up" tone="positive" />
+<ActionReason kind="hint">{amount ? null : "Enter an amount"}</ActionReason>
+```
+
+`StatTile` keeps its hint line reserved, so a grid of tiles never jumps (`reserveHint={false}` turns that off);
+`sparkline` and `action` are free slots. `ActionReason` puts the reason for a disabled action next to it in a slot of
+fixed height: `kind="hint" | "invalid" | "blocked"`, as a line or, with `variant="badge" reveal="hover"`, as a badge in
+a tile corner.
 
 ### SortableList
 
@@ -1268,6 +1311,11 @@ export function App() {
 
 Pass `onDeletePreset(preset)` / `onRenamePreset(preset, label)` to let users manage presets they saved (`removable:
 true`, set by "Save as preset"); their tiles get a menu, deleting asks first.
+
+The font picker offers 20 curated families (`defaultThemeEditorFonts`). preUI ships no font files: host the `.woff2`
+files yourself and point `fontSrcBase` at the folder (`fontSrcBase="https://cfx-nui-my_lib/fonts/"`), and each pick is
+stored as `fonts.sans` with one entry per weight (`{ url, weight }`). Without a base URL the families are offered as
+plain `font-family` values. Charts with many categories use `--pui-chart-1` to `--pui-chart-8` via `chartColor(index)`.
 
 Helpers: `resolveThemeConfig(config)` (→ `applyTokens` / `tokensToCss({ tokens })` input),
 `resolveThemeConfigTokens(config, scheme)`, `checkThemeConfigContrast(config, scheme)`, `defaultThemePresets`.

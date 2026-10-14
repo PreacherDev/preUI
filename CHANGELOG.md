@@ -3,6 +3,75 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## 0.14.0 - 2026-10-14
+
+### Updating from 0.13
+
+- **Icon-only buttons now have tooltips.** The close X of `DialogContent`, `SheetContent` and `DrawerContent`, the
+  steppers of `NumberField`, the page buttons of `DataTablePagination` and `EditorCloseButton` show their existing
+  label on hover. Turn one off with `closeTooltip={false}` / `stepperTooltip={false}` / `pageTooltip={false}` /
+  `tooltip={false}`. The open delay is Base UI's 600 ms as before; `<TooltipProvider delay={100}>` at the app root now
+  also applies to these built-in tooltips.
+- **`RadioGroup` rows are full width in the vertical layout** (the root lost `items-start`), so a long label wraps
+  instead of running out of its panel. Rows that should only be as wide as their content need `orientation="horizontal"`.
+- **`loadThemeFont` with several files** registers one `@font-face` per file now. A theme that listed several weights in
+  `fonts.sans.src` used to load only the first file; it now loads all of them, so text may look different (correctly
+  bold instead of a faked bold). Entries may be `{ url, weight, style }` objects.
+- **`@pre_scripts/preui/theme-editor` really splits the editor off now.** The 0.12 and 0.13 changelogs claimed this,
+  but the editor stayed in the main bundle; a lazily imported theme tool gets its own chunk from 0.14 on.
+
+### Added
+
+- **`IconButton`**: a square icon-only button whose `label` is both `aria-label` and tooltip —
+  `<IconButton label="Edit" icon={<Pencil />} />`. `size` takes every Button size (`sm`/`default`/`lg` map to the square
+  sizes), `tooltip` overrides text, `side`, `align` or `delay`, and it works as the `render` of
+  `DropdownMenuTrigger`, `PopoverTrigger` or `DialogTrigger`. `WithTooltip` plus the types `IconTooltip` and
+  `IconTooltipOptions` do the same for your own buttons.
+- **Tooltips on built-in icon buttons** (see above) and a `tooltip` prop on `Toggle` and `InputGroupButton` (off by
+  default; `tooltip` alone shows the `aria-label`). `EditorSaveButton`, `EditorDeleteButton` and `EditorDiscardButton`
+  take `iconOnly`.
+- **`StatTile`**: one key figure as a tile — `label`, `value`, `hint`, `tone`, icon chip, `trend` arrow, plus
+  `sparkline` and `action` slots. The hint line is reserved (`reserveHint={false}` turns that off), so a grid of tiles
+  never jumps.
+- **`ActionReason`**: says why an action is disabled in a slot that keeps its height —
+  `kind="hint" | "invalid" | "blocked"`, as a line or as a badge, with `reveal="hover"` for tiles.
+- **`RadioGroup` `items={[{ value, label, description, disabled, end }]}`** and `orientation="horizontal"`, plus the new
+  part `RadioGroupOption`: radio and label are one clickable row with an optional second line.
+- **`ConfirmDialog`**: `confirmLoading`, `confirmDisabled`, `confirmIcon`, and an `onConfirm` that may return a promise —
+  the dialog stays open with a spinner and closes when it resolves (`false` keeps it open). `onCancel(reason)` tells
+  `"button"`, `"escape"` and `"outside"` apart.
+- **`DataTable` with server data**: `manualPagination` with `rowCount` / `pageCount`, `paginationState` /
+  `onPaginationChange`, and `manualSorting` with `sorting` / `onSortingChange`, like TanStack's own options.
+  `filterValue` / `onFilterValueChange` make the toolbar search controllable, resettable from outside or server-driven.
+- **`DataTable` `pagination`**: `"auto"` shows the footer only from the second page on, `false` hides it and puts every
+  row on one page (so `onRowMove` can move a row across the whole list).
+- **`TableSortHead`**: a sortable header for the plain `Table` (`sorted`, `onSort`, `align`, `clearable`, `descFirst`)
+  that looks like `DataTableColumnHeader`, for lists the server sorts.
+- **`minWidth` on `ComboboxContent` / `AutocompleteContent`**: the popup may be wider than the field, which long labels
+  in `virtualized` lists need.
+- **`ThemeEditor` fonts**: `defaultThemeEditorFonts` now ships 20 curated families (Inter, JetBrains Mono plus 18 Google
+  families) with their `.woff2` file names and weights — **no font file is bundled**. The new prop `fontSrcBase` (and
+  `resolveThemeEditorFonts(fonts, srcBase)` / `themeEditorFontSource(font, srcBase)`) resolves those names against your
+  own folder, e.g. `fontSrcBase="https://cfx-nui-my_lib/fonts/"`. Without a base URL the families are offered as plain
+  `font-family` values. `ThemeEditorFont` keeps `src` and gains `files`.
+- **Chart palette**: `--pui-chart-1` … `--pui-chart-8` for charts with many categories (the first colour follows the
+  accent, the last is neutral, every colour at least 3:1 on the surfaces in both schemes), with `chartColor(index,
+  alpha?)`, `chartColors` and the classes `bg-pui-chart-1` … `text-pui-chart-8`.
+- **`ThemeFontSource.src`** accepts `{ url, weight, style }` entries.
+
+### Fixed
+
+- `loadThemeFont` / `loadThemeFonts`: several files each serve their own weight now (one `@font-face` per entry) instead
+  of only the first file loading. Plain string lists keep working as a fallback chain.
+- `ChartLegendContent` / `ChartTooltipContent`: a `nameKey` that recharts uses itself (`"type"`) is read from the data
+  row, so pie legends show the `ChartConfig` labels in config order instead of raw keys.
+- `@pre_scripts/preui/theme-editor` splits the editor into its own chunk (the 0.12 and 0.13 claim was wrong).
+- `InputOTP autoFocus` had no effect (it landed as an attribute on a `<div>`); the first slot gets the caret now, even
+  when the field mounts after its window.
+- A disabled `Button variant="solid"` looked almost enabled in the dark scheme; it uses the muted fill with muted text
+  now.
+- `RadioGroup`: a long label in the vertical layout no longer runs out of its panel.
+
 ## 0.13.0 - 2026-10-12
 
 ### Updating from 0.12
@@ -488,6 +557,17 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 
 ## @pre_scripts/preui-nui
 
+### 0.8.0 - 2026-10-14
+
+- `thirdPartyLicenses` writes a real licence text for packages that ship none: the `lib-vendor/*/LICENSE` files of
+  vendoring packages (e.g. the d3 licences inside `victory-vendor`) are appended automatically, and the new option
+  `manual: { "<package>": "<file or text>" }` supplies a hand-written text. Instead of
+  "(no license file in the package)" the grouped file now carries the licence, so a release check passes. New exported
+  helper `vendoredLicenses(root)`.
+- `./package.json` is in `exports`, so `require("@pre_scripts/preui-nui/package.json")` works (preUI has had it since
+  0.12.0).
+- Needs `@pre_scripts/preui` 0.14.0 or newer (peer dependency).
+
 ### 0.7.0 - 2026-10-12
 
 - **`NuiDragArea`**: a surface without a look of its own behind your panels; dragging turns a game camera, the wheel
@@ -556,6 +636,10 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### 0.4.1 - 2026-10-14
+
+- New resources depend on `@pre_scripts/preui` `^0.14.0` and `@pre_scripts/preui-nui` `^0.8.0`.
 
 ### 0.4.0 - 2026-10-12
 

@@ -1,3 +1,5 @@
+// The categorical series palette, so a chart needs only this entry point.
+export { CHART_COLOR_COUNT, chartColor, chartColors } from "../../theming/chart-colors";
 export {
   ChartContainer,
   ChartLegend,

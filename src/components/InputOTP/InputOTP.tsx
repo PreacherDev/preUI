@@ -1,5 +1,15 @@
 import { OTPField as BaseOtpField } from "@base-ui/react/otp-field";
-import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef, type HTMLAttributes } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
+  type ForwardedRef,
+  type HTMLAttributes,
+  type MutableRefObject,
+} from "react";
 import { cn, mergeClassName, type StateClassName } from "../../utils/cn";
 
 export interface InputOTPProps extends ComponentPropsWithoutRef<typeof BaseOtpField.Root> {
@@ -15,16 +25,57 @@ export interface InputOTPProps extends ComponentPropsWithoutRef<typeof BaseOtpFi
 const defaultSlotLabel = (index: number, length: number) => `Character ${index + 1} of ${length}`;
 
 /**
+ * `autoFocus` on the root is an attribute on a `<div>`, which no browser acts on: focus the first slot ourselves.
+ * A second try on the next frame covers a window (dialog, drawer, editor) that moves the focus to its own first
+ * element right after the field mounted.
+ */
+function useAutoFocusFirstSlot<T extends HTMLElement>(autoFocus: boolean | undefined, forwardedRef: ForwardedRef<T>) {
+  const rootRef = useRef<T | null>(null);
+  const ref = useCallback(
+    (node: T | null) => {
+      rootRef.current = node;
+      if (typeof forwardedRef === "function") forwardedRef(node);
+      else if (forwardedRef) (forwardedRef as MutableRefObject<T | null>).current = node;
+    },
+    [forwardedRef],
+  );
+
+  useEffect(() => {
+    if (!autoFocus) return undefined;
+    const root = rootRef.current;
+    if (!root) return undefined;
+    const win = root.ownerDocument.defaultView;
+    const focusFirst = () => {
+      const current = rootRef.current;
+      if (!current?.isConnected) return;
+      // Someone is already typing in a slot: leave the focus alone.
+      if (current.contains(current.ownerDocument.activeElement)) return;
+      const input = current.querySelector<HTMLInputElement>("input:not([disabled])");
+      input?.focus({ preventScroll: true });
+    };
+    focusFirst();
+    const frame = win?.requestAnimationFrame(focusFirst);
+    return () => {
+      if (frame !== undefined) win?.cancelAnimationFrame(frame);
+    };
+  }, [autoFocus]);
+
+  return ref;
+}
+
+/**
  * One-time-code entry. Without `children` it renders `length` slots; pass `InputOTPGroup`,
  * `InputOTPSlot` and `InputOTPSeparator` as children for grouped layouts.
+ * `autoFocus` puts the caret in the first slot, also when the field mounts later than the window around it.
  */
 export const InputOTP = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseOtpField.Root>, InputOTPProps>(function InputOTP(
-  { className, children, length, getSlotLabel = defaultSlotLabel, slotClassName, ...props },
+  { className, children, length, getSlotLabel = defaultSlotLabel, slotClassName, autoFocus, ...props },
   ref,
 ) {
+  const rootRef = useAutoFocusFirstSlot(autoFocus, ref);
   return (
     <BaseOtpField.Root
-      ref={ref}
+      ref={rootRef}
       length={length}
       data-slot="input-otp"
       className={mergeClassName("flex items-center gap-2", className)}

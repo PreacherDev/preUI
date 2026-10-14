@@ -152,4 +152,20 @@ describe("Autocomplete virtualized", () => {
     await user.keyboard("{Enter}");
     await waitFor(() => expect(input).toHaveValue("ped_model_826"));
   });
+
+  it("makes the popup wider than the input with minWidth", async () => {
+    const user = userEvent.setup();
+    render(
+      <Autocomplete items={tags}>
+        <AutocompleteInput aria-label="Buchung suchen" />
+        <AutocompleteContent minWidth="22rem">
+          <AutocompleteList>{(tag: string) => <AutocompleteItem key={tag} value={tag}>{tag}</AutocompleteItem>}</AutocompleteList>
+        </AutocompleteContent>
+      </Autocomplete>,
+    );
+    await user.type(screen.getByRole("combobox", { name: "Buchung suchen" }), "e");
+    await screen.findByRole("listbox");
+    const popup = document.querySelector<HTMLElement>("[data-slot=autocomplete-content]")!;
+    expect(popup.style.minWidth).toBe("min(22rem, var(--available-width))");
+  });
 });

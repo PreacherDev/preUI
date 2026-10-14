@@ -42,7 +42,7 @@ export type {
   EditorWindowProps,
 } from "./EditorWindow";
 export { ConfirmDialog } from "./ConfirmDialog";
-export type { ConfirmDialogProps } from "./ConfirmDialog";
+export type { ConfirmDialogCancelReason, ConfirmDialogConfirmResult, ConfirmDialogProps } from "./ConfirmDialog";
 export { defaultDraftHistoryLabels, getHistoryShortcut, stableStringify, useDraftHistory } from "./use-draft-history";
 export type {
   DraftChangeOptions,

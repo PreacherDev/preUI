@@ -21,8 +21,14 @@ export const buttonVariants = /* @__PURE__ */ cva(
         /** Tinted accent button — the default call to action. */
         default: "border-pui-primary/tint-border bg-pui-primary/tint text-pui-primary hover:bg-pui-primary/tint-hover",
         /** Solid fill — reserved for the one confirming action in a dialog or wizard. */
-        solid:
+        solid: [
           "bg-pui-primary text-pui-primary-foreground hover:bg-pui-primary/90 focus-visible:ring-offset-pui focus-visible:ring-offset-pui-background",
+          // Disabled: the primary fill at 50% opacity is still bright in the dark scheme and reads almost like the
+          // enabled button. A muted fill with muted text is clearly off and keeps the label readable — it often
+          // says why the action is locked. (Overrides the opacity of the base classes, in both of their variants.)
+          "disabled:bg-pui-muted disabled:text-pui-muted-foreground disabled:opacity-100",
+          "data-[disabled]:bg-pui-muted data-[disabled]:text-pui-muted-foreground data-[disabled]:opacity-100",
+        ],
         /**
          * Neutral filled button. Hover takes the field-border colour (`--pui-input`): `--pui-accent` is (almost) the
          * same as `--pui-secondary` in both schemes, so it would show no hover.

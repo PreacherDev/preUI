@@ -56,6 +56,17 @@ const baseTokens = {
   "--pui-chart-negative": "0 78% 62%",
   "--pui-chart-grid": "225 10% 17%",
   "--pui-chart-axis": "223 7% 50%",
+  // Categorical series palette (chartColor(index) / `bg-pui-chart-1`): eight hues that carry no meaning, for
+  // charts with many categories. The first one follows the accent, the last one is neutral; every colour reaches
+  // 3:1 on --pui-background in both schemes (fills and strokes, not text).
+  "--pui-chart-1": "var(--pui-chart-primary)",
+  "--pui-chart-2": "199 85% 62%",
+  "--pui-chart-3": "157 62% 52%",
+  "--pui-chart-4": "38 92% 62%",
+  "--pui-chart-5": "3 85% 68%",
+  "--pui-chart-6": "320 75% 70%",
+  "--pui-chart-7": "95 50% 55%",
+  "--pui-chart-8": "225 12% 65%",
 
   // Syntax highlighting (CodeBlock + CodeEditor)
   "--pui-syntax-foreground": "hsl(var(--pui-foreground))",
@@ -215,6 +226,14 @@ const lightSchemeTokens: Record<Exclude<PreuiTokenName, SharedTokenName>, string
   "--pui-chart-negative": "0 72% 55%",
   "--pui-chart-grid": "225 14% 91%",
   "--pui-chart-axis": "224 8% 46%",
+  "--pui-chart-1": "var(--pui-chart-primary)",
+  "--pui-chart-2": "199 85% 36%",
+  "--pui-chart-3": "157 65% 30%",
+  "--pui-chart-4": "33 90% 38%",
+  "--pui-chart-5": "3 72% 48%",
+  "--pui-chart-6": "320 70% 44%",
+  "--pui-chart-7": "95 55% 30%",
+  "--pui-chart-8": "225 12% 42%",
 
   // Syntax highlighting (CodeBlock + CodeEditor) — a readable light theme
   "--pui-syntax-foreground": "hsl(var(--pui-foreground))",

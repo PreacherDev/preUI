@@ -252,3 +252,21 @@ describe("nested modals in a sheet", () => {
     await waitFor(() => expect(sheet).not.toHaveAttribute("data-nested-dialog-open"));
   });
 });
+
+describe("SheetPopup close tooltip", () => {
+  it("shows the closeLabel as a tooltip and can be turned off", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Example closeLabel="Schliessen" closeTooltip={{ delay: 0 }} />);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    await user.hover(await screen.findByRole("button", { name: "Schliessen" }));
+    expect(await screen.findByText("Schliessen")).toHaveAttribute("data-slot", "tooltip-content");
+    unmount();
+
+    render(<Example closeTooltip={false} />);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    const close = await screen.findByRole("button", { name: "Close" });
+    await user.hover(close);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(close).not.toHaveAttribute("data-slot", "tooltip-trigger");
+  });
+});

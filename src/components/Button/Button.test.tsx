@@ -68,6 +68,24 @@ describe("Button", () => {
     expect(button).toHaveAttribute("aria-busy", "true");
   });
 
+  it("dims a disabled solid button with the muted fill instead of 50% of the primary one", () => {
+    render(
+      <>
+        <Button variant="solid" disabled>
+          Kaufen
+        </Button>
+        <Button variant="solid">Kaufen</Button>
+      </>,
+    );
+    const [off, on] = screen.getAllByRole("button");
+    // The disabled look must not be the primary fill at half opacity: in the dark scheme that reads as enabled.
+    expect(off).toHaveClass("disabled:bg-pui-muted", "disabled:text-pui-muted-foreground", "disabled:opacity-100");
+    expect(off).toHaveClass("data-[disabled]:bg-pui-muted", "data-[disabled]:opacity-100");
+    expect(off).not.toHaveClass("disabled:opacity-50");
+    expect(off).not.toHaveClass("data-[disabled]:opacity-50");
+    expect(on).toHaveClass("bg-pui-primary");
+  });
+
   it("uses the spinner from IconProvider", () => {
     const CustomSpinner = () => <svg data-testid="custom-spinner" />;
     render(

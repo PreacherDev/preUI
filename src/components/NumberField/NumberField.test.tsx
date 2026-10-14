@@ -134,3 +134,39 @@ describe("NumberField without steppers", () => {
     expect(screen.getByRole("textbox")).toHaveClass("px-2", "text-center");
   });
 });
+
+describe("NumberField stepper tooltips", () => {
+  it("shows the stepper labels as tooltips", async () => {
+    const user = userEvent.setup();
+    render(
+      <NumberField
+        defaultValue={3}
+        decrementLabel="Weniger"
+        incrementLabel="Mehr"
+        stepperTooltip={{ delay: 0 }}
+        inputProps={{ "aria-label": "Menge" }}
+      />,
+    );
+    await user.hover(screen.getByRole("button", { name: "Weniger" }));
+    expect(await screen.findByText("Weniger")).toHaveAttribute("data-slot", "tooltip-content");
+    await user.unhover(screen.getByRole("button", { name: "Weniger" }));
+    await user.hover(screen.getByRole("button", { name: "Mehr" }));
+    expect(await screen.findByText("Mehr")).toBeInTheDocument();
+  });
+
+  it("still steps while the tooltip is wired up", async () => {
+    const user = userEvent.setup();
+    render(<NumberField defaultValue={3} stepperTooltip={{ delay: 0 }} inputProps={{ "aria-label": "Menge" }} />);
+    await user.click(screen.getByRole("button", { name: "Increase" }));
+    expect(screen.getByRole("textbox")).toHaveValue("4");
+  });
+
+  it("can be turned off", async () => {
+    const user = userEvent.setup();
+    render(<NumberField defaultValue={3} stepperTooltip={false} inputProps={{ "aria-label": "Menge" }} />);
+    const button = screen.getByRole("button", { name: "Increase" });
+    await user.hover(button);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(button).not.toHaveAttribute("data-slot", "tooltip-trigger");
+  });
+});

@@ -57,6 +57,7 @@ import {
 import { AdvancedSection, FontSection, ImportSection, SavePresetForm, StyleSection } from "./theme-editor-sections";
 import { ThemeEditorPreview, type ThemeEditorPreviewLabels } from "./ThemeEditorPreview";
 import { PresetActionDialogs, PresetActionsMenu, type PendingPresetAction } from "./theme-editor-preset-actions";
+import { defaultThemeEditorFonts, resolveThemeEditorFonts, type ThemeEditorFont } from "./theme-editor-fonts";
 
 // ------------------------------------------------------------------------------------------------
 // Labels
@@ -284,22 +285,6 @@ type ThemeEditorLabelsInput = Partial<Omit<ThemeEditorLabels, "fields" | "pairs"
 // Props
 // ------------------------------------------------------------------------------------------------
 
-export interface ThemeEditorFont {
-  label: string;
-  /** A `font-family` value, e.g. `'"Rajdhani", system-ui, sans-serif'`. */
-  value: string;
-  /**
-   * Font file(s) to load on demand instead of importing the font in code (`.woff2` path or URL, e.g.
-   * `"https://cfx-nui-my_lib/fonts/rajdhani.woff2"`). Picking the font also stores it in the theme's `fonts.sans`, so
-   * every UI that receives the theme can load it (`loadThemeFonts`, `NuiThemeBridge`).
-   */
-  src?: string | string[];
-  /** Family name the file registers as. @default the first family of `value` */
-  family?: string;
-  /** `font-weight` range of the file, e.g. `"400 700"` for a variable font. */
-  weight?: string;
-}
-
 /** Sections of the editor, for `sections`. */
 export type ThemeEditorSection =
   | "presets"
@@ -337,10 +322,17 @@ export interface ThemeEditorProps
    */
   presets?: readonly ThemePreset[];
   /**
-   * Font choices for `--pui-font-sans` besides the default (Inter). Default: JetBrains Mono — the two fonts preUI
-   * ships. `[]` hides the font section.
+   * Font choices for `--pui-font-sans`. @default defaultThemeEditorFonts — 20 curated families whose entries carry
+   * only the file *names* (`files`), resolved against `fontSrcBase`. `[]` hides the font section.
    */
   fonts?: readonly ThemeEditorFont[];
+  /**
+   * Where the `.woff2` files of the font choices live, e.g. `"https://cfx-nui-pre_lib/theme/fonts/"` or `"/fonts/"`.
+   * Each entry's `files` names are appended to it. **preUI ships no font files** — without a base URL the families
+   * are still offered as plain `font-family` values (fine when they are installed or loaded elsewhere), but nothing
+   * is downloaded and the theme stores no `fonts.sans`.
+   */
+  fontSrcBase?: string;
   /**
    * Live preview: while mounted, the edited theme is applied to the whole page with `applyTokens` (own `<style>`,
    * removed on unmount). It sets the complete token set of both schemes, so it also wins over other runtime
@@ -420,11 +412,6 @@ export interface ThemeEditorProps
 
 const schemeList: PreuiScheme[] = ["dark", "light"];
 
-/** The fonts preUI ships besides the default (Inter): JetBrains Mono. */
-export const defaultThemeEditorFonts: readonly ThemeEditorFont[] = [
-  { label: "JetBrains Mono", value: (tokens as Record<string, string>)["--pui-font-mono"] },
-];
-
 /** Whether the dark palette sets an accent or status colour (something "From dark" can carry over). */
 const hasDarkAccents = (config: ThemeConfig) =>
   Object.keys(config.palette?.dark ?? {}).some((key) => key !== "background" && key !== "foreground");
@@ -483,6 +470,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     onReset,
     presets = defaultThemePresets,
     fonts,
+    fontSrcBase,
     preview = true,
     previewId = "preui-theme-editor-preview",
     previewSlot,
@@ -703,7 +691,10 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
   const id = useId();
 
   const split = layout === "split";
-  const fontChoices = fonts ?? defaultThemeEditorFonts;
+  const fontChoices = useMemo(
+    () => resolveThemeEditorFonts(fonts ?? defaultThemeEditorFonts, fontSrcBase),
+    [fonts, fontSrcBase],
+  );
   // See-through panels only show on something busy: the preview then gets a backdrop (see PreviewBackdrop).
   const seeThrough = Number(effective[editing]["--pui-surface-opacity" as PreuiTokenName]) < 1;
 

@@ -46,5 +46,21 @@ export default defineConfig({
   copy: ["src/fonts.css"],
   outputOptions: {
     banner: '"use client";',
+    // The ThemeEditor is re-exported from `index` as well, so without this its modules land in the same chunk as the
+    // building blocks it uses (Card, Badge, Field, Slider …). A consumer that imports one of those from the main
+    // entry would then get the whole editor in its main bundle, because a module can only live in one chunk — the
+    // lazily imported `@pre_scripts/preui/theme-editor` could not be split off (bug, 0.13.0). Its own chunk keeps
+    // the editor out of every other chunk.
+    codeSplitting: {
+      // Only the editor's own modules — its dependencies stay in the chunks every entry shares.
+      includeDependenciesRecursively: false,
+      groups: [
+        {
+          name: "theme-editor",
+          // Only the JS pass: the .d.ts pass runs through the same options and must keep its own chunking.
+          test: (id: string) => /[\\/]src[\\/]components[\\/]ThemeEditor[\\/]/.test(id) && !id.endsWith(".d.ts"),
+        },
+      ],
+    },
   },
 });

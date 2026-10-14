@@ -1,3 +1,4 @@
+import { createRef, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "./InputOTP";
@@ -94,5 +95,34 @@ describe("InputOTP invalid focus", () => {
       "data-[invalid]:focus-visible:ring-pui",
       "data-[invalid]:focus-visible:ring-pui-negative",
     );
+  });
+});
+
+describe("InputOTP autoFocus", () => {
+  it("focuses the first slot, also when the field mounts after its window", async () => {
+    function Example() {
+      const [step, setStep] = useState(1);
+      return (
+        <div>
+          <button type="button" onClick={() => setStep(2)}>
+            Weiter
+          </button>
+          {step === 2 && <InputOTP length={4} autoFocus aria-label="PIN" />}
+        </div>
+      );
+    }
+    render(<Example />);
+    await userEvent.click(screen.getByRole("button", { name: "Weiter" }));
+    const inputs = screen.getAllByRole("textbox");
+    expect(document.activeElement).toBe(inputs[0]);
+    await userEvent.keyboard("12");
+    expect(inputs.map((input) => (input as HTMLInputElement).value)).toEqual(["1", "2", "", ""]);
+  });
+
+  it("keeps the forwarded ref on the root while focusing the first slot", () => {
+    const ref = createRef<HTMLDivElement>();
+    render(<InputOTP length={4} aria-label="PIN" ref={ref} autoFocus />);
+    expect(ref.current).toHaveAttribute("data-slot", "input-otp");
+    expect(document.activeElement).toBe(screen.getAllByRole("textbox")[0]);
   });
 });

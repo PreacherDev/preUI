@@ -91,3 +91,46 @@ describe("Toggle icon size", () => {
     expect(segment).not.toHaveClass("[:where(&)_svg]:size-4");
   });
 });
+
+describe("Toggle tooltip", () => {
+  it("has no tooltip by default", async () => {
+    const user = userEvent.setup();
+    render(<Toggle aria-label="Fett">B</Toggle>);
+    const toggle = screen.getByRole("button", { name: "Fett" });
+    await user.hover(toggle);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(toggle).not.toHaveAttribute("data-slot", "tooltip-trigger");
+  });
+
+  it("shows the aria-label with tooltip={{ delay: 0 }} and a text when given", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <Toggle aria-label="Fett" tooltip={{ delay: 0 }}>
+        B
+      </Toggle>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Fett" }));
+    expect(await screen.findByText("Fett")).toHaveAttribute("data-slot", "tooltip-content");
+    unmount();
+
+    render(
+      <Toggle aria-label="Fett" tooltip={{ delay: 0, content: "Fett (Strg+B)" }}>
+        B
+      </Toggle>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Fett" }));
+    expect(await screen.findByText("Fett (Strg+B)")).toBeInTheDocument();
+  });
+
+  it("still toggles with a tooltip", async () => {
+    const user = userEvent.setup();
+    render(
+      <Toggle aria-label="Fett" tooltip={{ delay: 0 }}>
+        B
+      </Toggle>,
+    );
+    const toggle = screen.getByRole("button", { name: "Fett" });
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+  });
+});

@@ -31,6 +31,18 @@ export interface ThirdPartyLicensesOptions {
    * for a FiveM resource whose UI is in `web/`, so the licenses sit next to `fxmanifest.lua`.
    */
   copyTo?: string;
+  /**
+   * License text for packages that ship none, by package name - instead of the
+   * "(no license file in the package; license: ...)" marker. The value is a text file relative to the Vite root
+   * (e.g. `"../LICENSES/victory-vendor-LICENSE.manual.txt"`) or the text itself when no such file exists.
+   *
+   * ```ts
+   * thirdPartyLicenses({ manual: { "victory-vendor": "../LICENSES/victory-vendor-LICENSE.manual.txt" } })
+   * ```
+   *
+   * Only needed when a package ships neither a LICENSE file nor `lib-vendor/*​/LICENSE` (those are read on their own).
+   */
+  manual?: Record<string, string>;
 }
 
 export interface ThirdPartyPackage {
@@ -111,7 +123,38 @@ export function packageRootOf(moduleId: string): string | null {
   return id.slice(0, at + marker.length) + rest.slice(0, segments).join("/");
 }
 
-function readPackage(root: string): ThirdPartyPackage | null {
+/**
+ * The licenses of the code a package vendors in `lib-vendor/<name>/` (d3 inside `victory-vendor`, for example):
+ * one block per folder. Packages without that folder give `""`.
+ */
+export function vendoredLicenses(root: string): string {
+  let dirs: string[];
+  try {
+    dirs = readdirSync(`${root}/lib-vendor`).sort();
+  } catch {
+    return "";
+  }
+  const blocks: string[] = [];
+  for (const name of dirs) {
+    let files: string[];
+    try {
+      files = readdirSync(`${root}/lib-vendor/${name}`);
+    } catch {
+      continue;
+    }
+    const file = files.find((entry) => LICENSE_FILE.test(entry));
+    if (!file) continue;
+    try {
+      const text = readFileSync(`${root}/lib-vendor/${name}/${file}`, "utf8").trim();
+      if (text) blocks.push(`Vendored in lib-vendor/${name}:\n\n${text}`);
+    } catch {
+      // unreadable file: skip it
+    }
+  }
+  return blocks.join("\n\n");
+}
+
+function readPackage(root: string, manualText?: string): ThirdPartyPackage | null {
   try {
     const pkg = JSON.parse(readFileSync(`${root}/package.json`, "utf8")) as {
       name?: string;
@@ -130,8 +173,11 @@ function readPackage(root: string): ThirdPartyPackage | null {
         ? pkg.license
         : (pkg.licenses?.map((entry) => entry.type).filter(Boolean).join(" OR ") ?? "") || "UNKNOWN";
     const notice = read(NOTICE_FILE);
-    const text = [read(LICENSE_FILE), notice].filter(Boolean).join("\n\n");
-    return { name: pkg.name, version: pkg.version ?? "", license, text, ...(notice ? { notice } : {}) };
+    // A hand-written text wins; otherwise the package's own file(s) plus the licenses of code it vendors.
+    const text = manualText
+      ? manualText.trim()
+      : [read(LICENSE_FILE), vendoredLicenses(root), notice].filter(Boolean).join("\n\n");
+    return { name: pkg.name, version: pkg.version ?? "", license, text, ...(notice && !manualText ? { notice } : {}) };
   } catch {
     return null;
   }
@@ -203,9 +249,12 @@ export function renderGroupedLicenses(packages: ThirdPartyPackage[], header?: st
  * import { thirdPartyLicenses } from "@pre_scripts/preui-nui/vite";
  * export default defineConfig({ plugins: [react(), thirdPartyLicenses()] });
  * ```
+ *
+ * A package without a LICENSE file of its own still gets its text when it vendors code with licenses
+ * (`lib-vendor/<name>/LICENSE`, e.g. d3 inside `victory-vendor`); for the rest there is `manual`.
  */
 export function thirdPartyLicenses(options: ThirdPartyLicensesOptions = {}) {
-  const { fileName = "THIRD_PARTY_LICENSES.txt", header, exclude = [], include = [], group = true, copyTo, dir } = options;
+  const { fileName = "THIRD_PARTY_LICENSES.txt", header, exclude = [], include = [], group = true, copyTo, dir, manual = {} } = options;
   let root = ".";
   return {
     name: "preui-third-party-licenses",
@@ -229,9 +278,24 @@ export function thirdPartyLicenses(options: ThirdPartyLicensesOptions = {}) {
         }
       }
       for (const name of include) roots.add(resolve(root, "node_modules", name));
+      // A manual entry is a text file next to the project, or the text itself.
+      const manualTexts = new Map<string, string>();
+      for (const [name, value] of Object.entries(manual)) {
+        const file = resolve(root, value);
+        let text = value;
+        if (existsSync(file)) {
+          try {
+            text = readFileSync(file, "utf8");
+          } catch {
+            // unreadable file: fall back to the value as text
+          }
+        }
+        if (text.trim()) manualTexts.set(name, text);
+      }
       const packages = new Map<string, ThirdPartyPackage>();
       for (const root of roots) {
-        const pkg = readPackage(root);
+        const found = readPackage(root);
+        const pkg = found && manualTexts.has(found.name) ? readPackage(root, manualTexts.get(found.name)) : found;
         if (pkg && !exclude.includes(pkg.name) && !packages.has(pkg.name)) packages.set(pkg.name, pkg);
       }
       const list = [...packages.values()];

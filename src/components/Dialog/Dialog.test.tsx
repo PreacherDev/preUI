@@ -337,3 +337,30 @@ describe("nested dialogs", () => {
     await waitFor(() => expect(parent).not.toHaveAttribute("data-nested-dialog-open"));
   });
 });
+
+describe("DialogPopup close tooltip", () => {
+  it("shows the closeLabel as a tooltip on the close X", async () => {
+    const user = userEvent.setup();
+    render(<Example defaultOpen closeLabel="Schliessen" closeTooltip={{ delay: 0 }} />);
+    await user.hover(screen.getByRole("button", { name: "Schliessen" }));
+    const popup = await screen.findByText("Schliessen");
+    expect(popup).toHaveAttribute("data-slot", "tooltip-content");
+  });
+
+  it("takes an own text and side", async () => {
+    const user = userEvent.setup();
+    render(<Example defaultOpen closeTooltip={{ delay: 0, side: "left", content: "Fenster zu" }} />);
+    await user.hover(screen.getByRole("button", { name: "Close" }));
+    expect(await screen.findByText("Fenster zu")).toHaveAttribute("data-side", "left");
+  });
+
+  it("can be turned off", async () => {
+    const user = userEvent.setup();
+    render(<Example defaultOpen closeTooltip={false} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    await user.hover(close);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(close).not.toHaveAttribute("data-slot", "tooltip-trigger");
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+});
