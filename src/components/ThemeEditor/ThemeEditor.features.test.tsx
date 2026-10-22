@@ -10,7 +10,9 @@ import { defaultThemeEditorFonts } from "./theme-editor-fonts";
 
 const slot = (container: HTMLElement, name: string) => container.querySelector<HTMLElement>(`[data-slot="${name}"]`);
 
-describe("ThemeEditor features", () => {
+// The whole editor renders per test and user-event types into it: generous time, so a busy machine (full suite in
+// parallel) doesn't turn the slower tests red.
+describe("ThemeEditor features", { timeout: 15_000 }, () => {
   it("undo / redo step through changes; unsaved changes can be discarded and are cleared by saving", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

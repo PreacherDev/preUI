@@ -3,7 +3,7 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
-## Unreleased
+## 0.15.0 - 2026-10-22
 
 ### Updating from 0.14
 
@@ -13,7 +13,6 @@ changes; a patch version never does. The NUI helpers have their own section at t
   `ThemeEditor*` types). Re-exporting it from the main entry made every bundle that imports the main entry load the
   whole editor, so a lazily imported theme tool could never be split off (bug since 0.12). The theme helpers
   (`resolveThemeConfig`, `defaultThemePresets`, `encodeThemeCode` …) stay in the main entry.
-
 - **Tooltips are on the panel surface.** `TooltipContent` and `ChartTooltipContent` now look like popovers and hover
   cards: `--pui-tooltip` / `--pui-tooltip-foreground` default to the popover colours in both schemes (dark was a
   lighter grey, light a dark inverse tooltip) and the surface got a `border-pui-border` edge. `deriveTokens` keeps
@@ -730,8 +729,9 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 
 ## @pre_scripts/create-preui-nui
 
-### Unreleased
+### 0.4.2 - 2026-10-22
 
+- New resources depend on `@pre_scripts/preui` `^0.15.0` (`@pre_scripts/preui-nui` stays `^0.8.0`).
 - The template's code comments are ASCII only (no `→` / `—`), as the pre_ scripts require.
 - `web/src/vite-env.d.ts` with `/// <reference types="vite/client" />`, so `import.meta.env.DEV` type-checks.
 
