@@ -29,6 +29,22 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("tooltip surface", () => {
+  it("tooltips default to the panel (popover) colours in both schemes", () => {
+    for (const set of [tokens, lightTokens]) {
+      expect(set["--pui-tooltip"]).toBe(set["--pui-popover"]);
+      expect(set["--pui-tooltip-foreground"]).toBe(set["--pui-popover-foreground"]);
+    }
+  });
+
+  it("deriveTokens keeps tooltip and popover equal for a custom background", () => {
+    for (const scheme of ["dark", "light"] as const) {
+      const out = deriveTokens({ primary: "#f97316", background: scheme === "dark" ? "#101418" : "#fffaf0" }, scheme);
+      expect(out["--pui-tooltip"]).toBe(out["--pui-popover"]);
+    }
+  });
+});
+
 describe("toHslChannels / normalizeTokenValue", () => {
   it.each([
     ["#3b82f6", "217 91% 60%"],

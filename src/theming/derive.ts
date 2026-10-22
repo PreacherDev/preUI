@@ -154,12 +154,12 @@ export function deriveTokens(base: DeriveTokensBase, scheme: PreuiScheme): Preui
     const reAnchor = (name: PreuiTokenName) => {
       const def = parseHsl(defaults[name]);
       if (!def) return; // references like var(--pui-background) stay
-      const inverse = def.l > 50 !== ref.l > 50; // e.g. the dark tooltip in the light scheme
+      const inverse = def.l > 50 !== ref.l > 50; // e.g. the dark scrim in the light scheme
       const l = inverse ? def.l : bg.l + (def.l - ref.l);
       out[name] = format({
         // A grey default (light card and popover: white) has no hue of its own and takes the background's.
         h: def.s > 0 ? bg.h + (def.h - ref.h) : bg.h,
-        // An inverse surface (the light scheme's dark tooltip) is tinted like text. The others are at least as
+        // An inverse surface (the light scheme's dark scrim) is tinted like text. The others are at least as
         // colourful as the background (light card and popover are white by default, on a cream page they are cream).
         s: inverse ? scaledSaturation(def, textTint, l) : scaledSaturation(def, tint, l, bgChroma),
         l,

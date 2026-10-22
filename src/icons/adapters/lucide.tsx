@@ -46,6 +46,14 @@ import {
   Monitor,
   Image as ImageIcon,
   Table,
+  Palette,
+  Layers,
+  SlidersHorizontal,
+  Contrast,
+  Settings,
+  Share2,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { IconSet } from "../types";
 
@@ -101,4 +109,12 @@ export const lucideIcons: IconSet = {
   monitor: Monitor,
   image: ImageIcon,
   table: Table,
+  palette: Palette,
+  layers: Layers,
+  slidersHorizontal: SlidersHorizontal,
+  contrast: Contrast,
+  settings: Settings,
+  share: Share2,
+  panelLeftClose: PanelLeftClose,
+  panelLeftOpen: PanelLeftOpen,
 };

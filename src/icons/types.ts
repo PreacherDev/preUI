@@ -58,6 +58,14 @@ export type IconName =
   | "moon"
   | "monitor"
   | "image"
-  | "table";
+  | "table"
+  | "palette"
+  | "layers"
+  | "slidersHorizontal"
+  | "contrast"
+  | "settings"
+  | "share"
+  | "panelLeftClose"
+  | "panelLeftOpen";
 
 export type IconSet = Record<IconName, IconComponent>;

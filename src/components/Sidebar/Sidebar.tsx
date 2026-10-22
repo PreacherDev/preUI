@@ -115,9 +115,15 @@ export interface SidebarProviderProps extends ComponentPropsWithoutRef<"div"> {
   keyboardShortcut?: string | false;
   /**
    * Open delay (ms) of the `TooltipProvider` the provider wraps around the sidebar (menu button tooltips in the
-   * icon rail). Default `0`.
+   * icon rail). Default `0`. `false` adds no provider, so every tooltip inside keeps the delay of yours (e.g. a
+   * sidebar embedded in a larger component).
    */
-  tooltipDelay?: number;
+  tooltipDelay?: number | false;
+  /**
+   * Cookie the desktop open state is written to. `false` writes none — for a sidebar embedded in a component, so
+   * toggling it doesn't change the remembered state of the page's own sidebar. @default "sidebar_state"
+   */
+  cookieName?: string | false;
 }
 
 // `has-[[data-variant=inset]]` for browsers without :has() (Chromium < 105).
@@ -137,6 +143,7 @@ export const SidebarProvider = /* @__PURE__ */ forwardRef<HTMLDivElement, Sideba
     onOpenChange,
     keyboardShortcut = SIDEBAR_KEYBOARD_SHORTCUT,
     tooltipDelay = 0,
+    cookieName = SIDEBAR_COOKIE_NAME,
     className,
     style,
     children,
@@ -155,11 +162,11 @@ export const SidebarProvider = /* @__PURE__ */ forwardRef<HTMLDivElement, Sideba
       const next = typeof value === "function" ? value(open) : value;
       if (openProp === undefined) setInternalOpen(next);
       onOpenChange?.(next);
-      if (typeof document !== "undefined") {
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${next}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+      if (cookieName !== false && typeof document !== "undefined") {
+        document.cookie = `${cookieName}=${next}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
       }
     },
-    [open, openProp, onOpenChange],
+    [open, openProp, onOpenChange, cookieName],
   );
 
   const toggleSidebar = useCallback(() => {
@@ -186,31 +193,33 @@ export const SidebarProvider = /* @__PURE__ */ forwardRef<HTMLDivElement, Sideba
     [state, open, setOpen, isMobile, openMobile, toggleSidebar],
   );
 
+  const wrapper = (
+    <div
+      ref={wrapperRef}
+      data-slot="sidebar-wrapper"
+      style={
+        {
+          "--sidebar-width": SIDEBAR_WIDTH,
+          "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+          ...style,
+        } as CSSProperties
+      }
+      className={cn(
+        // --pui-viewport-height is 100svh where supported (set by the preset), else 100vh — Chromium < 108
+        // (CEF / FiveM) has no svh units. One class, so `min-h-0` etc. in className still replaces it.
+        "group/sidebar-wrapper flex min-h-[var(--pui-viewport-height,100vh)] w-full",
+        "has-[[data-variant=inset]]:bg-pui-shell data-[has-inset]:bg-pui-shell",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+
   return (
     <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delay={tooltipDelay}>
-        <div
-          ref={wrapperRef}
-          data-slot="sidebar-wrapper"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as CSSProperties
-          }
-          className={cn(
-            // --pui-viewport-height is 100svh where supported (set by the preset), else 100vh — Chromium < 108
-            // (CEF / FiveM) has no svh units. One class, so `min-h-0` etc. in className still replaces it.
-            "group/sidebar-wrapper flex min-h-[var(--pui-viewport-height,100vh)] w-full",
-            "has-[[data-variant=inset]]:bg-pui-shell data-[has-inset]:bg-pui-shell",
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </div>
-      </TooltipProvider>
+      {tooltipDelay === false ? wrapper : <TooltipProvider delay={tooltipDelay}>{wrapper}</TooltipProvider>}
     </SidebarContext.Provider>
   );
 });
@@ -437,26 +446,31 @@ export const SidebarRail = /* @__PURE__ */ forwardRef<HTMLButtonElement, Sidebar
  * Layout parts
  * -----------------------------------------------------------------------------------------------*/
 
-export type SidebarInsetProps = ComponentPropsWithoutRef<"main">;
+export interface SidebarInsetProps extends Omit<useRender.ComponentProps<"main">, "ref"> {}
 
-/** The main content next to the sidebar. With `variant="inset"` it becomes the bordered content panel. */
+/**
+ * The main content next to the sidebar. With `variant="inset"` it becomes the bordered content panel. Renders a
+ * `<main>`; pass `render={<div />}` when the sidebar sits inside a component of a page that has its own `<main>`.
+ */
 export const SidebarInset = /* @__PURE__ */ forwardRef<HTMLElement, SidebarInsetProps>(function SidebarInset(
-  { className, ...props },
+  { className, render, ...props },
   ref,
 ) {
-  return (
-    <main
-      ref={ref}
-      data-slot="sidebar-inset"
-      className={cn(
+  return useRender({
+    defaultTagName: "main",
+    render,
+    ref,
+    props: {
+      "data-slot": "sidebar-inset",
+      className: cn(
         "relative flex w-full min-w-0 flex-1 flex-col bg-pui-background",
         "md:peer-data-[variant=inset]:m-3 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:overflow-hidden md:peer-data-[variant=inset]:rounded-pui md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-pui-border",
         "md:[.peer[data-variant=inset][data-collapsible=offcanvas]~&]:ml-3",
         className,
-      )}
-      {...props}
-    />
-  );
+      ),
+      ...props,
+    },
+  });
 });
 
 export type SidebarInputProps = InputProps;

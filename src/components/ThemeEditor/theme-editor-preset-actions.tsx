@@ -24,8 +24,8 @@ import type { ThemeEditorLabels } from "./ThemeEditor";
 export type PendingPresetAction = { kind: "rename" | "delete"; preset: ThemePreset } | null;
 
 /**
- * The "…" button of a saved preset tile. Absolutely positioned over the space its tile reserves at the end of the
- * label row, so tiles with and without it are laid out the same and opening it moves nothing.
+ * The "…" button of a saved preset. Absolutely positioned over the space its entry reserves on the right (next to,
+ * not inside, the entry's button), so entries with and without it are laid out the same and opening it moves nothing.
  */
 export function PresetActionsMenu({
   preset,
@@ -47,12 +47,12 @@ export function PresetActionsMenu({
         data-slot="theme-editor-preset-actions"
         aria-label={labels.presetActions(preset.label)}
         className={cn(
-          "absolute bottom-1 right-2 inline-flex size-5 items-center justify-center rounded-pui-xs text-pui-muted-foreground outline-none",
+          "absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-pui-sm text-pui-muted-foreground outline-none",
           "transition-colors duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-accent-foreground",
           "focus-visible:ring-pui focus-visible:ring-pui-ring data-[popup-open]:bg-pui-accent data-[popup-open]:text-pui-accent-foreground",
         )}
       >
-        <More className="size-3.5" aria-hidden="true" />
+        <More className="size-4" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-36">
         {canRename && (

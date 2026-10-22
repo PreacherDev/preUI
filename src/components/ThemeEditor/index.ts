@@ -4,6 +4,7 @@ export type { ThemeEditorFont, ThemeEditorFontFile } from "./theme-editor-fonts"
 export type {
   ThemeEditorExportFormat,
   ThemeEditorLabels,
+  ThemeEditorPage,
   ThemeEditorProps,
   ThemeEditorSample,
   ThemeEditorSection,

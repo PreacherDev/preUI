@@ -92,8 +92,8 @@ exports[`deriveTokens > snapshot: a custom dark palette 1`] = `
   "--pui-tint-hover": "0.25",
   "--pui-tint-rest": "0.15",
   "--pui-tint-scale": "1",
-  "--pui-tooltip": "210 14% 21%",
-  "--pui-tooltip-foreground": "225 12% 96%",
+  "--pui-tooltip": "210 18% 12%",
+  "--pui-tooltip-foreground": "225 12% 92%",
   "--pui-warning": "38 92% 55%",
   "--pui-warning-foreground": "225 12% 9%",
 }

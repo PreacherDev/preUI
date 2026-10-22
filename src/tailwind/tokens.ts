@@ -13,8 +13,9 @@ const baseTokens = {
   "--pui-popover": "225 11% 13%",
   "--pui-popover-foreground": "225 12% 92%",
   "--pui-rail-active": "225 10% 17%",
-  "--pui-tooltip": "225 9% 22%",
-  "--pui-tooltip-foreground": "225 12% 96%",
+  // Tooltips sit on the panel surface (same as popover since 0.15; a border sets them apart)
+  "--pui-tooltip": "225 11% 13%",
+  "--pui-tooltip-foreground": "225 12% 92%",
   // Dialog/sheet/drawer backdrop colour (strength: --pui-overlay-opacity)
   "--pui-scrim": "var(--pui-background)",
 
@@ -185,8 +186,8 @@ const lightSchemeTokens: Record<Exclude<PreuiTokenName, SharedTokenName>, string
   "--pui-popover": "0 0% 100%",
   "--pui-popover-foreground": "225 18% 12%",
   "--pui-rail-active": "225 16% 92%",
-  "--pui-tooltip": "225 14% 16%",
-  "--pui-tooltip-foreground": "225 12% 96%",
+  "--pui-tooltip": "0 0% 100%",
+  "--pui-tooltip-foreground": "225 18% 12%",
   "--pui-scrim": "225 20% 10%",
 
   // Interactive

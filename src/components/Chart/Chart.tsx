@@ -286,7 +286,7 @@ export const ChartTooltipContent = /* @__PURE__ */ forwardRef<HTMLDivElement, Ch
       ref={ref}
       data-slot="chart-tooltip"
       className={cn(
-        "grid min-w-40 items-start gap-1.5 rounded-pui-md bg-pui-tooltip px-3 py-2 text-xs font-medium text-pui-tooltip-foreground shadow-pui-tooltip",
+        "grid min-w-40 items-start gap-1.5 rounded-pui-md border border-pui-border bg-pui-tooltip px-3 py-2 text-xs font-medium text-pui-tooltip-foreground shadow-pui-tooltip",
         className,
       )}
     >

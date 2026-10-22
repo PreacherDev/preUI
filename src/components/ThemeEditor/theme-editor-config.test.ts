@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { checkThemeConfigContrast, defaultThemePresets, type ThemeConfig } from "../../theming/theme-config";
+import { checkThemeConfigContrast, defaultThemePresets, resolveThemeConfigTokens, type ThemeConfig } from "../../theming/theme-config";
 import {
   applyPreset,
   deriveLightFromDark,
   fieldProblems,
   fixFieldContrast,
+  fixFieldContrastWithTint,
+  getStyleToken,
   matchesPreset,
   parseThemeImport,
 } from "./theme-editor-config";
@@ -50,6 +52,38 @@ describe("fixFieldContrast", () => {
   it("returns the config unchanged when nothing fails", () => {
     const fine: ThemeConfig = { v: 1, palette: {} };
     expect(fixFieldContrast(fine, "dark", "primary", 4.5)).toBe(fine);
+  });
+});
+
+describe("fixFieldContrastWithTint", () => {
+  // The highest accent strength: in the dark scheme no lightness makes a colour readable on its own tint.
+  const strong: ThemeConfig = { v: 1, palette: {}, tokens: { shared: { "tint-scale": "3" } } };
+  const withTint = (scale: number): ThemeConfig => ({ ...strong, tokens: { shared: { "tint-scale": String(scale) } } });
+
+  const lightness = (config: ThemeConfig, key: "primary" | "positive" | "negative" | "warning" | "info") =>
+    Number(resolveThemeConfigTokens(config, "dark")[`--pui-${key}`].split(" ")[2].replace("%", ""));
+
+  it("lowers the accent strength just enough to keep the colour recognisable", () => {
+    for (const key of ["primary", "positive", "negative", "warning", "info"] as const) {
+      expect(problems(strong, "dark", key).length).toBeGreaterThan(0);
+      expect(fixFieldContrast(strong, "dark", key, 4.5)).toBeNull();
+      const fixed = fixFieldContrastWithTint(strong, "dark", key, 4.5)!;
+      expect(problems(fixed, "dark", key)).toEqual([]);
+      const scale = Number(getStyleToken(fixed, "tint-scale"));
+      expect(scale).toBeLessThan(3);
+      expect(scale).toBeGreaterThanOrEqual(0.5);
+      // The colour moved by at most 12 lightness points (not to near-white).
+      expect(Math.abs(lightness(fixed, key) - lightness(strong, key))).toBeLessThanOrEqual(12.5);
+      // Just enough: one slider step stronger, a small lightness change no longer works.
+      expect(fixFieldContrast(withTint(Math.round(scale * 10 + 1) / 10), "dark", key, 4.5, 12)).toBeNull();
+    }
+  });
+
+  it("keeps the accent strength when a lightness change is enough", () => {
+    const unreadable: ThemeConfig = { v: 1, palette: { light: { primary: "#fde68a" } } };
+    const fixed = fixFieldContrastWithTint(unreadable, "light", "primary", 4.5)!;
+    expect(problems(fixed, "light", "primary")).toEqual([]);
+    expect(fixed.tokens?.shared).toBeUndefined();
   });
 });
 

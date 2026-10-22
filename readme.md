@@ -1023,7 +1023,7 @@ injects the defaults and your own `:root { … }` overrides still win.
 
 | Tokens | Examples |
 |---|---|
-| Colours (HSL channels) | `--pui-background`, `--pui-card`, `--pui-popover`, `--pui-primary`, `--pui-accent`, `--pui-border`, `--pui-input`, `--pui-ring`, `--pui-positive`, `--pui-negative`, `--pui-warning`, `--pui-info`, `--pui-scrim` (dialog backdrop), `--pui-thumb` (switch/slider thumb), chart colours |
+| Colours (HSL channels) | `--pui-background`, `--pui-card`, `--pui-popover`, `--pui-primary`, `--pui-accent`, `--pui-border`, `--pui-input`, `--pui-ring`, `--pui-positive`, `--pui-negative`, `--pui-warning`, `--pui-info`, `--pui-tooltip` (tooltips, popover colour by default), `--pui-scrim` (dialog backdrop), `--pui-thumb` (switch/slider thumb), chart colours |
 | Tint strengths | `--pui-tint-rest` (0.15 dark / 0.1 light), `--pui-tint-hover` (0.25 / 0.16), `--pui-tint-border` (0.3) |
 | Sizes | `--pui-control-h-sm` / `--pui-control-h` / `--pui-control-h-lg` (32/36/40px), `--pui-radius`, `--pui-ring-width`, `--pui-ring-offset` |
 | Elevation | `--pui-shadow-window`, `--pui-shadow-floating`, `--pui-shadow-tooltip`, `--pui-shadow-thumb`, `--pui-overlay-opacity` (dialog backdrop) |
@@ -1227,19 +1227,23 @@ layout: the contrast list always shows the same rows. It edits a `ThemeConfig` (
 `NuiThemeBridge` / `GlobalState.theme` use, so a saved value needs no conversion. The component never talks to a
 server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or your API.
 
-- **Presets** (`defaultThemePresets`, or your own `ThemePreset[]`; `presets={[]}` hides them), each marked when it
-  passes the contrast check. A preset is the **whole look**: colours plus every style value (radius, opacity,
-  accent, borders, shadows — the default where it sets none). **Save as preset** with `onSavePreset`.
+- **Presets** (`defaultThemePresets`, or your own `ThemePreset[]`; `presets={[]}` hides them) as a list: a dark |
+  light swatch, the name, the `description` and the contrast result ("3 problems" or a check mark). Presets with a
+  `group` (e.g. `"Built-in"`, `"Server"`, `"Saved"`) are listed under that heading. A preset is the **whole look**:
+  colours plus every style value (radius, opacity, accent, borders, shadows — the default where it sets none).
+  **Save as preset** with `onSavePreset`.
 - **Default scheme** (dark / light / system) and **base colours per scheme** (primary, background, text, positive,
   negative, destructive, warning, info), expanded with `deriveTokens`. Unset fields show the effective colour, changed
   fields are marked and can be reset one by one. **Fix** next to an unreadable field nudges its lightness until it
-  passes; **From dark** (Light tab) carries the dark accents over, readable on light. **All colours** (collapsed)
+  passes, keeping the colour recognisable: when the accent strength is so high that the colour can't be read on its
+  own tint, it lowers the accent strength just enough instead of turning the colour almost white; **From dark** (Light tab) carries the dark accents over, readable on light. **All colours** (collapsed)
   edits every colour token of the scheme.
 - **Style**: corner radius, **panel opacity** (see-through panels, e.g. over the game), **accent strength**,
   **borders**, **shadows** — one shared token each (`--pui-radius`, `--pui-surface-opacity`, `--pui-tint-scale`,
   `--pui-border-opacity`, `--pui-shadow-scale`). Panel opacity affects panels only (page, window, card); menus,
   selects, popovers and toasts stay opaque. Border opacity fades structural lines; field borders and outline
-  buttons/badges stay. Accent strength above 100 % makes tinted text fail the contrast check.
+  buttons/badges stay. A high accent strength makes coloured text on its own tint fail the contrast check; a hint under
+  the slider says so.
 - **Font** (`fonts`), optionally with a file: `{ label, value, src: "fonts/rajdhani.woff2" }` is loaded on demand and
   stored in the theme (`fonts.sans`), so every UI that receives the theme loads it too (`loadThemeFonts`,
   `NuiThemeBridge`) — no import in code
@@ -1253,6 +1257,16 @@ server or storage. Wire `onChange` / `onSave` to `fetchNui`, `localStorage` or y
   sample buttons, form controls, a card, badges, alerts and a table (`ThemeEditorPreview`), or — switch "Game" — HUD,
   progress, a list menu, a notification and key hints, always in the edited colours of the scheme picked at its top.
   `previewSlot` replaces the sample with your own content. Below `lg` the two stack.
+- **Sidebar layout** (`layout="sidebar"`): the split layout inside preUI's `Sidebar` — inset, collapsible to the icon
+  rail (tooltips while collapsed), a sheet on small screens — that shows one page at a time: **Presets**, **Colors**
+  (scheme and base colours), **Style** (sliders and font), **Contrast** (the pair list, with a problem counter in the
+  navigation), **Share** and **Advanced** (all colours, import, export). A header shows the page and the contrast
+  status. Pages whose sections are hidden are left out. `page` / `defaultPage` / `onPageChange` control it,
+  `labels.pages` / `labels.pageHints` name the entries. The embedded sidebar writes no cookie and has no Ctrl+B.
+- **Fix all** next to the contrast status (both schemes), in the colour and contrast tabs (that scheme) and in the
+  accent strength hint: every fixable problem in one undoable step.
+- **Share** (`shareable`): the theme as a code to copy (`PUI1.…`, `encodeThemeCode`) and a field to paste someone
+  else's code — checked like an import, reported through `onImport`. In FiveM players pass themes on in the chat.
 - **Live preview** (`preview`, default on): applies the edited theme to the whole page in its own `<style>` while
   mounted and removes it on unmount. It doesn't change `data-scheme`. The preview pane / `previewSlot` show the edited
   colours with or without it (scoped CSS variables).
@@ -1298,7 +1312,8 @@ export function App() {
       <ThemeEditor
         key={JSON.stringify(serverTheme)}
         variant="inline"
-        layout="split"
+        layout="sidebar"
+        shareable
         defaultValue={serverTheme}
         onSave={(config) => fetchNui("saveTheme", config)} // Lua: GlobalState.theme = config
         labels={{ save: "Für alle speichern", schemes: { dark: "Dunkel", light: "Hell" }, sample: { loading: "Lädt" } }}
@@ -1310,7 +1325,7 @@ export function App() {
 ```
 
 Pass `onDeletePreset(preset)` / `onRenamePreset(preset, label)` to let users manage presets they saved (`removable:
-true`, set by "Save as preset"); their tiles get a menu, deleting asks first.
+true`, set by "Save as preset"); their entries get a menu, deleting asks first.
 
 The font picker offers 20 curated families (`defaultThemeEditorFonts`). preUI ships no font files: host the `.woff2`
 files yourself and point `fontSrcBase` at the folder (`fontSrcBase="https://cfx-nui-my_lib/fonts/"`), and each pick is

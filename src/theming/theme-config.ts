@@ -72,11 +72,17 @@ export interface ThemePreset {
   id: string;
   /** Visible name. */
   label: string;
+  /** Second line under the name in the `ThemeEditor` preset list. */
   description?: string;
+  /**
+   * Heading the preset is listed under in the `ThemeEditor` (e.g. `"Built-in"`, `"Server"`, `"Saved"`). Groups appear in
+   * the order of their first preset. Without any `group` the list has no headings.
+   */
+  group?: string;
   /** Applied as the new palette + tokens (and scheme / theme when set). */
   config: ThemeConfig;
   /**
-   * A preset the user saved (`ThemeEditor`'s "Save as preset" sets it): its tile gets a menu to rename it
+   * A preset the user saved (`ThemeEditor`'s "Save as preset" sets it): its entry gets a menu to rename it
    * (`onRenamePreset`) and to delete it after a confirmation (`onDeletePreset`). Built-in presets leave it out.
    */
   removable?: boolean;

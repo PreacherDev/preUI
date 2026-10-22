@@ -21,7 +21,7 @@ describe("Tooltip", () => {
     expect(screen.queryByText("Keine Berechtigung")).not.toBeInTheDocument();
     await user.hover(screen.getByRole("button", { name: "Speichern" }));
     const popup = await screen.findByText("Keine Berechtigung");
-    expect(popup).toHaveClass("bg-pui-tooltip", "text-pui-tooltip-foreground", "shadow-pui-tooltip", "rounded-pui-md", "text-xs");
+    expect(popup).toHaveClass("bg-pui-tooltip", "text-pui-tooltip-foreground", "border", "border-pui-border", "shadow-pui-tooltip", "rounded-pui-md", "text-xs");
     await user.unhover(screen.getByRole("button", { name: "Speichern" }));
     await waitFor(() => expect(screen.queryByText("Keine Berechtigung")).not.toBeInTheDocument());
   });

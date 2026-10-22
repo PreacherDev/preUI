@@ -3,6 +3,51 @@
 All notable changes to `@pre_scripts/preui`. Below 1.0 a minor version (0.4 → 0.5) may contain breaking or visible
 changes; a patch version never does. The NUI helpers have their own section at the end.
 
+## Unreleased
+
+### Updating from 0.14
+
+- **Tooltips are on the panel surface.** `TooltipContent` and `ChartTooltipContent` now look like popovers and hover
+  cards: `--pui-tooltip` / `--pui-tooltip-foreground` default to the popover colours in both schemes (dark was a
+  lighter grey, light a dark inverse tooltip) and the surface got a `border-pui-border` edge. `deriveTokens` keeps
+  tooltip and popover equal. A theme that sets `--pui-tooltip` itself keeps its colour. The old look:
+  `--pui-tooltip: 225 9% 22%` (dark) / `225 14% 16%` (light), `--pui-tooltip-foreground: 225 12% 96%` (both).
+- **ThemeEditor presets are a list.** The small tiles became entries with a bigger dark | light swatch, the name, the
+  `description` (visible now, it was only a `title`) and the contrast result as text ("3 problems"). Tests or styles
+  that relied on the tile markup (`span.w-5` reserve, `title`) need updating; the `data-slot`s stayed.
+- **ThemeEditor "Fix" may lower the accent strength.** When no small lightness change makes a colour readable on its
+  own tint (a high accent strength), Fix lowers `--pui-tint-scale` just enough instead of pushing the colour to almost
+  white or black. Before, Fix did nothing in that case.
+
+### Added
+
+- **ThemeEditor `layout="sidebar"`**: preUI's `Sidebar` (inset, collapsible to the icon rail with tooltips, a sheet on
+  small screens) shows one page of sections at a time — Presets, Colors, Style, Contrast, Share, Advanced — next to
+  the preview pane; a header shows the page and the contrast status, the Contrast entry counts the problems of both
+  schemes. New props `page` / `defaultPage` / `onPageChange`, type `ThemeEditorPage`, labels `navigation`, `pages`,
+  `pageHints`, `collapse`, `expand`, `toggleNavigation`.
+- **ThemeEditor "Fix all"** (`labels.fixAll`, `fixAllScheme`): fixes every fixable contrast problem in one undoable
+  step — next to the contrast status (both schemes), in the tab row of the colour and contrast tabs (that scheme) and
+  in the accent strength hint.
+- **Theme codes**: `encodeThemeCode(config)` turns a theme into one line (`PUI1.` + base64url JSON) to pass on in a
+  chat; `decodeThemeCode` / `isThemeCode` / `THEME_CODE_PREFIX` read it (also from `@pre_scripts/preui/tailwind`).
+  The ThemeEditor's new **share** section (`shareable`) shows the own code with a copy button and takes someone
+  else's; the import section accepts codes too. Labels `shareCode`, `shareHint`, `sharePaste`, `sharePlaceholder`,
+  `shareApply`, `importErrors.code`.
+- **`SidebarProvider` `cookieName={false}` / `tooltipDelay={false}`**: an embedded sidebar that doesn't write the
+  `sidebar_state` cookie of the page's own sidebar, and adds no `TooltipProvider` of its own. **`SidebarInset`** takes
+  `render` (e.g. `render={<div />}` inside a page that has its own `<main>`).
+- Icons `palette`, `layers`, `slidersHorizontal`, `contrast`, `settings`, `share`, `panelLeftClose`, `panelLeftOpen`
+  (default set and `lucideIcons`). A custom `IconProvider` set needs them too.
+- **`ThemePreset.group`**: presets with a group are listed under its heading, groups in the order of their first preset.
+- **ThemeEditor accent strength hint** (`labels.tintHint`): shown under the slider while coloured text on its own tint
+  is unreadable.
+
+### Fixed
+
+- ThemeEditor: "All colours" showed two chevrons; undo / redo use `IconButton` tooltips instead of a native `title`
+  (which CEF never shows).
+
 ## 0.14.0 - 2026-10-14
 
 ### Updating from 0.13

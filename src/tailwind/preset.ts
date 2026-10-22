@@ -28,6 +28,7 @@ export {
   resolveThemePalette,
 } from "../theming/theme-config";
 export type { ThemeConfig, ThemePalette, ThemePreset } from "../theming/theme-config";
+export { decodeThemeCode, encodeThemeCode, isThemeCode, THEME_CODE_PREFIX } from "../theming/theme-code";
 
 /** Explanatory comment placed at the top of generated token files (`tokens.css`, `npx preui init`). */
 export const tokensHeader = `/*

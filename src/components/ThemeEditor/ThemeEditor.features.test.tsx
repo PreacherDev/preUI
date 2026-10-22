@@ -3,6 +3,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { encodeThemeCode } from "../../theming/theme-code";
 import { checkThemeConfigContrast, type ThemeConfig } from "../../theming/theme-config";
 import { ThemeEditor } from "./ThemeEditor";
 import { defaultThemeEditorFonts } from "./theme-editor-fonts";
@@ -130,6 +131,196 @@ describe("ThemeEditor features", () => {
     });
   });
 
+  it("Fix lowers the accent strength when no lightness can make a colour readable on its own tint", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const strong: ThemeConfig = { v: 1, palette: {}, tokens: { shared: { "tint-scale": "3" } } };
+    const { container } = render(<ThemeEditor defaultValue={strong} onChange={onChange} presets={[]} preview={false} />);
+    expect(slot(container, "theme-editor-tint-hint")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Make Primary readable" }));
+    const fixed = onChange.mock.lastCall![0] as ThemeConfig;
+    expect(Number((fixed.tokens?.shared as Record<string, string>)["tint-scale"])).toBeLessThan(3);
+    expect(container.querySelector('[data-field="primary"][data-scheme-field="dark"]')).toHaveAttribute("data-contrast", "pass");
+  });
+
+  describe("fix all", () => {
+    // Pale yellow primary in light, accent strength at the maximum: problems in both schemes.
+    const broken: ThemeConfig = { v: 1, palette: { light: { primary: "#fde68a" } }, tokens: { shared: { "tint-scale": "3" } } };
+
+    it("the status bar fixes both schemes in one undoable step", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const { container } = render(<ThemeEditor defaultValue={broken} onChange={onChange} presets={[]} preview={false} />);
+      expect(container.querySelector('[data-scheme-status="dark"]')).not.toHaveAttribute("data-problems", "0");
+      await user.click(within(slot(container, "theme-editor-status")!).getByRole("button", { name: "Fix all" }));
+      expect(onChange).toHaveBeenCalledTimes(1);
+      const fixed = onChange.mock.lastCall![0] as ThemeConfig;
+      expect(checkThemeConfigContrast(fixed, "dark").filter((result) => result.ratio < 4.5)).toEqual([]);
+      expect(checkThemeConfigContrast(fixed, "light").filter((result) => result.ratio < 4.5)).toEqual([]);
+      // Nothing left to fix: the button is gone.
+      expect(slot(container, "theme-editor-fix-all")).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Undo" }));
+      expect(onChange.mock.lastCall![0]).toEqual(expect.objectContaining({ palette: broken.palette }));
+    });
+
+    it("the colour tab fixes only its own scheme", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(<ThemeEditor defaultValue={broken} defaultEditingScheme="light" onChange={onChange} presets={[]} preview={false} />);
+      await user.click(screen.getByRole("button", { name: "Fix all problems in Light" }));
+      const fixed = onChange.mock.lastCall![0] as ThemeConfig;
+      expect(checkThemeConfigContrast(fixed, "light").filter((result) => result.ratio < 4.5)).toEqual([]);
+      expect(fixed.palette?.dark).toBeUndefined();
+    });
+
+    it("has no Fix all while everything is readable", () => {
+      const { container } = render(<ThemeEditor presets={[]} preview={false} />);
+      expect(slot(container, "theme-editor-fix-all")).toBeNull();
+      expect(slot(container, "theme-editor-fix-all-scheme")).toBeNull();
+    });
+  });
+
+  describe("share", () => {
+    it("shows the theme code and applies a pasted one as one change", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const onImport = vi.fn();
+      const other: ThemeConfig = { v: 1, palette: { dark: { primary: "#fb7185" } } };
+      const { container } = render(
+        <ThemeEditor shareable onChange={onChange} onImport={onImport} presets={[]} preview={false} />,
+      );
+      expect((slot(container, "theme-editor-share-code") as HTMLInputElement).value).toMatch(/^PUI1\./);
+      await user.type(screen.getByRole("textbox", { name: "Theme code from someone else" }), encodeThemeCode(other));
+      await user.click(screen.getByRole("button", { name: "Apply" }));
+      expect(onChange.mock.lastCall![0]).toEqual(expect.objectContaining({ palette: other.palette }));
+      expect(onImport).toHaveBeenCalledTimes(1);
+      expect(slot(container, "theme-editor-share-message")).toHaveTextContent("Applied.");
+    });
+
+    it("says so when the code is broken", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const { container } = render(<ThemeEditor shareable onChange={onChange} presets={[]} preview={false} />);
+      await user.type(screen.getByRole("textbox", { name: "Theme code from someone else" }), "PUI1.%%%");
+      await user.click(screen.getByRole("button", { name: "Apply" }));
+      expect(onChange).not.toHaveBeenCalled();
+      expect(slot(container, "theme-editor-share-message")).toHaveTextContent("That is not a valid theme code.");
+    });
+  });
+
+  describe("preset list", () => {
+    const preset = (id: string, extra: object = {}) => ({
+      id,
+      label: id,
+      config: { v: 1 as const, palette: { dark: { primary: "#529dff" } } },
+      ...extra,
+    });
+
+    it("shows the description and the number of contrast problems as visible text", () => {
+      // Pale yellow primary on white: unreadable in the light scheme.
+      const bad = { id: "bad", label: "Bad", config: { v: 1 as const, palette: { light: { primary: "#fde68a" } } } };
+      const { container } = render(
+        <ThemeEditor presets={[preset("ok", { description: "Blue accent" }), bad]} preview={false} />,
+      );
+      const [ok, failing] = container.querySelectorAll<HTMLElement>('[data-slot="theme-editor-preset"]');
+      expect(within(ok).getByText("Blue accent")).toBeInTheDocument();
+      expect(ok).toHaveAttribute("data-contrast", "pass");
+      expect(failing).toHaveAttribute("data-contrast", "fail");
+      expect(within(failing).getByText(/^\d+ problems?$/)).toBeVisible();
+      expect(ok).not.toHaveAttribute("title");
+    });
+
+    it("lists presets under their group headings, in the order of the first preset of each group", () => {
+      const { container } = render(
+        <ThemeEditor
+          presets={[preset("a", { group: "Built-in" }), preset("b", { group: "Server" }), preset("c", { group: "Built-in" })]}
+          preview={false}
+        />,
+      );
+      const groups = [...container.querySelectorAll<HTMLElement>('[data-slot="theme-editor-preset-group"]')];
+      expect(groups.map((group) => group.firstElementChild?.textContent)).toEqual(["Built-in", "Server"]);
+      expect([...groups[0].querySelectorAll("[data-preset]")].map((item) => item.getAttribute("data-preset"))).toEqual(["a", "c"]);
+      expect(within(groups[1]).getByRole("group", { name: "Server" })).toBeInTheDocument();
+    });
+
+    it("has no headings without groups", () => {
+      const { container } = render(<ThemeEditor presets={[preset("a"), preset("b")]} preview={false} />);
+      expect(container.querySelector('[data-slot="theme-editor-preset-group"]')).toBeNull();
+      expect(screen.getByRole("group", { name: "Presets" })).toBeInTheDocument();
+    });
+  });
+
+  describe('layout="sidebar"', () => {
+    it("shows one page at a time, switched from the navigation", async () => {
+      const user = userEvent.setup();
+      const onPageChange = vi.fn();
+      const { container } = render(
+        <ThemeEditor layout="sidebar" exportable preview={false} onPageChange={onPageChange} />,
+      );
+      const nav = screen.getByRole("navigation", { name: "Theme editor sections" });
+      expect(within(nav).getAllByRole("button").map((button) => button.getAttribute("data-page"))).toEqual([
+        "presets",
+        "colors",
+        "style",
+        "contrast",
+        "advanced",
+      ]);
+      expect(within(nav).getByRole("button", { name: /Presets/ })).toHaveAttribute("aria-current", "page");
+      expect(slot(container, "theme-editor-presets")).not.toBeNull();
+      expect(slot(container, "theme-editor-colors")).toBeNull();
+
+      await user.click(within(nav).getByRole("button", { name: /Colors/ }));
+      expect(onPageChange).toHaveBeenLastCalledWith("colors");
+      expect(slot(container, "theme-editor-presets")).toBeNull();
+      expect(slot(container, "theme-editor-scheme")).not.toBeNull();
+      expect(slot(container, "theme-editor-colors")).not.toBeNull();
+      // The contrast details have their own page.
+      expect(slot(container, "theme-editor-contrast")).toBeNull();
+
+      await user.click(within(nav).getByRole("button", { name: /Contrast/ }));
+      expect(slot(container, "theme-editor-contrast")).not.toBeNull();
+
+      await user.click(within(nav).getByRole("button", { name: /Advanced/ }));
+      expect(slot(container, "theme-editor-advanced")).toHaveAttribute("data-open");
+      expect(slot(container, "theme-editor-export")).not.toBeNull();
+      // The preview pane stays next to every page.
+      expect(slot(container, "theme-editor-preview")).not.toBeNull();
+    });
+
+    it("leaves out empty pages and counts contrast problems on the contrast entry", () => {
+      const unreadable: ThemeConfig = { v: 1, palette: { light: { primary: "#fde68a" } } };
+      render(<ThemeEditor layout="sidebar" presets={[]} preview={false} value={unreadable} sections={["colors", "contrast"]} />);
+      const nav = screen.getByRole("navigation");
+      expect(within(nav).getAllByRole("button").map((button) => button.getAttribute("data-page"))).toEqual(["colors", "contrast"]);
+      // The first page shown is the start page when "presets" isn't there.
+      expect(within(nav).getByRole("button", { name: /Colors/ })).toHaveAttribute("aria-current", "page");
+      const badge = nav.querySelector('[data-slot="theme-editor-nav-problems"]');
+      expect(badge).toHaveTextContent(/\d+/);
+    });
+
+    it("is preUI's Sidebar: collapsible to the icon rail without touching the page's sidebar cookie", async () => {
+      const user = userEvent.setup();
+      document.cookie = "sidebar_state=true; path=/";
+      const { container } = render(<ThemeEditor layout="sidebar" shareable preview={false} />);
+      const sidebar = container.querySelector('[data-slot="sidebar"]')!;
+      expect(sidebar).toHaveAttribute("data-variant", "inset");
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(within(screen.getByRole("navigation")).getByRole("button", { name: /Share/ })).toHaveAttribute("data-page", "share");
+      await user.click(screen.getByRole("button", { name: "Collapse" }));
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-collapsible", "icon");
+      expect(document.cookie).toContain("sidebar_state=true");
+      // The content panel is a div, not a second <main>.
+      expect(slot(container, "theme-editor-main")!.tagName).toBe("DIV");
+    });
+
+    it("can be controlled with page", () => {
+      const { container } = render(<ThemeEditor layout="sidebar" preview={false} page="style" />);
+      expect(slot(container, "theme-editor-style")).not.toBeNull();
+      expect(slot(container, "theme-editor-presets")).toBeNull();
+    });
+  });
+
   describe("saved presets: rename and delete", () => {
     const builtIn = { id: "blue", label: "Blau", config: { v: 1 as const, palette: { dark: { primary: "#529dff" } } } };
     const saved = { id: "mine", label: "Mein Theme", removable: true, config: { v: 1 as const, palette: { dark: { primary: "#fb7185" } } } };
@@ -143,12 +334,12 @@ describe("ThemeEditor features", () => {
       expect(menus).toHaveLength(1);
       expect(menus[0]).toHaveAccessibleName("Actions for Mein Theme");
       expect(menus[0]).toHaveClass("absolute");
-      // Every tile has the same structure; the saved one reserves the button's room in its label row.
+      // Every entry has the same structure; the saved one reserves the button's room on its right edge.
       const tiles = view.container.querySelectorAll('[data-slot="theme-editor-preset-item"]');
       expect(tiles).toHaveLength(2);
       expect(tiles[1]).toContainElement(menus[0] as HTMLElement);
-      expect(tiles[1].querySelector("button[data-preset] span.w-5")).not.toBeNull();
-      expect(tiles[0].querySelector("button[data-preset] span.w-5")).toBeNull();
+      expect(tiles[1].querySelector("button[data-preset]")).toHaveClass("pr-11");
+      expect(tiles[0].querySelector("button[data-preset]")).not.toHaveClass("pr-11");
     });
 
     it("deletes a preset after the confirmation, and not when cancelled", async () => {

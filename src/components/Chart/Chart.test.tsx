@@ -250,6 +250,7 @@ describe("ChartTooltipContent", () => {
     expect(surface).toHaveClass(
       "bg-pui-tooltip",
       "text-pui-tooltip-foreground",
+      "border-pui-border",
       "rounded-pui-md",
       "shadow-pui-tooltip",
       "text-xs",

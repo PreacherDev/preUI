@@ -10,6 +10,7 @@ import {
 } from "../../theming/contrast";
 import type { DeriveTokensBase } from "../../theming/derive";
 import { resolveThemeConfigTokens, type ThemeConfig, type ThemePalette, type ThemePreset } from "../../theming/theme-config";
+import { decodeThemeCode, isThemeCode } from "../../theming/theme-code";
 import { normalizeTokens, type TokenInput, type TokenOverrides } from "../../theming/token-css";
 import { lightTokens, tokens as defaultTokens, type PreuiScheme, type PreuiTokenName } from "../../tailwind/tokens";
 
@@ -315,12 +316,14 @@ export function fixFieldContrast(
   scheme: PreuiScheme,
   key: ThemeEditorColorKey,
   minContrast: number,
+  /** Largest lightness change tried, in percentage points. @default 100 */
+  maxShift = 100,
 ): ThemeConfig | null {
   if (hasRawColorToken(config, scheme, key)) return null;
   const current = parseChannels(resolveThemeConfigTokens(config, scheme)[`--pui-${key}` as PreuiTokenName]);
   if (!current) return null;
   if (fieldProblems(key, checkTokenContrast(resolveThemeConfigTokens(config, scheme)), minContrast).length === 0) return config;
-  for (let step = 1; step <= 100; step++) {
+  for (let step = 1; step <= maxShift; step++) {
     for (const direction of [1, -1]) {
       const l = current.l + direction * step;
       if (l < 0 || l > 100) continue;
@@ -333,6 +336,125 @@ export function fixFieldContrast(
     }
   }
   return null;
+}
+
+/** Lowest accent strength the editor's slider offers; `fixFieldContrastWithTint` never goes below it. */
+const MIN_TINT_SCALE = 0.5;
+
+/**
+ * Pairs of a colour as text on its own tint (`primary/primary` …). Text and background share the colour, so above a
+ * certain accent strength no lightness reaches the minimum contrast — only a weaker tint does.
+ */
+export const isOwnTintPair = (result: Pick<TokenContrastResult, "fg" | "bg">) => result.fg === result.bg;
+
+/**
+ * Lightness change (percentage points) up to which a fixed colour still reads as the same colour. A strong tint can
+ * often only be passed by a near-white or near-black colour; lowering the tint is the better fix then.
+ */
+const NEAR_SHIFT = 12;
+
+/**
+ * The fix with the highest accent strength (`tint-scale`) below the current one — in the slider's 0.1 steps, down to
+ * 0.5 — at which a lightness change of at most `maxShift` clears the field. A weaker tint only makes it easier, so the
+ * working strengths are a suffix of the list: binary search for its start.
+ */
+function fixWithLowerTint(
+  config: ThemeConfig,
+  scheme: PreuiScheme,
+  key: ThemeEditorColorKey,
+  minContrast: number,
+  maxShift: number,
+): ThemeConfig | null {
+  const current = Number(getStyleToken(config, "tint-scale"));
+  if (!Number.isFinite(current)) return null;
+  const steps: number[] = [];
+  for (let step = Math.ceil(current * 10 - 1e-6) - 1; step >= MIN_TINT_SCALE * 10; step--) steps.push(step / 10);
+  let low = 0;
+  let high = steps.length - 1;
+  let best: ThemeConfig | null = null;
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    const fixed = fixFieldContrast(setSharedToken(config, "tint-scale", String(steps[middle])), scheme, key, minContrast, maxShift);
+    if (fixed) {
+      best = fixed;
+      high = middle - 1;
+    } else {
+      low = middle + 1;
+    }
+  }
+  return best;
+}
+
+/**
+ * The editor's "Fix": clears a field's contrast problems and keeps the colour recognisable. In this order:
+ * 1. a small lightness change (≤ 12 points) at the current accent strength;
+ * 2. the accent strength lowered just enough that a small lightness change works — a strong tint makes a colour
+ *    unreadable on its own tint, and passing it by lightness alone would turn the colour almost white or black;
+ * 3. any lightness at the current strength (`fixFieldContrast`), then any lightness with a lower strength.
+ * Returns `null` when nothing works (or a raw token overrides the colour).
+ */
+export function fixFieldContrastWithTint(
+  config: ThemeConfig,
+  scheme: PreuiScheme,
+  key: ThemeEditorColorKey,
+  minContrast: number,
+): ThemeConfig | null {
+  if (hasRawColorToken(config, scheme, key)) return null;
+  return (
+    fixFieldContrast(config, scheme, key, minContrast, NEAR_SHIFT) ??
+    fixWithLowerTint(config, scheme, key, minContrast, NEAR_SHIFT) ??
+    fixFieldContrast(config, scheme, key, minContrast) ??
+    fixWithLowerTint(config, scheme, key, minContrast, 100)
+  );
+}
+
+/** Order "Fix all" repairs the fields in: text first, then the accents, the background last (it moves every pair). */
+const fixAllOrder: readonly ThemeEditorColorKey[] = [
+  "foreground",
+  "primary",
+  "positive",
+  "negative",
+  "destructive",
+  "warning",
+  "info",
+  "background",
+];
+
+/** Whether "Fix all" has something to do in a scheme: a field with a problem that no raw token overrides. */
+export function hasFixableProblems(
+  config: ThemeConfig,
+  scheme: PreuiScheme,
+  results: readonly TokenContrastResult[],
+  minContrast: number,
+): boolean {
+  return themeEditorColorKeys.some(
+    (key) => !hasRawColorToken(config, scheme, key) && fieldProblems(key, results, minContrast).length > 0,
+  );
+}
+
+/**
+ * "Fix all": runs `fixFieldContrastWithTint` for every field with a problem in the given schemes (up to three rounds,
+ * as fixing one colour can affect another's pairs) and returns the result — one change for undo.
+ */
+export function fixAllContrast(config: ThemeConfig, schemes: readonly PreuiScheme[], minContrast: number): ThemeConfig {
+  let next = config;
+  for (let round = 0; round < 3; round++) {
+    let changed = false;
+    for (const scheme of schemes) {
+      for (const key of fixAllOrder) {
+        if (hasRawColorToken(next, scheme, key)) continue;
+        const results = checkTokenContrast(resolveThemeConfigTokens(next, scheme));
+        if (fieldProblems(key, results, minContrast).length === 0) continue;
+        const fixed = fixFieldContrastWithTint(next, scheme, key, minContrast);
+        if (fixed && fixed !== next) {
+          next = fixed;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) break;
+  }
+  return next;
 }
 
 /**
@@ -361,16 +483,24 @@ export function deriveLightFromDark(config: ThemeConfig, minContrast: number): T
 /** Result of reading a pasted theme. */
 export type ThemeImportResult =
   | { ok: true; config: ThemeConfig; warnings: string[] }
-  | { ok: false; error: "json" | "shape" | "version" | "size" };
+  | { ok: false; error: "json" | "shape" | "version" | "size" | "code" };
 
 const IMPORT_KEYS = new Set(["v", "scheme", "theme", "palette", "tokens", "fonts"]);
 const MAX_IMPORT_LENGTH = 64 * 1024;
 
 /**
- * Reads a pasted theme (JSON of a `ThemeConfig`, protocol v1): checks size, shape and version, keeps only known
- * fields, and lists what will be dropped (unknown tokens, invalid colours, unknown fields) as warnings.
+ * Reads a pasted theme (JSON of a `ThemeConfig`, protocol v1, or a theme code `PUI1.…` from `encodeThemeCode`):
+ * checks size, shape and version, keeps only known fields, and lists what will be dropped (unknown tokens, invalid
+ * colours, unknown fields) as warnings.
  */
-export function parseThemeImport(text: string, fallbackScheme: SchemePreference): ThemeImportResult {
+export function parseThemeImport(input: string, fallbackScheme: SchemePreference): ThemeImportResult {
+  if (input.length > MAX_IMPORT_LENGTH * 2) return { ok: false, error: "size" };
+  let text = input;
+  if (isThemeCode(input)) {
+    const decoded = decodeThemeCode(input);
+    if (decoded === null) return { ok: false, error: "code" };
+    text = decoded;
+  }
   if (text.length > MAX_IMPORT_LENGTH) return { ok: false, error: "size" };
   let data: unknown;
   try {

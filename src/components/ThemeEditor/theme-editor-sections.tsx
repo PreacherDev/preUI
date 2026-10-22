@@ -1,12 +1,14 @@
-// The ThemeEditor's newer sections: Style (radius, transparency, accent, borders, shadows, font), Import, all colour
-// tokens (advanced) and the "save as preset" form. Kept apart from ThemeEditor.tsx so that file stays readable.
+// The ThemeEditor's newer sections: Style (radius, transparency, accent, borders, shadows, font), Import, Share (theme
+// codes), all colour tokens (advanced) and the "save as preset" form. Kept apart from ThemeEditor.tsx so that file stays readable.
 import { useEffect, useId, useMemo, useState } from "react";
 import { useIcon } from "../../icons";
+import { encodeThemeCode } from "../../theming/theme-code";
 import { loadThemeFont } from "../../theming/theme-fonts";
 import type { ThemeConfig, ThemePreset } from "../../theming/theme-config";
 import { getTokenKind } from "../../theming/token-css";
 import { lightTokens, tokens, type PreuiScheme, type PreuiTokenName } from "../../tailwind/tokens";
 import { cn } from "../../utils/cn";
+import { copyText } from "../../utils/copy-text";
 import { Button } from "../Button/Button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../Collapsible/Collapsible";
 import { ColorPicker } from "../ColorPicker/ColorPicker";
@@ -78,13 +80,20 @@ export function StyleSection({
   labels,
   locale,
   update,
+  tintTooStrong = false,
+  onFixAll,
 }: {
   config: ThemeConfig;
   labels: ThemeEditorLabels;
   locale: string;
   update: Update;
+  /** Coloured text on its own tint is unreadable: shows `tintHint` under the accent strength. */
+  tintTooStrong?: boolean;
+  /** "Fix all" next to the hint (both schemes). */
+  onFixAll?: () => void;
 }) {
   const Undo = useIcon("undo");
+  const Warning = useIcon("warning");
   const number = useMemo(() => new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 3 }), [locale]);
   const surfaceOpacity = Number(getStyleToken(config, "surface-opacity"));
   return (
@@ -94,7 +103,7 @@ export function StyleSection({
         const raw = getSharedToken(config, slider.key);
         const value = slider.read(raw ?? styleDefault(slider.key)) ?? slider.read(styleDefault(slider.key)) ?? slider.min;
         const name = slider.label(labels);
-        return (
+        const item = (
           <div
             key={slider.key}
             data-slot="theme-editor-style-item"
@@ -126,6 +135,26 @@ export function StyleSection({
             >
               <Undo aria-hidden="true" />
             </Button>
+          </div>
+        );
+        if (slider.key !== "tint-scale") return item;
+        return (
+          <div key={slider.key} className="flex flex-col gap-1.5">
+            {item}
+            {/* Only while it applies; it explains the warnings, so a moving layout below is fine here. */}
+            {tintTooStrong && (
+              <div data-slot="theme-editor-tint-hint" role="status" className="flex items-start gap-2">
+                <p className="flex min-w-0 flex-1 items-start gap-1.5 text-xs text-pui-warning">
+                  <Warning className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0">{labels.tintHint}</span>
+                </p>
+                {onFixAll && (
+                  <Button variant="outline" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={onFixAll} data-slot="theme-editor-fix-all">
+                    {labels.fixAll}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
@@ -286,6 +315,118 @@ export function ImportSection({
 }
 
 // ------------------------------------------------------------------------------------------------
+// Share (theme codes)
+// ------------------------------------------------------------------------------------------------
+
+/**
+ * The theme as a code to copy (`encodeThemeCode`) and a field to paste someone else's code: checked like an import and
+ * applied as one undoable change. Built for FiveM, where players pass themes on in the chat.
+ */
+export function ShareSection({
+  config,
+  fallbackScheme,
+  labels,
+  onApply,
+}: {
+  config: ThemeConfig;
+  fallbackScheme: SchemePreference;
+  labels: ThemeEditorLabels;
+  onApply: (config: ThemeConfig, warnings: string[]) => void;
+}) {
+  const id = useId();
+  const Copy = useIcon("copy");
+  const code = useMemo(() => encodeThemeCode(config), [config]);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const [text, setText] = useState("");
+  const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(null);
+  useEffect(() => {
+    if (copyState === "idle") return;
+    const timer = setTimeout(() => setCopyState("idle"), 1500);
+    return () => clearTimeout(timer);
+  }, [copyState]);
+  const apply = () => {
+    const result = parseThemeImport(text, fallbackScheme);
+    if (!result.ok) {
+      setMessage({ tone: "error", text: labels.importErrors[result.error] });
+      return;
+    }
+    onApply(result.config, result.warnings);
+    setMessage({
+      tone: "info",
+      text: result.warnings.length > 0 ? labels.importWarnings(result.warnings.length, result.warnings.join(", ")) : labels.importDone,
+    });
+    setText("");
+  };
+  return (
+    <section data-slot="theme-editor-share" className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1.5">
+        <span id={`${id}-code`} className={eyebrow}>
+          {labels.shareCode}
+        </span>
+        <div className="flex items-center gap-2">
+          <Input
+            readOnly
+            value={code}
+            aria-labelledby={`${id}-code`}
+            spellCheck={false}
+            onFocus={(event) => event.currentTarget.select()}
+            data-slot="theme-editor-share-code"
+            className="h-8 min-w-0 flex-1 font-mono text-xs"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Copy />}
+            className="shrink-0"
+            data-slot="theme-editor-share-copy"
+            onClick={async () => setCopyState((await copyText(code)) ? "copied" : "failed")}
+          >
+            {copyState === "copied" ? labels.copied : copyState === "failed" ? labels.copyFailed : labels.copy}
+          </Button>
+        </div>
+        <p className="text-xs text-pui-muted-foreground">{labels.shareHint}</p>
+      </div>
+      <form
+        className="flex flex-col gap-1.5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          apply();
+        }}
+      >
+        <span id={`${id}-paste`} className={eyebrow}>
+          {labels.sharePaste}
+        </span>
+        <div className="flex items-center gap-2">
+          <Input
+            value={text}
+            onChange={(event) => {
+              setText(event.target.value);
+              setMessage(null);
+            }}
+            placeholder={labels.sharePlaceholder}
+            aria-labelledby={`${id}-paste`}
+            spellCheck={false}
+            data-slot="theme-editor-share-input"
+            className="h-8 min-w-0 flex-1 font-mono text-xs"
+          />
+          <Button type="submit" variant="outline" size="sm" disabled={text.trim() === ""} className="shrink-0" data-slot="theme-editor-share-apply">
+            {labels.shareApply}
+          </Button>
+        </div>
+        <span
+          role={message?.tone === "error" ? "alert" : "status"}
+          data-slot="theme-editor-share-message"
+          data-tone={message?.tone}
+          className={cn("min-h-4 text-xs", message?.tone === "error" ? "text-pui-negative" : "text-pui-muted-foreground")}
+        >
+          {message?.text}
+        </span>
+      </form>
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------------------------------------
 // All colour tokens (advanced)
 // ------------------------------------------------------------------------------------------------
 
@@ -301,12 +442,15 @@ export function AdvancedSection({
   effective,
   labels,
   update,
+  defaultOpen = false,
 }: {
   config: ThemeConfig;
   scheme: PreuiScheme;
   effective: Record<PreuiTokenName, string>;
   labels: ThemeEditorLabels;
   update: Update;
+  /** Start expanded (the sidebar layout's own page). */
+  defaultOpen?: boolean;
 }) {
   const Undo = useIcon("undo");
   const Chevron = useIcon("chevronDown");
@@ -321,8 +465,8 @@ export function AdvancedSection({
       return { ...current, tokens: { ...current.tokens, [scheme]: own } };
     });
   return (
-    <Collapsible data-slot="theme-editor-advanced" className="flex flex-col gap-2">
-      <CollapsibleTrigger className="group flex items-center gap-1.5 self-start rounded-pui-sm text-left outline-none focus-visible:ring-pui focus-visible:ring-pui-ring">
+    <Collapsible data-slot="theme-editor-advanced" defaultOpen={defaultOpen} className="flex flex-col gap-2">
+      <CollapsibleTrigger hideChevron className="group flex items-center gap-1.5 self-start rounded-pui-sm text-left outline-none focus-visible:ring-pui focus-visible:ring-pui-ring">
         <span className={eyebrow}>
           {labels.advanced} · {labels.schemes[scheme]}
         </span>

@@ -25,3 +25,4 @@ export {
 } from "./theme-config";
 export type { ThemeConfig, ThemeFontFile, ThemeFontSource, ThemePalette, ThemePreset } from "./theme-config";
 export { loadThemeFont, loadThemeFonts } from "./theme-fonts";
+export { decodeThemeCode, encodeThemeCode, isThemeCode, THEME_CODE_PREFIX } from "./theme-code";

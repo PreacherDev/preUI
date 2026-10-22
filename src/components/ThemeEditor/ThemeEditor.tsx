@@ -24,13 +24,33 @@ import {
 import { renderTokenOverrides, sharedTokenSet, tokenOverridesHeader } from "../../theming/token-css";
 import { lightTokens, tokens, type PreuiScheme, type PreuiTokenName } from "../../tailwind/tokens";
 import { cn } from "../../utils/cn";
+import { copyText } from "../../utils/copy-text";
 import { PortalContainerProvider } from "../../utils/portal-container";
 import { Button } from "../Button/Button";
 import type { ColorPickerLabels } from "../ColorPicker/ColorPicker";
 import { ColorPicker } from "../ColorPicker/ColorPicker";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../Collapsible/Collapsible";
 import { ContrastBadge, type ContrastBadgeLabels } from "../ContrastBadge/ContrastBadge";
+import { IconButton } from "../IconButton/IconButton";
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "../Item/Item";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
+import { Separator } from "../Separator/Separator";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "../Sidebar/Sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../Tabs/Tabs";
 import { Textarea } from "../Textarea/Textarea";
 import type { SchemePreference } from "../Theme/theme-script";
@@ -39,8 +59,11 @@ import {
   applyPreset,
   deriveLightFromDark,
   fieldProblems,
-  fixFieldContrast,
+  fixAllContrast,
+  fixFieldContrastWithTint,
+  hasFixableProblems,
   hasRawColorToken,
+  isOwnTintPair,
   allPairKeys,
   hasOverrides,
   importantPairs,
@@ -54,7 +77,7 @@ import {
   toHex,
   type ThemeEditorColorKey,
 } from "./theme-editor-config";
-import { AdvancedSection, FontSection, ImportSection, SavePresetForm, StyleSection } from "./theme-editor-sections";
+import { AdvancedSection, FontSection, ImportSection, SavePresetForm, ShareSection, StyleSection } from "./theme-editor-sections";
 import { ThemeEditorPreview, type ThemeEditorPreviewLabels } from "./ThemeEditorPreview";
 import { PresetActionDialogs, PresetActionsMenu, type PendingPresetAction } from "./theme-editor-preset-actions";
 import { defaultThemeEditorFonts, resolveThemeEditorFonts, type ThemeEditorFont } from "./theme-editor-fonts";
@@ -116,7 +139,12 @@ export interface ThemeEditorLabels {
   percentValue: (value: string) => string;
   /** Shown while panels are see-through: the contrast check assumes opaque panels. */
   transparencyHint: string;
-  /** Contrast repair button of a field ("Fix"). */
+  /** Shown under the accent strength while coloured text on its own tint is unreadable (no lightness helps then). */
+  tintHint: string;
+  /**
+   * Contrast repair button of a field ("Fix"): changes the colour's lightness, and lowers the accent strength just
+   * enough when no lightness works.
+   */
   fixContrast: string;
   /** Accessible name of the repair button, e.g. `"Make Primary readable"`. */
   fixContrastField: (field: string) => string;
@@ -132,7 +160,7 @@ export interface ThemeEditorLabels {
   importTitle: string;
   importPlaceholder: string;
   importApply: string;
-  importErrors: Record<"json" | "shape" | "version" | "size", string>;
+  importErrors: Record<"json" | "shape" | "version" | "size" | "code", string>;
   /** After an import that dropped some entries. */
   importWarnings: (count: number, list: string) => string;
   importDone: string;
@@ -154,6 +182,27 @@ export interface ThemeEditorLabels {
   /** Preview pane: the built-in sample sets. */
   sampleWeb: string;
   sampleGame: string;
+  /** Button that fixes every fixable contrast problem at once (status bar, colour and contrast tabs, accent hint). */
+  fixAll: string;
+  /** Accessible name of the "Fix all" button of one scheme's tab, e.g. `"Fix all problems in Dark"`. */
+  fixAllScheme: (scheme: string) => string;
+  /** Share section (`shareable`): the own theme code, its hint, and the field for someone else's code. */
+  shareCode: string;
+  shareHint: string;
+  sharePaste: string;
+  sharePlaceholder: string;
+  shareApply: string;
+  /** `layout="sidebar"`: accessible name of the navigation. */
+  navigation: string;
+  /** `layout="sidebar"`: the collapse button at the bottom of the navigation, and its tooltip while collapsed. */
+  collapse: string;
+  expand: string;
+  /** `layout="sidebar"`: accessible name of the toggle in the header and on the navigation's edge. */
+  toggleNavigation: string;
+  /** `layout="sidebar"`: names of the navigation entries. */
+  pages: Record<ThemeEditorPage, string>;
+  /** `layout="sidebar"`: second line of the navigation entries. */
+  pageHints: Record<ThemeEditorPage, string>;
   /** Passed to every `ContrastBadge`. */
   contrastBadge?: Partial<ContrastBadgeLabels>;
   /** Passed to every `ColorPicker` (the trigger's name is the field label). */
@@ -238,6 +287,8 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
   shadowScale: "Shadows",
   percentValue: (value) => `${value} %`,
   transparencyHint: "See-through panels: readability also depends on what is behind them (the contrast check assumes opaque panels).",
+  tintHint:
+    "At this accent strength coloured text on its own tint can't be read. Lower it, or fix the colours: that lowers the strength just enough.",
   fixContrast: "Fix",
   fixContrastField: (field) => `Make ${field} readable`,
   deriveLight: "From dark",
@@ -247,13 +298,14 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
   discard: "Discard changes",
   unsaved: "Unsaved changes",
   importTitle: "Import",
-  importPlaceholder: "Paste a theme (JSON)",
+  importPlaceholder: "Paste a theme (JSON or theme code)",
   importApply: "Apply",
   importErrors: {
     json: "That is not valid JSON.",
     shape: "That is not a theme (expected a JSON object).",
     version: "Unknown theme version (expected v: 1).",
     size: "The text is too long for a theme.",
+    code: "That is not a valid theme code.",
   },
   importWarnings: (count, list) => `Applied. ${count === 1 ? "1 entry was" : `${count} entries were`} left out: ${list}`,
   importDone: "Applied.",
@@ -273,12 +325,41 @@ export const defaultThemeEditorLabels: ThemeEditorLabels = {
   advancedHint: "Every colour token of this scheme. Values set here win over the base colours above.",
   sampleWeb: "Interface",
   sampleGame: "Game",
+  fixAll: "Fix all",
+  fixAllScheme: (scheme) => `Fix all problems in ${scheme}`,
+  shareCode: "Your theme code",
+  shareHint: "Anyone who pastes this code gets your theme.",
+  sharePaste: "Theme code from someone else",
+  sharePlaceholder: "PUI1.…",
+  shareApply: "Apply",
+  navigation: "Theme editor sections",
+  collapse: "Collapse",
+  expand: "Expand",
+  toggleNavigation: "Toggle navigation",
+  pages: {
+    presets: "Presets",
+    colors: "Colors",
+    style: "Style",
+    contrast: "Contrast",
+    share: "Share",
+    advanced: "Advanced",
+  },
+  pageHints: {
+    presets: "Ready-made looks",
+    colors: "Scheme and base colours",
+    style: "Corners, opacity, font",
+    contrast: "Check readability",
+    share: "Pass your theme on, take someone else's",
+    advanced: "All colours, import, export",
+  },
 };
 
-type ThemeEditorLabelsInput = Partial<Omit<ThemeEditorLabels, "fields" | "pairs" | "schemes">> & {
+type ThemeEditorLabelsInput = Partial<Omit<ThemeEditorLabels, "fields" | "pairs" | "schemes" | "pages" | "pageHints">> & {
   fields?: Partial<ThemeEditorLabels["fields"]>;
   pairs?: Partial<ThemeEditorLabels["pairs"]>;
   schemes?: Partial<ThemeEditorLabels["schemes"]>;
+  pages?: Partial<ThemeEditorLabels["pages"]>;
+  pageHints?: Partial<ThemeEditorLabels["pageHints"]>;
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -295,7 +376,33 @@ export type ThemeEditorSection =
   | "font"
   | "advanced"
   | "import"
-  | "export";
+  | "export"
+  | "share";
+
+/**
+ * Pages of `layout="sidebar"` and the sections each one shows: `presets` (presets), `colors` (scheme, colors),
+ * `style` (style, font), `contrast` (contrast), `share` (share), `advanced` (advanced, import, export). A page whose
+ * sections are all hidden is left out of the navigation.
+ */
+export type ThemeEditorPage = "presets" | "colors" | "style" | "contrast" | "share" | "advanced";
+
+const pageSections: Record<ThemeEditorPage, readonly ThemeEditorSection[]> = {
+  presets: ["presets"],
+  colors: ["scheme", "colors"],
+  style: ["style", "font"],
+  contrast: ["contrast"],
+  share: ["share"],
+  advanced: ["advanced", "import", "export"],
+};
+const pageIcons: Record<ThemeEditorPage, "layers" | "palette" | "slidersHorizontal" | "contrast" | "share" | "settings"> = {
+  presets: "layers",
+  colors: "palette",
+  style: "slidersHorizontal",
+  contrast: "contrast",
+  share: "share",
+  advanced: "settings",
+};
+const allPages = Object.keys(pageSections) as ThemeEditorPage[];
 
 export type ThemeEditorExportFormat = "css" | "json";
 
@@ -357,6 +464,11 @@ export interface ThemeEditorProps
   /** Called after an import was applied, with the entries it left out (unknown tokens, invalid colours …). */
   onImport?: (config: ThemeConfig, droppedEntries: string[]) => void;
   /**
+   * Show the share section: the theme as a code to copy (`encodeThemeCode`, e.g. `PUI1.eyJ2Ijox…`) and a field to paste
+   * someone else's code — checked like an import, one undoable change, reported through `onImport`. @default false
+   */
+  shareable?: boolean;
+  /**
    * Shows "Save as preset" under the presets: the current theme with a name the user types. Store it and pass it back
    * in `presets` (e.g. a server's `presets.lua`).
    */
@@ -375,7 +487,7 @@ export interface ThemeEditorProps
   savedValue?: ThemeConfig | null;
   /**
    * Which sections to show, in their fixed order. Default: all of presets, scheme, colors, contrast, style, font (with
-   * `fonts`), advanced, plus import / export when `importable` / `exportable`.
+   * `fonts`), advanced, plus import / export / share when `importable` / `exportable` / `shareable`.
    */
   sections?: readonly ThemeEditorSection[];
   /** Built-in sample of the split preview to start with. @default "web" */
@@ -402,9 +514,16 @@ export interface ThemeEditorProps
    * `"stacked"`: one column (`previewSlot` inside it). `"split"`: the controls on the left and a large preview pane on
    * the right — `previewSlot`, or the built-in sample content (`ThemeEditorPreview`) when there is none — themed with
    * the edited tokens of the active tab. Below the `lg` breakpoint the two stack. Give it room: e.g. `h-[48rem]`.
+   * `"sidebar"`: like `"split"`, plus a `Sidebar` navigation on the left that shows one page of sections at a time
+   * (`ThemeEditorPage`); below `lg` the navigation becomes a row above the controls. Give it room: e.g. `h-[52rem]`.
    * @default "stacked"
    */
-  layout?: "stacked" | "split";
+  layout?: "stacked" | "split" | "sidebar";
+  /** `layout="sidebar"`: the open page (controlled). */
+  page?: ThemeEditorPage;
+  /** `layout="sidebar"`: the page to start with. @default "presets" (the first one shown) */
+  defaultPage?: ThemeEditorPage;
+  onPageChange?: (page: ThemeEditorPage) => void;
   labels?: ThemeEditorLabelsInput;
   /** Number formatting (contrast ratios, radius). @default "en-US" */
   locale?: string;
@@ -417,32 +536,6 @@ const hasDarkAccents = (config: ThemeConfig) =>
   Object.keys(config.palette?.dark ?? {}).some((key) => key !== "background" && key !== "foreground");
 
 const eyebrow = "text-pui-eyebrow font-semibold uppercase text-pui-muted-foreground";
-
-/** Clipboard API, with the `execCommand` fallback CEF / insecure pages need. Only called from event handlers. */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // fall through to the textarea fallback
-  }
-  try {
-    const area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.opacity = "0";
-    document.body.appendChild(area);
-    area.select();
-    const ok = document.execCommand("copy");
-    area.remove();
-    return ok;
-  } catch {
-    return false;
-  }
-}
 
 function useLatest<T>(value: T) {
   const ref = useRef(value);
@@ -478,6 +571,7 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     exportable = false,
     importable = false,
     onImport,
+    shareable = false,
     onSavePreset,
     onDeletePreset,
     onRenamePreset,
@@ -493,6 +587,9 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     minContrast = 4.5,
     variant = "panel",
     layout = "stacked",
+    page: pageProp,
+    defaultPage = "presets",
+    onPageChange,
     labels: labelsProp,
     locale = "en-US",
     className,
@@ -507,6 +604,8 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
       fields: { ...defaultThemeEditorLabels.fields, ...labelsProp?.fields },
       pairs: { ...defaultThemeEditorLabels.pairs, ...labelsProp?.pairs } as Record<string, string>,
       schemes: { ...defaultThemeEditorLabels.schemes, ...labelsProp?.schemes },
+      pages: { ...defaultThemeEditorLabels.pages, ...labelsProp?.pages },
+      pageHints: { ...defaultThemeEditorLabels.pageHints, ...labelsProp?.pageHints },
     }),
     [labelsProp],
   );
@@ -583,9 +682,10 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
           "advanced",
           ...(importable ? (["import"] as const) : []),
           ...(exportable ? (["export"] as const) : []),
+          ...(shareable ? (["share"] as const) : []),
         ],
       ),
-    [sectionsProp, importable, exportable],
+    [sectionsProp, importable, exportable, shareable],
   );
   const show = (section: ThemeEditorSection) => sections.has(section);
   const samples = samplesProp.length > 0 ? samplesProp : allSamples;
@@ -690,7 +790,9 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
   const RedoIcon = useIcon("redo");
   const id = useId();
 
-  const split = layout === "split";
+  const sidebar = layout === "sidebar";
+  // The sidebar layout has the same preview pane as split.
+  const split = layout === "split" || sidebar;
   const fontChoices = useMemo(
     () => resolveThemeEditorFonts(fonts ?? defaultThemeEditorFonts, fontSrcBase),
     [fonts, fontSrcBase],
@@ -703,11 +805,518 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
     return labels.statusScheme(labels.schemes[scheme], count === 0 ? labels.allReadable : labels.problems(count));
   };
 
+  // ---- pages (layout="sidebar") -------------------------------------------------------------------
+  const hasContent = (section: ThemeEditorSection) => {
+    if (!show(section)) return false;
+    if (section === "presets") return presets.length > 0 || Boolean(onSavePreset);
+    if (section === "font") return fontChoices.length > 0;
+    return true;
+  };
+  const pages = allPages.filter((name) => pageSections[name].some(hasContent));
+  const [innerPage, setInnerPage] = useState<ThemeEditorPage>(defaultPage);
+  const requestedPage = pageProp ?? innerPage;
+  const page = pages.includes(requestedPage) ? requestedPage : pages[0];
+  const setPage = (next: ThemeEditorPage) => {
+    if (pageProp === undefined) setInnerPage(next);
+    onPageChange?.(next);
+  };
+
+  // ---- fix all ------------------------------------------------------------------------------------
+  const fixable = (scheme: PreuiScheme) => hasFixableProblems(config, scheme, contrast[scheme], minContrast);
+  const fixAll = (schemes: readonly PreuiScheme[]) => update((current) => fixAllContrast(current, schemes, minContrast));
+  const anyFixable = schemeList.some(fixable);
+
+  // ---- sections -----------------------------------------------------------------------------------
+  /**
+   * Dark / Light tabs bound to the editing scheme (with a warning icon on a scheme with problems), and "Fix all" for
+   * the open tab's scheme on the right of the tab row (over its empty end, so nothing moves when it appears).
+   */
+  const schemeTabs = (content: (scheme: PreuiScheme) => ReactNode) => (
+    <Tabs value={editing} onValueChange={(next) => setEditing(next as PreuiScheme)} className="gap-3">
+      <div className="relative">
+        <TabsList>
+          {schemeList.map((scheme) => (
+            <TabsTrigger key={scheme} value={scheme} data-problems={problemCount(scheme)}>
+              {labels.schemes[scheme]}
+              {/* Always in the layout (invisible while readable), so the tab keeps its width. */}
+              <Warning className={cn("size-3.5 text-pui-warning", problemCount(scheme) === 0 && "invisible")} aria-hidden="true" />
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {fixable(editing) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fixAll([editing])}
+            aria-label={labels.fixAllScheme(labels.schemes[editing])}
+            data-slot="theme-editor-fix-all-scheme"
+            className="absolute right-0 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
+          >
+            {labels.fixAll}
+          </Button>
+        )}
+      </div>
+      {schemeList.map((scheme) => (
+        <TabsContent key={scheme} value={scheme} className="flex flex-col gap-5">
+          {content(scheme)}
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+
+  const contrastDetails = (scheme: PreuiScheme) => (
+    <ContrastDetails scheme={scheme} results={contrast[scheme]} labels={labels} locale={locale} minContrast={minContrast} />
+  );
+
+  const presetsSection = hasContent("presets") && (
+    <div className="flex flex-col gap-2">
+      {presets.length > 0 && (
+        <PresetPicker
+          presets={presets}
+          config={config}
+          labels={labels}
+          minContrast={minContrast}
+          onPick={(preset) => update((current) => applyPreset(current, preset))}
+          onDelete={onDeletePreset}
+          onRename={onRenamePreset}
+        />
+      )}
+      {onSavePreset && <SavePresetForm config={config} labels={labels} onSave={onSavePreset} />}
+    </div>
+  );
+
+  const schemeSection = show("scheme") && (
+    <section data-slot="theme-editor-scheme" className="flex flex-col gap-2">
+      <span id={`${id}-scheme`} className={eyebrow}>
+        {labels.scheme}
+      </span>
+      <ToggleGroup
+        aria-labelledby={`${id}-scheme`}
+        value={[config.scheme ?? fallbackScheme]}
+        onValueChange={(next) => {
+          const scheme = next[0] as SchemePreference | undefined;
+          if (scheme) update((current) => ({ ...current, scheme }));
+        }}
+        className="self-start"
+      >
+        {(["dark", "light", "system"] as const).map((scheme) => (
+          <ToggleGroupItem key={scheme} value={scheme}>
+            {labels.schemes[scheme]}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </section>
+  );
+
+  const colorsSection = show("colors") && (
+    <section data-slot="theme-editor-colors" className="flex flex-col gap-2">
+      <span className={eyebrow}>{labels.colors}</span>
+      {schemeTabs((scheme) => (
+        <>
+          {scheme === "light" && hasDarkAccents(config) && (
+            <div data-slot="theme-editor-derive-light" className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                title={labels.deriveLightHint}
+                onClick={() => update((current) => deriveLightFromDark(current, minContrast))}
+              >
+                {labels.deriveLight}
+              </Button>
+              <span className="min-w-0 text-xs text-pui-muted-foreground">{labels.deriveLightHint}</span>
+            </div>
+          )}
+          <ul className="flex flex-col gap-1" data-slot="theme-editor-color-list">
+            {themeEditorColorKeys.map((key) => (
+              <ColorField
+                key={key}
+                fieldKey={key}
+                scheme={scheme}
+                set={config.palette?.[scheme]?.[key]}
+                effective={effective[scheme][`--pui-${key}` as PreuiTokenName]}
+                problems={fieldProblems(key, contrast[scheme], minContrast)}
+                labels={labels}
+                locale={locale}
+                onValue={(next) => update((current) => setPaletteColor(current, scheme, key, next))}
+                onFix={
+                  hasRawColorToken(config, scheme, key)
+                    ? undefined
+                    : () => update((current) => fixFieldContrastWithTint(current, scheme, key, minContrast) ?? current)
+                }
+              />
+            ))}
+          </ul>
+          {/* The sidebar layout shows the contrast details on their own page. */}
+          {!sidebar && show("contrast") && contrastDetails(scheme)}
+        </>
+      ))}
+    </section>
+  );
+
+  const contrastPage = show("contrast") && (
+    <section data-slot="theme-editor-contrast-page" className="flex flex-col gap-2">
+      {schemeTabs(contrastDetails)}
+    </section>
+  );
+
+  const advancedSection = show("advanced") && (
+    <AdvancedSection
+      config={config}
+      scheme={editing}
+      effective={effective[editing]}
+      labels={labels}
+      update={update}
+      defaultOpen={sidebar}
+    />
+  );
+
+  const stackedPreview = !split && previewSlot != null && (
+    <section data-slot="theme-editor-preview" className="flex flex-col gap-2">
+      <span className={eyebrow}>
+        {labels.preview} · {labels.schemes[editing]}
+      </span>
+      <div
+        data-scheme={editing}
+        // The edited tokens as scoped CSS variables, so the slot shows them even with preview={false}.
+        style={effective[editing] as CSSProperties}
+        className="flex flex-col gap-3 rounded-pui border border-pui-border bg-pui-background p-3 font-sans text-pui-foreground"
+      >
+        <PortalContainerProvider container={portalLayer}>{previewSlot}</PortalContainerProvider>
+        <PreviewPortalLayer ref={setPortalLayer} />
+      </div>
+    </section>
+  );
+
+  // A colour as text on its own tint fails: the accent strength is too high for any lightness (hint at its slider).
+  const tintTooStrong = schemeList.some((scheme) =>
+    contrast[scheme].some((result) => isOwnTintPair(result) && result.ratio < minContrast),
+  );
+  const styleSection = show("style") && (
+    <StyleSection
+      config={config}
+      labels={labels}
+      locale={locale}
+      update={update}
+      tintTooStrong={tintTooStrong}
+      onFixAll={anyFixable ? () => fixAll(schemeList) : undefined}
+    />
+  );
+  const fontSection = hasContent("font") && <FontSection config={config} fonts={fontChoices} labels={labels} update={update} />;
+  const importSection = show("import") && (
+    <ImportSection
+      fallbackScheme={fallbackScheme}
+      labels={labels}
+      onApply={(imported, dropped) => {
+        commit(imported);
+        onImport?.(imported, dropped);
+      }}
+    />
+  );
+  const exportSection = show("export") && (
+    <ExportSection config={config} resolvedCss={resolved} labels={labels} onExport={onExport} />
+  );
+  const shareSection = show("share") && (
+    <ShareSection
+      config={config}
+      fallbackScheme={fallbackScheme}
+      labels={labels}
+      onApply={(imported, dropped) => {
+        commit(imported);
+        onImport?.(imported, dropped);
+      }}
+    />
+  );
+
+  const controls = sidebar ? (
+    <>
+      {page === "presets" && presetsSection}
+      {page === "colors" && (
+        <>
+          {schemeSection}
+          {colorsSection}
+        </>
+      )}
+      {page === "style" && (
+        <>
+          {styleSection}
+          {fontSection}
+        </>
+      )}
+      {page === "contrast" && contrastPage}
+      {page === "share" && shareSection}
+      {page === "advanced" && (
+        <>
+          {advancedSection}
+          {importSection}
+          {exportSection}
+        </>
+      )}
+    </>
+  ) : (
+    <>
+      {presetsSection}
+      {schemeSection}
+      {colorsSection}
+      {advancedSection}
+      {stackedPreview}
+      {styleSection}
+      {fontSection}
+      {importSection}
+      {exportSection}
+      {shareSection}
+    </>
+  );
+
+  const totalProblems = problemCount("dark") + problemCount("light");
+
+  // Contrast status of both schemes (pills that switch the edited scheme) and "Fix all" for both.
+  const statusItems = (
+    <>
+      {schemeList.map((scheme) => {
+        const count = problemCount(scheme);
+        const Icon = count === 0 ? Check : Warning;
+        return (
+          <button
+            key={scheme}
+            type="button"
+            data-slot="theme-editor-status-item"
+            data-scheme-status={scheme}
+            data-problems={count}
+            aria-pressed={editing === scheme}
+            onClick={() => setEditing(scheme)}
+            className={cn(
+              "inline-flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium outline-none",
+              "transition-colors duration-pui-fast ease-pui focus-visible:ring-pui focus-visible:ring-pui-ring",
+              count === 0
+                ? "border-pui-positive/tint-border bg-pui-positive/tint text-pui-positive"
+                : "border-pui-warning/tint-border bg-pui-warning/tint text-pui-warning",
+            )}
+          >
+            <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+            {/*
+              Stable width: the widest summaries ("all readable", the most problems possible) are stacked invisibly
+              in the same grid cell as pseudo-elements (not part of the text content), so the badge doesn't grow
+              or shrink while a slider or colour changes the result.
+            */}
+            <span
+              data-reserve-a={labels.statusScheme(labels.schemes[scheme], labels.allReadable)}
+              data-reserve-b={labels.statusScheme(labels.schemes[scheme], labels.problems(allPairKeys.length))}
+              className={cn(
+                "inline-grid tabular-nums",
+                "before:invisible before:col-start-1 before:row-start-1 before:content-[attr(data-reserve-a)]",
+                "after:invisible after:col-start-1 after:row-start-1 after:content-[attr(data-reserve-b)]",
+              )}
+            >
+              <span aria-live="polite" className="col-start-1 row-start-1">
+                {schemeSummary(scheme)}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+      {anyFixable && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fixAll(schemeList)}
+          data-slot="theme-editor-fix-all"
+          className="h-6 px-2.5 text-xs"
+        >
+          {labels.fixAll}
+        </Button>
+      )}
+    </>
+  );
+
+  // The sidebar layout draws its panels like `variant="panel"` inside the sidebar's inset.
+  const framed = variant === "panel" || sidebar;
+
+  const body = (
+    <div
+      data-slot="theme-editor-body"
+      data-layout={layout}
+      className={cn("flex min-h-0 flex-1 flex-col", split && ["lg:flex-row", !framed && "gap-4 lg:gap-6"])}
+    >
+      <ScrollArea
+        // A new page starts at the top.
+        key={sidebar ? page : undefined}
+        data-page={sidebar ? page : undefined}
+        // Sidebar: the controls get a bit more room than the preview (6 : 5), so colour names don't truncate next to a
+        // contrast badge and its Fix button.
+        className={cn("min-h-0 flex-1", sidebar ? "lg:min-w-0 lg:flex-[6_6_0%]" : split && "lg:w-[26rem] lg:flex-none")}
+        contentClassName={cn("flex flex-col gap-6", framed ? "p-4" : "py-4")}
+      >
+        {controls}
+      </ScrollArea>
+
+      {split && (
+        <section
+          data-slot="theme-editor-preview"
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-hidden",
+            sidebar && "lg:min-w-0 lg:flex-[5_5_0%]",
+            framed
+              ? "border-t border-pui-border lg:border-l lg:border-t-0"
+              : "mb-4 rounded-pui border border-pui-border lg:my-4",
+          )}
+        >
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-pui-border px-4 py-2">
+            <span id={`${id}-preview`} className={eyebrow}>
+              {labels.preview}
+            </span>
+            {previewSlot == null && samples.length > 1 && (
+              <ToggleGroup
+                aria-label={labels.preview}
+                value={[sample]}
+                onValueChange={(next) => next[0] && setSample(next[0] as ThemeEditorSample)}
+                data-slot="theme-editor-sample-switch"
+                className="ml-auto"
+              >
+                {samples.map((name) => (
+                  <ToggleGroupItem key={name} value={name}>
+                    {name === "web" ? labels.sampleWeb : labels.sampleGame}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            )}
+            <ToggleGroup
+              aria-labelledby={`${id}-preview`}
+              value={[editing]}
+              onValueChange={(next) => {
+                const scheme = next[0] as PreuiScheme | undefined;
+                if (scheme) setEditing(scheme);
+              }}
+            >
+              {schemeList.map((scheme) => (
+                <ToggleGroupItem key={scheme} value={scheme}>
+                  {labels.schemes[scheme]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          {/* The edited tokens of the active tab as scoped CSS variables — independent of the page and of `preview`. */}
+          <div
+            data-scheme={editing}
+            style={effective[editing] as CSSProperties}
+            className="relative flex min-h-0 flex-1 flex-col font-sans text-pui-foreground"
+          >
+            {seeThrough && <PreviewBackdrop />}
+            <ScrollArea className="relative min-h-0 flex-1 bg-pui-background" contentClassName="p-4 lg:p-6">
+              <PortalContainerProvider container={portalLayer}>
+                {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
+              </PortalContainerProvider>
+            </ScrollArea>
+            <PreviewPortalLayer ref={setPortalLayer} />
+          </div>
+        </section>
+      )}
+    </div>
+  );
+
+  const actions = (
+    <div
+      data-slot="theme-editor-actions"
+      className={cn(
+        "flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-pui-border",
+        framed ? "px-4 py-3" : "pt-3",
+      )}
+    >
+      {actionsSlot != null && <div className="flex items-center gap-2">{actionsSlot}</div>}
+      <div className="mr-auto flex items-center gap-1">
+        <IconButton
+          label={labels.undo}
+          icon={<UndoIcon />}
+          size="sm"
+          disabled={history.current.past.length === 0}
+          onClick={undo}
+          data-slot="theme-editor-undo"
+        />
+        <IconButton
+          label={labels.redo}
+          icon={<RedoIcon />}
+          size="sm"
+          disabled={history.current.future.length === 0}
+          onClick={redo}
+          data-slot="theme-editor-redo"
+        />
+        {/* Always in the layout (invisible when saved), so nothing shifts when it appears. */}
+        <span
+          data-slot="theme-editor-unsaved"
+          aria-hidden={!dirty}
+          className={cn("ml-1 text-xs text-pui-muted-foreground", !dirty && "invisible")}
+        >
+          {labels.unsaved}
+        </span>
+      </div>
+      <Button variant="ghost" onClick={discard} disabled={!dirty} data-slot="theme-editor-discard">
+        {labels.discard}
+      </Button>
+      <Button variant="ghost" onClick={reset} disabled={!hasOverrides(config)} data-slot="theme-editor-reset">
+        {labels.reset}
+      </Button>
+      {onSave && (
+        <Button variant="solid" onClick={save} loading={saving} data-slot="theme-editor-save">
+          {labels.save}
+        </Button>
+      )}
+    </div>
+  );
+
+  if (sidebar) {
+    return (
+      <div
+        ref={ref}
+        data-slot="theme-editor"
+        data-variant={variant}
+        data-layout={layout}
+        className={cn(
+          // `relative`: the navigation is positioned inside the editor, not at the viewport edge.
+          "relative flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-pui bg-pui-shell text-sm text-pui-foreground",
+          variant === "panel" && "border border-pui-border",
+          className,
+        )}
+        {...props}
+        onKeyDown={onKeyDown}
+      >
+        {/* An embedded sidebar: no Ctrl+B, no cookie (the page's own sidebar keeps its state), the page's tooltip delay. */}
+        <SidebarProvider keyboardShortcut={false} cookieName={false} tooltipDelay={false} className="min-h-0 flex-1">
+          <ThemeEditorNav pages={pages} page={page} onPage={setPage} labels={labels} problems={totalProblems} />
+          <SidebarInset render={<div />} data-slot="theme-editor-main" className="min-h-0">
+            <header
+              data-slot="theme-editor-header"
+              className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-pui-border px-3 py-2"
+            >
+              <SidebarTrigger label={labels.toggleNavigation} />
+              <Separator orientation="vertical" className="data-[orientation=vertical]:h-5" />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <h2 data-slot="theme-editor-page-title" className="truncate text-base font-semibold text-pui-foreground">
+                  {labels.pages[page]}
+                </h2>
+                <span className="truncate text-xs text-pui-muted-foreground">{labels.pageHints[page]}</span>
+              </div>
+              <div
+                data-slot="theme-editor-status"
+                role="group"
+                aria-label={labels.status}
+                className="flex flex-wrap items-center gap-1.5"
+              >
+                {statusItems}
+              </div>
+            </header>
+            {body}
+            {actions}
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={ref}
       data-slot="theme-editor"
       data-variant={variant}
+      data-layout={layout}
       className={cn(
         "flex min-h-0 w-full min-w-0 flex-col text-sm text-pui-foreground",
         variant === "panel" && "rounded-pui border border-pui-border bg-pui-card text-pui-card-foreground",
@@ -726,321 +1335,92 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
           variant === "panel" ? "px-4 py-2.5" : "pb-2.5",
         )}
       >
-        {schemeList.map((scheme) => {
-          const count = problemCount(scheme);
-          const Icon = count === 0 ? Check : Warning;
-          return (
-            <button
-              key={scheme}
-              type="button"
-              data-slot="theme-editor-status-item"
-              data-scheme-status={scheme}
-              data-problems={count}
-              aria-pressed={editing === scheme}
-              onClick={() => setEditing(scheme)}
-              className={cn(
-                "inline-flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium outline-none",
-                "transition-colors duration-pui-fast ease-pui focus-visible:ring-pui focus-visible:ring-pui-ring",
-                count === 0
-                  ? "border-pui-positive/tint-border bg-pui-positive/tint text-pui-positive"
-                  : "border-pui-warning/tint-border bg-pui-warning/tint text-pui-warning",
-              )}
-            >
-              <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-              {/*
-                Stable width: the widest summaries ("all readable", the most problems possible) are stacked invisibly
-                in the same grid cell as pseudo-elements (not part of the text content), so the badge doesn't grow
-                or shrink while a slider or colour changes the result.
-              */}
-              <span
-                data-reserve-a={labels.statusScheme(labels.schemes[scheme], labels.allReadable)}
-                data-reserve-b={labels.statusScheme(labels.schemes[scheme], labels.problems(allPairKeys.length))}
-                className={cn(
-                  "inline-grid tabular-nums",
-                  "before:invisible before:col-start-1 before:row-start-1 before:content-[attr(data-reserve-a)]",
-                  "after:invisible after:col-start-1 after:row-start-1 after:content-[attr(data-reserve-b)]",
-                )}
-              >
-                <span aria-live="polite" className="col-start-1 row-start-1">
-                  {schemeSummary(scheme)}
-                </span>
-              </span>
-            </button>
-          );
-        })}
+        {statusItems}
       </div>
-
-      <div
-        data-slot="theme-editor-body"
-        data-layout={layout}
-        className={cn("flex min-h-0 flex-1 flex-col", split && ["lg:flex-row", variant === "inline" && "gap-4 lg:gap-6"])}
-      >
-        <ScrollArea
-          className={cn("min-h-0 flex-1", split && "lg:w-[26rem] lg:flex-none")}
-          contentClassName={cn("flex flex-col gap-6", variant === "panel" ? "p-4" : "py-4")}
-        >
-          {show("presets") && (presets.length > 0 || onSavePreset) && (
-            <div className="flex flex-col gap-2">
-              {presets.length > 0 && (
-                <PresetPicker
-                  presets={presets}
-                  config={config}
-                  labels={labels}
-                  minContrast={minContrast}
-                  onPick={(preset) => update((current) => applyPreset(current, preset))}
-                  onDelete={onDeletePreset}
-                  onRename={onRenamePreset}
-                />
-              )}
-              {onSavePreset && <SavePresetForm config={config} labels={labels} onSave={onSavePreset} />}
-            </div>
-          )}
-
-          {show("scheme") && (
-          <section data-slot="theme-editor-scheme" className="flex flex-col gap-2">
-            <span id={`${id}-scheme`} className={eyebrow}>
-              {labels.scheme}
-            </span>
-            <ToggleGroup
-              aria-labelledby={`${id}-scheme`}
-              value={[config.scheme ?? fallbackScheme]}
-              onValueChange={(next) => {
-                const scheme = next[0] as SchemePreference | undefined;
-                if (scheme) update((current) => ({ ...current, scheme }));
-              }}
-              className="self-start"
-            >
-              {(["dark", "light", "system"] as const).map((scheme) => (
-                <ToggleGroupItem key={scheme} value={scheme}>
-                  {labels.schemes[scheme]}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </section>
-          )}
-
-          {show("colors") && (
-          <section data-slot="theme-editor-colors" className="flex flex-col gap-2">
-            <span className={eyebrow}>{labels.colors}</span>
-            <Tabs value={editing} onValueChange={(next) => setEditing(next as PreuiScheme)} className="gap-3">
-              <TabsList>
-                {schemeList.map((scheme) => (
-                  <TabsTrigger key={scheme} value={scheme} data-problems={problemCount(scheme)}>
-                    {labels.schemes[scheme]}
-                    {/* Always in the layout (invisible while readable), so the tab keeps its width. */}
-                    <Warning
-                      className={cn("size-3.5 text-pui-warning", problemCount(scheme) === 0 && "invisible")}
-                      aria-hidden="true"
-                    />
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {schemeList.map((scheme) => (
-                <TabsContent key={scheme} value={scheme} className="flex flex-col gap-5">
-                  {scheme === "light" && hasDarkAccents(config) && (
-                    <div data-slot="theme-editor-derive-light" className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title={labels.deriveLightHint}
-                        onClick={() => update((current) => deriveLightFromDark(current, minContrast))}
-                      >
-                        {labels.deriveLight}
-                      </Button>
-                      <span className="min-w-0 text-xs text-pui-muted-foreground">{labels.deriveLightHint}</span>
-                    </div>
-                  )}
-                  <ul className="flex flex-col gap-1" data-slot="theme-editor-color-list">
-                    {themeEditorColorKeys.map((key) => (
-                      <ColorField
-                        key={key}
-                        fieldKey={key}
-                        scheme={scheme}
-                        set={config.palette?.[scheme]?.[key]}
-                        effective={effective[scheme][`--pui-${key}` as PreuiTokenName]}
-                        problems={fieldProblems(key, contrast[scheme], minContrast)}
-                        labels={labels}
-                        locale={locale}
-                        onValue={(next) => update((current) => setPaletteColor(current, scheme, key, next))}
-                        onFix={
-                          hasRawColorToken(config, scheme, key)
-                            ? undefined
-                            : () => update((current) => fixFieldContrast(current, scheme, key, minContrast) ?? current)
-                        }
-                      />
-                    ))}
-                  </ul>
-                  {show("contrast") && (
-                    <ContrastDetails
-                      scheme={scheme}
-                      results={contrast[scheme]}
-                      labels={labels}
-                      locale={locale}
-                      minContrast={minContrast}
-                    />
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
-          </section>
-          )}
-
-          {show("advanced") && (
-            <AdvancedSection config={config} scheme={editing} effective={effective[editing]} labels={labels} update={update} />
-          )}
-
-          {!split && previewSlot != null && (
-            <section data-slot="theme-editor-preview" className="flex flex-col gap-2">
-              <span className={eyebrow}>
-                {labels.preview} · {labels.schemes[editing]}
-              </span>
-              <div
-                data-scheme={editing}
-                // The edited tokens as scoped CSS variables, so the slot shows them even with preview={false}.
-                style={effective[editing] as CSSProperties}
-                className="flex flex-col gap-3 rounded-pui border border-pui-border bg-pui-background p-3 font-sans text-pui-foreground"
-              >
-                <PortalContainerProvider container={portalLayer}>{previewSlot}</PortalContainerProvider>
-                <PreviewPortalLayer ref={setPortalLayer} />
-              </div>
-            </section>
-          )}
-
-          {show("style") && <StyleSection config={config} labels={labels} locale={locale} update={update} />}
-
-          {show("font") && fontChoices.length > 0 && <FontSection config={config} fonts={fontChoices} labels={labels} update={update} />}
-
-          {show("import") && (
-            <ImportSection
-              fallbackScheme={fallbackScheme}
-              labels={labels}
-              onApply={(imported, dropped) => {
-                commit(imported);
-                onImport?.(imported, dropped);
-              }}
-            />
-          )}
-
-          {show("export") && <ExportSection config={config} resolvedCss={resolved} labels={labels} onExport={onExport} />}
-        </ScrollArea>
-
-        {split && (
-          <section
-            data-slot="theme-editor-preview"
-            className={cn(
-              "flex min-h-0 flex-1 flex-col overflow-hidden",
-              variant === "panel"
-                ? "border-t border-pui-border lg:border-l lg:border-t-0"
-                : "mb-4 rounded-pui border border-pui-border lg:my-4",
-            )}
-          >
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-pui-border px-4 py-2">
-              <span id={`${id}-preview`} className={eyebrow}>
-                {labels.preview}
-              </span>
-              {previewSlot == null && samples.length > 1 && (
-                <ToggleGroup
-                  aria-label={labels.preview}
-                  value={[sample]}
-                  onValueChange={(next) => next[0] && setSample(next[0] as ThemeEditorSample)}
-                  data-slot="theme-editor-sample-switch"
-                  className="ml-auto"
-                >
-                  {samples.map((name) => (
-                    <ToggleGroupItem key={name} value={name}>
-                      {name === "web" ? labels.sampleWeb : labels.sampleGame}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              )}
-              <ToggleGroup
-                aria-labelledby={`${id}-preview`}
-                value={[editing]}
-                onValueChange={(next) => {
-                  const scheme = next[0] as PreuiScheme | undefined;
-                  if (scheme) setEditing(scheme);
-                }}
-              >
-                {schemeList.map((scheme) => (
-                  <ToggleGroupItem key={scheme} value={scheme}>
-                    {labels.schemes[scheme]}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-            {/* The edited tokens of the active tab as scoped CSS variables — independent of the page and of `preview`. */}
-            <div
-              data-scheme={editing}
-              style={effective[editing] as CSSProperties}
-              className="relative flex min-h-0 flex-1 flex-col font-sans text-pui-foreground"
-            >
-              {seeThrough && <PreviewBackdrop />}
-              <ScrollArea className="relative min-h-0 flex-1 bg-pui-background" contentClassName="p-4 lg:p-6">
-                <PortalContainerProvider container={portalLayer}>
-                  {previewSlot ?? <ThemeEditorPreview labels={labels.sample} sample={sample} />}
-                </PortalContainerProvider>
-              </ScrollArea>
-              <PreviewPortalLayer ref={setPortalLayer} />
-            </div>
-          </section>
-        )}
-      </div>
-
-      <div
-        data-slot="theme-editor-actions"
-        className={cn(
-          "flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-pui-border",
-          variant === "panel" ? "px-4 py-3" : "pt-3",
-        )}
-      >
-        {actionsSlot != null && <div className="flex items-center gap-2">{actionsSlot}</div>}
-        <div className="mr-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={labels.undo}
-            title={labels.undo}
-            disabled={history.current.past.length === 0}
-            onClick={undo}
-            data-slot="theme-editor-undo"
-          >
-            <UndoIcon aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={labels.redo}
-            title={labels.redo}
-            disabled={history.current.future.length === 0}
-            onClick={redo}
-            data-slot="theme-editor-redo"
-          >
-            <RedoIcon aria-hidden="true" />
-          </Button>
-          {/* Always in the layout (invisible when saved), so nothing shifts when it appears. */}
-          <span
-            data-slot="theme-editor-unsaved"
-            aria-hidden={!dirty}
-            className={cn("ml-1 text-xs text-pui-muted-foreground", !dirty && "invisible")}
-          >
-            {labels.unsaved}
-          </span>
-        </div>
-        <Button variant="ghost" onClick={discard} disabled={!dirty} data-slot="theme-editor-discard">
-          {labels.discard}
-        </Button>
-        <Button variant="ghost" onClick={reset} disabled={!hasOverrides(config)} data-slot="theme-editor-reset">
-          {labels.reset}
-        </Button>
-        {onSave && (
-          <Button variant="solid" onClick={save} loading={saving} data-slot="theme-editor-save">
-            {labels.save}
-          </Button>
-        )}
-      </div>
+      {body}
+      {actions}
     </div>
   );
 });
+
+// ------------------------------------------------------------------------------------------------
+// Navigation (layout="sidebar")
+// ------------------------------------------------------------------------------------------------
+
+function PageIcon({ name }: { name: ThemeEditorPage }) {
+  const Icon = useIcon(pageIcons[name]);
+  return <Icon aria-hidden="true" />;
+}
+
+/**
+ * preUI's `Sidebar` (inset, collapsible to the icon rail; a sheet on small screens) with one entry per page and a
+ * collapse button at the bottom. A component of its own because it reads the sidebar state.
+ */
+function ThemeEditorNav({
+  pages,
+  page,
+  onPage,
+  labels,
+  problems,
+}: {
+  pages: readonly ThemeEditorPage[];
+  page: ThemeEditorPage;
+  onPage: (page: ThemeEditorPage) => void;
+  labels: ThemeEditorLabels;
+  problems: number;
+}) {
+  const { open, isMobile, setOpenMobile, toggleSidebar } = useSidebar();
+  const ToggleIcon = useIcon(open ? "panelLeftClose" : "panelLeftOpen");
+  return (
+    <Sidebar variant="inset" collapsible="icon" mobileTitle={labels.navigation} className="absolute h-full">
+      <SidebarContent className="pt-1">
+        <nav aria-label={labels.navigation} data-slot="theme-editor-nav">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {pages.map((name) => (
+                  <SidebarMenuItem key={name}>
+                    <SidebarMenuButton
+                      isActive={page === name}
+                      tooltip={labels.pages[name]}
+                      data-page={name}
+                      onClick={() => {
+                        onPage(name);
+                        if (isMobile) setOpenMobile(false);
+                      }}
+                    >
+                      <PageIcon name={name} />
+                      <span>{labels.pages[name]}</span>
+                    </SidebarMenuButton>
+                    {name === "contrast" && problems > 0 && (
+                      <SidebarMenuBadge variant="warning" data-slot="theme-editor-nav-problems">
+                        <span aria-hidden="true">{problems}</span>
+                        <span className="sr-only">{labels.problems(problems)}</span>
+                      </SidebarMenuBadge>
+                    )}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </nav>
+      </SidebarContent>
+      {!isMobile && (
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={toggleSidebar} tooltip={labels.expand} data-slot="theme-editor-nav-toggle">
+                <ToggleIcon aria-hidden="true" />
+                <span>{labels.collapse}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
+      <SidebarRail label={labels.toggleNavigation} />
+    </Sidebar>
+  );
+}
 
 /**
  * Stand-in for what lies behind see-through panels (the game in FiveM): flat shapes in the theme's own colours, no
@@ -1120,72 +1500,131 @@ function PresetPicker({
     [presets, minContrast],
   );
 
-  return (
-    <section data-slot="theme-editor-presets" className="flex flex-col gap-2">
-      <span id={`${id}-presets`} className={eyebrow}>
-        {labels.presets}
-      </span>
-      <div role="group" aria-labelledby={`${id}-presets`} className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-1.5">
-        {info.map(({ preset, problems, swatches }) => {
-          const selected = matchesPreset(config, preset);
-          const actions = preset.removable === true && Boolean(onDelete || onRename);
-          return (
-            // The wrapper holds the tile and, for saved presets, the menu button next to (not inside) it.
-            <div key={preset.id} data-slot="theme-editor-preset-item" className="relative flex min-w-0">
-              <button
-                type="button"
-                data-slot="theme-editor-preset"
-                data-preset={preset.id}
-                data-selected={selected ? "" : undefined}
-                data-contrast={problems === 0 ? "pass" : "fail"}
-                aria-pressed={selected}
-                title={preset.description ?? (actions ? preset.label : undefined)}
-                onClick={() => onPick(preset)}
-                className={cn(
-                  "flex w-full min-w-0 flex-col gap-1.5 rounded-pui-md border p-1.5 text-left text-xs font-medium outline-none",
-                  "transition-colors duration-pui-fast ease-pui focus-visible:ring-pui focus-visible:ring-pui-ring",
-                  selected
-                    ? "border-pui-primary/tint-border bg-pui-primary/tint text-pui-foreground"
-                    : "border-pui-border text-pui-muted-foreground hover:bg-pui-accent hover:text-pui-accent-foreground",
-                )}
+  // Groups in the order of their first preset; one unnamed group (no headings) when no preset has a `group`.
+  const groups = useMemo(() => {
+    const out: { name: string | undefined; items: typeof info }[] = [];
+    for (const entry of info) {
+      const name = entry.preset.group;
+      const group = out.find((candidate) => candidate.name === name);
+      if (group) group.items.push(entry);
+      else out.push({ name, items: [entry] });
+    }
+    return out;
+  }, [info]);
+  const grouped = groups.some((group) => group.name !== undefined);
+
+  const item = ({ preset, problems, swatches }: (typeof info)[number]) => {
+    const selected = matchesPreset(config, preset);
+    const actions = preset.removable === true && Boolean(onDelete || onRename);
+    return (
+      // The wrapper holds the entry and, for saved presets, the menu button next to (not inside) it.
+      <div key={preset.id} data-slot="theme-editor-preset-item" className="relative flex min-w-0">
+        <Item
+          variant="outline"
+          size="sm"
+          render={<button type="button" />}
+          data-slot="theme-editor-preset"
+          data-preset={preset.id}
+          data-selected={selected ? "" : undefined}
+          data-contrast={problems === 0 ? "pass" : "fail"}
+          aria-pressed={selected}
+          onClick={() => onPick(preset)}
+          className={cn(
+            "w-full min-w-0 flex-nowrap gap-3 rounded-pui-md px-2.5 py-2",
+            // Room for the menu button, which lies over the right edge.
+            actions && "pr-11",
+            selected && "border-pui-primary/tint-border bg-pui-primary/tint [button&]:hover:bg-pui-primary/tint",
+          )}
+        >
+          {/* Dark | light: background with the primary as a dot. */}
+          <ItemMedia
+            aria-hidden="true"
+            data-slot="theme-editor-preset-swatch"
+            className="h-9 w-14 gap-0 overflow-hidden rounded-pui-sm border border-pui-border"
+          >
+            {swatches.map((swatch, index) => (
+              <span
+                key={index}
+                className="flex h-full min-w-0 flex-1 basis-0 items-center justify-center"
+                style={{ backgroundColor: `hsl(${swatch.background})` }}
               >
-                {/* Dark | light: background with the primary as a dot. */}
-                <span aria-hidden="true" className="flex h-7 w-full overflow-hidden rounded-pui-sm border border-pui-border">
-                  {swatches.map((swatch, index) => (
-                    <span
-                      key={index}
-                      className="flex h-full min-w-0 flex-1 basis-0 items-center justify-center"
-                      style={{ backgroundColor: `hsl(${swatch.background})` }}
-                    >
-                      <span className="size-3 rounded-full" style={{ backgroundColor: `hsl(${swatch.primary})` }} />
-                    </span>
-                  ))}
-                </span>
-                <span className="flex w-full min-w-0 items-center gap-1 px-0.5">
-                  <span className="min-w-0 flex-1 truncate">{preset.label}</span>
-                  {problems === 0 ? (
-                    <Check className="size-3.5 shrink-0 text-pui-positive" aria-hidden="true" />
-                  ) : (
-                    <Warning className="size-3.5 shrink-0 text-pui-warning" aria-hidden="true" />
-                  )}
-                  <span className="sr-only">{problems === 0 ? labels.presetReadable : labels.presetProblems(problems)}</span>
-                  {/* Room for the menu button, which lies over it. */}
-                  {actions && <span aria-hidden="true" className="h-4 w-5 shrink-0" />}
-                </span>
-              </button>
-              {actions && (
-                <PresetActionsMenu
-                  preset={preset}
-                  labels={labels}
-                  canRename={Boolean(onRename)}
-                  canDelete={Boolean(onDelete)}
-                  onAction={setPending}
-                />
-              )}
-            </div>
-          );
-        })}
+                <span className="size-3 rounded-full" style={{ backgroundColor: `hsl(${swatch.primary})` }} />
+              </span>
+            ))}
+          </ItemMedia>
+          <ItemContent className="gap-0.5">
+            <ItemTitle className="w-full min-w-0">
+              <span className="truncate">{preset.label}</span>
+            </ItemTitle>
+            {preset.description && (
+              <ItemDescription className="line-clamp-2 text-xs leading-snug">{preset.description}</ItemDescription>
+            )}
+          </ItemContent>
+          {problems === 0 ? (
+            <span data-slot="theme-editor-preset-contrast" className="inline-flex shrink-0 text-pui-positive">
+              <Check className="size-4" aria-hidden="true" />
+              <span className="sr-only">{labels.presetReadable}</span>
+            </span>
+          ) : (
+            <span
+              data-slot="theme-editor-preset-contrast"
+              className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full border border-pui-warning/tint-border bg-pui-warning/tint px-2 text-xs font-medium tabular-nums text-pui-warning"
+            >
+              <Warning className="size-3.5 shrink-0" aria-hidden="true" />
+              <span aria-hidden="true">{labels.problems(problems)}</span>
+              <span className="sr-only">{labels.presetProblems(problems)}</span>
+            </span>
+          )}
+        </Item>
+        {actions && (
+          <PresetActionsMenu
+            preset={preset}
+            labels={labels}
+            canRename={Boolean(onRename)}
+            canDelete={Boolean(onDelete)}
+            onAction={setPending}
+          />
+        )}
       </div>
+    );
+  };
+  const list = "grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-2";
+
+  return (
+    <section
+      data-slot="theme-editor-presets"
+      aria-labelledby={grouped ? undefined : `${id}-presets`}
+      aria-label={grouped ? labels.presets : undefined}
+      className="flex flex-col gap-2"
+    >
+      {grouped ? (
+        groups.map((group, index) => (
+          <div key={group.name ?? `ungrouped-${index}`} data-slot="theme-editor-preset-group" className="flex flex-col gap-2 [&+&]:mt-3">
+            {group.name !== undefined && (
+              <span id={`${id}-group-${index}`} className={eyebrow}>
+                {group.name}
+              </span>
+            )}
+            <div
+              role="group"
+              aria-labelledby={group.name !== undefined ? `${id}-group-${index}` : undefined}
+              aria-label={group.name === undefined ? labels.presets : undefined}
+              className={list}
+            >
+              {group.items.map(item)}
+            </div>
+          </div>
+        ))
+      ) : (
+        <>
+          <span id={`${id}-presets`} className={eyebrow}>
+            {labels.presets}
+          </span>
+          <div role="group" aria-labelledby={`${id}-presets`} className={list}>
+            {info.map(item)}
+          </div>
+        </>
+      )}
       <PresetActionDialogs
         pending={pending}
         labels={labels}

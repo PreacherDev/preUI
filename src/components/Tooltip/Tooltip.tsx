@@ -28,7 +28,7 @@ export interface TooltipContentProps extends ComponentPropsWithoutRef<typeof Bas
   container?: BaseTooltip.Portal.Props["container"];
 }
 
-/** Portal + Positioner + Popup in one, on the lighter tooltip surface. */
+/** Portal + Positioner + Popup in one, on the panel surface (`--pui-tooltip`, popover colour by default) with a border. */
 export const TooltipContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseTooltip.Popup>, TooltipContentProps>(
   function TooltipContent({ className, side = "top", align = "center", sideOffset = 6, alignOffset = 0, positionerProps, container, ...props }, ref) {
     return (
@@ -48,7 +48,7 @@ export const TooltipContent = /* @__PURE__ */ forwardRef<ComponentRef<typeof Bas
               data-slot="tooltip-content"
               className={mergeClassName(
                 [
-                  "max-w-64 rounded-pui-md bg-pui-tooltip px-2.5 py-1.5 text-xs font-medium leading-snug text-pui-tooltip-foreground shadow-pui-tooltip",
+                  "max-w-64 rounded-pui-md border border-pui-border bg-pui-tooltip px-2.5 py-1.5 text-xs font-medium leading-snug text-pui-tooltip-foreground shadow-pui-tooltip",
                   "origin-[var(--transform-origin)] transition-[opacity,transform] duration-pui-base ease-pui",
                   "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
                   "data-[instant]:transition-none",
