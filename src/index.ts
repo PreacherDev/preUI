@@ -72,6 +72,7 @@ export * from "./components/Progress";
 export * from "./components/ScrollArea";
 export * from "./components/Separator";
 export * from "./components/Skeleton";
+export * from "./components/SlotGrid";
 export * from "./components/Sortable";
 export * from "./components/Spinner";
 export * from "./components/StatTile";

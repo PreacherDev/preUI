@@ -39,6 +39,12 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ### Added
 
+- **`SlotGrid`** (+ `SlotGridGroup`, `SlotGridItem`, `moveSlotGridItems`): a grid of fixed slots with empty cells —
+  inventories, seating plans, layout tools — and drag & drop between several grids. A drop on a taken slot moves the
+  item there to the nearest free slot (or swaps when the grid is full), live while dragging; `displace`, `canDrop`,
+  keyboard moves in two dimensions. The drag copy of every drag (Kanban, SortableList, DataTable rows, SlotGrid) now
+  keeps the item's measured height.
+
 - **ThemeEditor `layout="sidebar"`**: preUI's `Sidebar` (inset, collapsible to the icon rail with tooltips, a sheet on
   small screens) shows one page of sections at a time — Presets, Colors, Style, Contrast, Share, Advanced — next to
   the preview pane; a header shows the page and the contrast status, the Contrast entry counts the problems of both

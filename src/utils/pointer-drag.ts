@@ -128,6 +128,12 @@ export function createDragPreview(element: HTMLElement, scope: HTMLElement, { sl
     wrapper.appendChild(table);
   } else {
     clone.style.boxShadow = "var(--pui-shadow-floating)";
+    // Its measured size: an element sized by its container (a SlotGrid item fills its grid cell) would collapse.
+    clone.style.boxSizing = "border-box";
+    clone.style.width = `${rect.width}px`;
+    clone.style.height = `${rect.height}px`;
+    clone.style.gridColumn = "";
+    clone.style.gridRow = "";
     wrapper.appendChild(clone);
   }
   doc.body.appendChild(wrapper);

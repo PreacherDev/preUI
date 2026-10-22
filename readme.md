@@ -81,7 +81,7 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
-| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ActionReason, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SortableList, Spinner, StatTile, Table, TruncateText |
+| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ActionReason, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SlotGrid, SortableList, Spinner, StatTile, Table, TruncateText |
 | Game UI | KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle (see [Game UI](#game-ui)) |
 
 Components that build on another library have their own entry point, so you only install what you use:
@@ -795,6 +795,41 @@ const [board, setBoard] = useState<Record<string, Order[]>>({ new: […], progre
 - State attributes for styling: `data-dragging` on the board, `data-dragging="pointer" | "keyboard"` and `data-away`
   (over another column) on the moved card, `data-drop-target` on the column under the card, `data-disabled`; the
   copy is `[data-slot="kanban-drag-preview"]`, the slot in another column `[data-slot="kanban-drop-slot"]`.
+
+### SlotGrid
+
+A grid of fixed slots — an inventory, a seating plan, shelves of a layout tool — whose items move with the pointer or
+the keyboard. Empty cells stay empty. Several grids exchange items inside a `SlotGridGroup`:
+
+```tsx
+import { moveSlotGridItems, SlotGrid, SlotGridGroup, SlotGridItem } from "@pre_scripts/preui";
+
+const [items, setItems] = useState([{ id: "water", grid: "bag", slot: 0 }, { id: "tyre", grid: "trunk", slot: 2 }]);
+
+<SlotGridGroup
+  onMove={(event) => setItems((current) => moveSlotGridItems(current, event))}
+  canDrop={(move) => fitsWeight(move)} // your rules; false marks the slot red
+>
+  <SlotGrid id="bag" label="Backpack" columns={5} slots={20}>
+    {items.filter((item) => item.grid === "bag").map((item) => (
+      <SlotGridItem key={item.id} id={item.id} slot={item.slot}>{item.label}</SlotGridItem>
+    ))}
+  </SlotGrid>
+  <SlotGrid id="trunk" label="Trunk" columns={4} slots={12}>…</SlotGrid>
+</SlotGridGroup>
+```
+
+- Dropping on a taken slot (`displace`, default `"nearest"`): the item there moves to the nearest free slot of that
+  grid — the slot the dragged item left counts as free — and swaps into the dragged item's old slot when the grid is
+  full. It glides there while you drag, so the result is visible before you let go. `"swap"` always swaps, `"none"`
+  refuses.
+- `canDrop(move)` gets the whole move (with `displaced`); `false` marks the slot red and the drop does nothing.
+- `onMove({ itemId, from, to, displaced? })` fires once per drop; `moveSlotGridItems(items, event)` applies it to a
+  `{ id, grid, slot }[]` list. A single `SlotGrid` takes `onMove`, `displace`, `canDrop` itself.
+- Keyboard: Space/Enter lifts, arrows move in two dimensions (past the edge on into the neighbouring grid),
+  Space/Enter drops, Escape cancels. `disabled` on an item: it can't move and can't be pushed aside;
+  `disabledGrid`: no drops into that grid.
+- Cells are square (`aspect-square`); `cellClassName` styles them, the grid takes any `className` (width, gap).
 
 ### Game UI
 
