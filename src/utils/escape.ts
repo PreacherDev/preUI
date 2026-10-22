@@ -42,7 +42,8 @@ export interface UseEscapeKeyOptions {
   ignoreWhenOverlayOpen?: boolean;
   /**
    * `true`: the handler runs in the capture phase on `window`, before any popup or widget reacts, and decides by
-   * `isOverlayOpen` alone. `false`: the handler runs in the bubble phase, after your own components, and additionally
+   * `isOverlayOpen` alone. The Escape it handles stops there (one Escape does one thing): a dialog the handler opens
+   * doesn't get the same key press and close again. Return `false` from the handler to let the key go on. `false`: the handler runs in the bubble phase, after your own components, and additionally
    * skips an Escape that one of them handled (`preventDefault()` or `stopPropagation()`) — use it when your page has
    * inputs or widgets with their own Escape behaviour. The overlay check still sees the DOM from before the key.
    * @default true
@@ -54,12 +55,15 @@ export interface UseEscapeKeyOptions {
  * Calls `handler(event)` when Escape is pressed anywhere on the page — but not while an overlay owns the key
  * (`isOverlayOpen`), so the first Escape closes an open Select, menu or dialog and only the next one reaches you.
  * Composition (IME) keystrokes and already-prevented events are ignored. The handler may change between renders.
+ * In the capture phase (default) the handled Escape stops at the window, so opening a confirmation from the handler
+ * works with one key press; return `false` when the handler did nothing with it.
  *
  * ```tsx
  * useEscapeKey(() => setOpen(false), { enabled: open });
+ * useEscapeKey(() => (dirty ? setConfirmOpen(true) : close()));
  * ```
  */
-export function useEscapeKey(handler: (event: KeyboardEvent) => void, options: UseEscapeKeyOptions = {}): void {
+export function useEscapeKey(handler: (event: KeyboardEvent) => void | boolean, options: UseEscapeKeyOptions = {}): void {
   const { enabled = true, ignoreWhenOverlayOpen = true, capture = true } = options;
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
@@ -72,7 +76,10 @@ export function useEscapeKey(handler: (event: KeyboardEvent) => void, options: U
       const onKeyDown = (event: KeyboardEvent) => {
         if (!isEscape(event) || event.defaultPrevented) return;
         if (ignoreWhenOverlayOpen && isOverlayOpen()) return;
-        handlerRef.current(event);
+        if (handlerRef.current(event) === false) return;
+        // Used up: React commits what the handler did (e.g. a dialog it opened) before this key press reaches the
+        // document, and that dialog would close on it right away.
+        event.stopPropagation();
       };
       window.addEventListener("keydown", onKeyDown, true);
       return () => window.removeEventListener("keydown", onKeyDown, true);

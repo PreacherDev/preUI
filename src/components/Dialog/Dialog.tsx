@@ -24,6 +24,7 @@ import { PortalContainerScope, usePortalContainer } from "../../utils/portal-con
 import { useScrollTabStop } from "../../utils/scroll-tab-stop";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 /** Shared overlay styles (also used by AlertDialog and Sheet). */
 export const modalOverlayClassName =
@@ -292,9 +293,11 @@ export interface DialogPopupProps extends ComponentPropsWithoutRef<typeof BaseDi
  */
 export const DialogPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDialog.Popup>, DialogPopupProps>(
   function DialogPopup(
-    { className, children, showCloseButton = true, closeLabel = "Close", closeTooltip, initialFocus, ...props },
+    { className, children, showCloseButton = true, closeLabel: closeLabelProp, closeTooltip, initialFocus, ...props },
     ref,
   ) {
+    const preuiLabels = usePreuiLabels();
+    const closeLabel = closeLabelProp ?? preuiLabels.close;
     const CloseIcon = useIcon("close");
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref);

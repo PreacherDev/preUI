@@ -13,6 +13,7 @@ import { useIcon } from "../../icons";
 import type { IconName } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
 import { PortalContainerScope, usePortalContainer } from "../../utils/portal-container";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 /** Toast types with a built-in icon and color (`toast.success()`, `toast.error()` …). */
 export type ToastType = "success" | "error" | "info" | "warning" | "loading";
@@ -441,7 +442,7 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
     pauseWhenUnfocused,
     closeButton = true,
     actions = true,
-    closeLabel = "Close",
+    closeLabel: closeLabelProp,
     toastClassName,
     container,
     position = "bottom-right",
@@ -449,6 +450,8 @@ export const Toaster = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseToast.
   },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const closeLabel = closeLabelProp ?? preuiLabels.close;
   // Detected after mounting (never during render, SSR); an explicit prop wins.
   const [inNui, setInNui] = useState(false);
   useEffect(() => setInNui(isFiveMNui()), []);

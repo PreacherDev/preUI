@@ -31,7 +31,9 @@ import {
   TooltipTrigger,
   type TooltipContentProps,
 } from "../Tooltip/Tooltip";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 import { useIsMobile } from "./useIsMobile";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 /** Cookie in which `SidebarProvider` persists the desktop open state (`"true"` / `"false"`). */
 export const SIDEBAR_COOKIE_NAME = "sidebar_state";
@@ -373,46 +375,57 @@ export const Sidebar = /* @__PURE__ */ forwardRef<HTMLDivElement, SidebarProps>(
  * -----------------------------------------------------------------------------------------------*/
 
 export interface SidebarTriggerProps extends ButtonProps {
-  /** Accessible label (visually hidden). */
+  /** Accessible name (`aria-label`) and, by default, the tooltip text. */
   label?: string;
+  /**
+   * Like `IconButton`: `false` = no tooltip (the `label` stays as `aria-label`), a string or node = other text, an
+   * options object = text plus `side` / `align` / `delay`. Default: the `label`.
+   */
+  tooltip?: IconTooltip;
 }
 
-/** Ghost icon button that toggles the sidebar (sheet on mobile). */
+/** Ghost icon button that toggles the sidebar (sheet on mobile); its `label` shows as a tooltip, like `IconButton`. */
 export const SidebarTrigger = /* @__PURE__ */ forwardRef<HTMLElement, SidebarTriggerProps>(function SidebarTrigger(
-  { label = "Toggle Sidebar", variant = "ghost", size = "icon-sm", onClick, children, ...props },
+  { label: labelProp, tooltip, variant = "ghost", size = "icon-sm", onClick, children, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.toggleSidebar;
   const { toggleSidebar } = useSidebar();
   const PanelLeft = useIcon("panelLeft");
   return (
-    <Button
-      ref={ref}
-      data-sidebar="trigger"
-      data-slot="sidebar-trigger"
-      variant={variant}
-      size={size}
-      onClick={(event) => {
-        onClick?.(event);
-        toggleSidebar();
-      }}
-      {...props}
-    >
-      {children ?? <PanelLeft aria-hidden="true" />}
-      <span className="sr-only">{label}</span>
-    </Button>
+    <WithTooltip tooltip={tooltip} label={label}>
+      <Button
+        ref={ref}
+        data-sidebar="trigger"
+        data-slot="sidebar-trigger"
+        aria-label={label}
+        variant={variant}
+        size={size}
+        onClick={(event) => {
+          onClick?.(event);
+          toggleSidebar();
+        }}
+        {...props}
+      >
+        {children ?? <PanelLeft aria-hidden="true" />}
+      </Button>
+    </WithTooltip>
   );
 });
 
 export interface SidebarRailProps extends ComponentPropsWithoutRef<"button"> {
-  /** Accessible label and hover title. */
+  /** Accessible label. */
   label?: string;
 }
 
 /** Thin, invisible hit area on the sidebar's edge that toggles it on click. */
 export const SidebarRail = /* @__PURE__ */ forwardRef<HTMLButtonElement, SidebarRailProps>(function SidebarRail(
-  { label = "Toggle Sidebar", className, onClick, ...props },
+  { label: labelProp, className, onClick, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.toggleSidebar;
   const { toggleSidebar } = useSidebar();
   return (
     <button
@@ -421,7 +434,6 @@ export const SidebarRail = /* @__PURE__ */ forwardRef<HTMLButtonElement, Sidebar
       data-sidebar="rail"
       data-slot="sidebar-rail"
       aria-label={label}
-      title={label}
       tabIndex={-1}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
         onClick?.(event);

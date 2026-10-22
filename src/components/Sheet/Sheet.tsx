@@ -19,6 +19,7 @@ import {
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
 import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export const Sheet = BaseDialog.Root;
 
@@ -120,13 +121,15 @@ export const SheetPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDia
     children,
     side = "right",
     showCloseButton = true,
-    closeLabel = "Close",
+    closeLabel: closeLabelProp,
     closeTooltip,
     initialFocus,
     ...props
   },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const closeLabel = closeLabelProp ?? preuiLabels.close;
   const CloseIcon = useIcon("close");
   const contained = useModalContained();
   const focus = useInitialFocusWithoutScroll(initialFocus, ref);

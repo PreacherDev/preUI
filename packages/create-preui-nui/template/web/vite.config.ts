@@ -18,7 +18,7 @@ export default defineConfig({
     rollupOptions: {
       // Base UI (under preUI) creates some components with fastComponent() / fastComponentRef() without a
       // /* @__PURE__ */ mark. Vite 8 (Rolldown) then keeps unused menus, dialogs, popovers and tooltips in the
-      // bundle (this starter: 122 → 108 kB gzip with this line). Vite 7 (Rollup) drops them anyway.
+      // bundle (this starter: 122 -> 108 kB gzip with this line). Vite 7 (Rollup) drops them anyway.
       treeshake: { manualPureFunctions: ["fastComponent", "fastComponentRef"] },
     },
   },

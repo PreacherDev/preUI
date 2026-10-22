@@ -19,6 +19,7 @@ export * from "./components/Input";
 export * from "./components/InputGroup";
 export * from "./components/InputOTP";
 export * from "./components/Label";
+export * from "./components/Labels";
 export * from "./components/NumberField";
 export * from "./components/RadioGroup";
 export * from "./components/Slider";
@@ -49,6 +50,7 @@ export * from "./components/Popover";
 export * from "./components/Sheet";
 export * from "./components/Toast";
 export * from "./components/Tooltip";
+export * from "./components/TruncateText";
 
 // Display & layout
 export * from "./components/Accordion";
@@ -91,6 +93,7 @@ export type { PreuiScheme, PreuiTokenName, PreuiTokens } from "./tailwind/tokens
 export * from "./icons";
 export { cn, mergeClassName } from "./utils/cn";
 export type { StateClassName } from "./utils/cn";
+export { copyText } from "./utils/copy-text";
 export * from "./utils/escape";
 export * from "./utils/use-window-toggle";
 export * from "./utils/use-list-navigation";

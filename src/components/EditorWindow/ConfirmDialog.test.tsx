@@ -136,6 +136,43 @@ describe("ConfirmDialog", () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
+  it("ignores Escape and a press outside while onConfirm's promise runs", async () => {
+    const user = userEvent.setup();
+    let resolve: (value: boolean) => void = () => {};
+    const onCancel = vi.fn();
+    const onOpenChange = vi.fn();
+    render(
+      <ConfirmDialog
+        defaultOpen
+        title="Löschen?"
+        onConfirm={() => new Promise<boolean>((done) => (resolve = done))}
+        onCancel={onCancel}
+        onOpenChange={onOpenChange}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+    await user.keyboard("{Escape}");
+    await user.click(document.body);
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    resolve(true);
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("ignores Escape while confirmLoading is set, and closes again once it is off", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const { rerender } = render(<ConfirmDialog defaultOpen title="Löschen?" confirmLoading onCancel={onCancel} />);
+    await screen.findByRole("alertdialog");
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    rerender(<ConfirmDialog defaultOpen title="Löschen?" onCancel={onCancel} />);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(onCancel).toHaveBeenCalledWith("escape"));
+  });
+
   it("keeps the dialog open when onConfirm resolves false", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn(() => Promise.resolve(false));

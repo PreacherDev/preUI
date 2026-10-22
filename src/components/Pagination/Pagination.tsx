@@ -3,14 +3,17 @@ import { forwardRef, type ComponentPropsWithoutRef, type MouseEvent } from "reac
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
 import { buttonVariants, type ButtonSize } from "../Button/Button";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export type PaginationProps = ComponentPropsWithoutRef<"nav">;
 
 /** Navigation landmark for page controls. Override the label with `aria-label`. */
 export const Pagination = /* @__PURE__ */ forwardRef<HTMLElement, PaginationProps>(function Pagination(
-  { className, "aria-label": ariaLabel = "Pagination", ...props },
+  { className, "aria-label": ariaLabelProp, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const ariaLabel = ariaLabelProp ?? preuiLabels.pagination;
   return (
     <nav
       ref={ref}
@@ -107,9 +110,12 @@ export interface PaginationPreviousProps extends PaginationLinkProps {
 }
 
 export const PaginationPrevious = /* @__PURE__ */ forwardRef<HTMLAnchorElement, PaginationPreviousProps>(function PaginationPrevious(
-  { className, label = "Previous", "aria-label": ariaLabel = "Go to previous page", size = "sm", ...props },
+  { className, label: labelProp, "aria-label": ariaLabelProp, size = "sm", ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.previous;
+  const ariaLabel = ariaLabelProp ?? preuiLabels.previousPage;
   const ChevronLeft = useIcon("chevronLeft");
   return (
     <PaginationLink
@@ -131,9 +137,12 @@ export interface PaginationNextProps extends PaginationLinkProps {
 }
 
 export const PaginationNext = /* @__PURE__ */ forwardRef<HTMLAnchorElement, PaginationNextProps>(function PaginationNext(
-  { className, label = "Next", "aria-label": ariaLabel = "Go to next page", size = "sm", ...props },
+  { className, label: labelProp, "aria-label": ariaLabelProp, size = "sm", ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.next;
+  const ariaLabel = ariaLabelProp ?? preuiLabels.nextPage;
   const ChevronRight = useIcon("chevronRight");
   return (
     <PaginationLink
@@ -155,9 +164,11 @@ export interface PaginationEllipsisProps extends ComponentPropsWithoutRef<"span"
 }
 
 export const PaginationEllipsis = /* @__PURE__ */ forwardRef<HTMLSpanElement, PaginationEllipsisProps>(function PaginationEllipsis(
-  { className, label = "More pages", ...props },
+  { className, label: labelProp, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.morePages;
   const More = useIcon("more");
   return (
     <span

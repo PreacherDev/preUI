@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Kanban,
   KanbanCard,
+  KanbanCardHandle,
   KanbanColumn,
   KanbanColumnContent,
   KanbanColumnHeader,
@@ -62,7 +63,9 @@ function Board({
   );
 }
 
-const card = (text: string) => screen.getByText(text).closest<HTMLElement>('[data-slot="kanban-card"]')!;
+/** The card on the board with this text (not the drag preview's copy). */
+const card = (text: string) =>
+  Array.from(document.querySelectorAll<HTMLElement>('[data-slot="kanban-card"]')).find((el) => el.textContent?.includes(text))!;
 const column = (id: string) => document.querySelector<HTMLElement>(`[data-column-id="${id}"]`)!;
 const titles = (id: string) =>
   Array.from(column(id).querySelectorAll('[data-slot="kanban-card"]')).map((el) => el.textContent);
@@ -77,6 +80,9 @@ function layout() {
     col.getBoundingClientRect = () => rect(left, 0, 288, 600);
     const content = col.querySelector<HTMLElement>('[data-slot="kanban-column-content"]')!;
     content.getBoundingClientRect = () => rect(left, 44, 288, 556);
+    // gap-2 / p-2 (jsdom applies no Tailwind classes).
+    content.style.rowGap = "8px";
+    content.style.paddingTop = "8px";
     col.querySelectorAll<HTMLElement>('[data-slot="kanban-card"]').forEach((el, index) => {
       el.getBoundingClientRect = () => rect(left + 8, 52 + index * 68, 272, 60);
     });
@@ -133,17 +139,23 @@ describe("Kanban", () => {
     expect(first).not.toHaveAttribute("data-dragging");
   });
 
-  it("moves a card to another column with the pointer, showing preview and drop line", () => {
+  it("moves a card to another column with the pointer: preview, a slot there, the gap here closes", () => {
     const onMove = vi.fn();
     render(<Board onMove={onMove} />);
     layout();
     const source = card("Anfrage prüfen");
     // Over "doing", below its only card → index 1.
     drag(source, { x: 320, y: 200, over: column("doing") });
-    expect(source).toHaveAttribute("data-dragging");
+    expect(source).toHaveAttribute("data-dragging", "pointer");
     expect(document.querySelector('[data-slot="kanban-drag-preview"]')).not.toBeNull();
     expect(column("doing")).toHaveAttribute("data-drop-target");
-    expect(column("doing").querySelector('[data-slot="kanban-drop-indicator"]')).not.toBeNull();
+    // The slot sits below "Lieferung fahren" (content top 8 + 60 + 8 gap), as tall as the dragged card.
+    const slot = column("doing").querySelector<HTMLElement>('[data-slot="kanban-drop-slot"]')!;
+    expect(slot.style.top).toBe("76px");
+    expect(slot.style.height).toBe("60px");
+    // The dragged card leaves its column: it turns invisible and the card below moves up into its place.
+    expect(source).toHaveAttribute("data-away");
+    expect(card("Ware bestellen").style.transform).toBe("translate3d(0px, -68px, 0px)");
     release();
     expect(onMove).toHaveBeenCalledWith({
       cardId: "a",
@@ -156,12 +168,17 @@ describe("Kanban", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Dropped in doing, position 2.");
   });
 
-  it("reorders inside a column and ignores drops at the same place", () => {
+  it("reorders inside a column like SortableList and ignores drops at the same place", () => {
     const onMove = vi.fn();
     render(<Board onMove={onMove} />);
     layout();
     // "a" below "b" (b's middle is at 52 + 68 + 30 = 150 in the original layout).
     drag(card("Anfrage prüfen"), { x: 20, y: 190, over: column("todo") });
+    // The card itself is the slot and slides down; "b" slides up. No slot of the other kind.
+    expect(card("Anfrage prüfen").style.transform).toBe("translate3d(0px, 68px, 0px)");
+    expect(card("Ware bestellen").style.transform).toBe("translate3d(0px, -68px, 0px)");
+    expect(card("Anfrage prüfen")).not.toHaveAttribute("data-away");
+    expect(document.querySelector('[data-slot="kanban-drop-slot"]')).toBeNull();
     release();
     expect(onMove).toHaveBeenLastCalledWith(expect.objectContaining({ to: { columnId: "todo", index: 1 } }));
     expect(titles("todo")).toEqual(["Ware bestellen", "Anfrage prüfen"]);
@@ -287,6 +304,62 @@ describe("Kanban", () => {
     expect(screen.getByTestId("board")).toHaveClass("gap-6");
     expect(screen.getByTestId("col")).toHaveClass("w-80");
     expect(screen.getByTestId("col")).not.toHaveClass("w-72");
+  });
+
+  it("starts drags only from the handle when a card has one, and not from buttons inside a card", () => {
+    const onMove = vi.fn();
+    render(
+      <Kanban onCardMove={onMove}>
+        <KanbanColumn id="todo">
+          <KanbanColumnContent>
+            <KanbanCard id="a">
+              <KanbanCardHandle />A
+            </KanbanCard>
+            <KanbanCard id="b">
+              B <button type="button">Edit</button>
+            </KanbanCard>
+          </KanbanColumnContent>
+        </KanbanColumn>
+      </Kanban>,
+    );
+    const a = card("A");
+    const handle = screen.getByRole("button", { name: "Drag to move" });
+    // The card body doesn't start a drag, the handle does; the handle is the keyboard stop.
+    expect(a).not.toHaveAttribute("aria-roledescription");
+    fireEvent.pointerDown(a, { button: 0, clientX: 10, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 60, clientY: 60 }));
+    });
+    expect(a).not.toHaveAttribute("data-dragging");
+    release();
+    fireEvent.keyDown(handle, { key: "Enter" });
+    expect(a).toHaveAttribute("data-dragging", "keyboard");
+    expect(handle).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(handle, { key: "Escape" });
+    // A press on a button inside a card stays a click.
+    const b = card("B");
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Edit" }), { button: 0, clientX: 10, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 60, clientY: 60 }));
+    });
+    expect(b).not.toHaveAttribute("data-dragging");
+    release();
+  });
+
+  it("disabled freezes the whole board", () => {
+    render(
+      <Kanban onCardMove={() => {}} disabled data-testid="board">
+        <KanbanColumn id="todo">
+          <KanbanColumnContent>
+            <KanbanCard id="a">A</KanbanCard>
+          </KanbanColumnContent>
+        </KanbanColumn>
+      </Kanban>,
+    );
+    expect(screen.getByTestId("board")).toHaveAttribute("data-disabled");
+    fireEvent.keyDown(card("A"), { key: " " });
+    expect(card("A")).not.toHaveAttribute("data-dragging");
+    expect(card("A")).not.toHaveClass("cursor-grab");
   });
 
   it("requires a Kanban around its parts", () => {

@@ -6,6 +6,7 @@ import { Button } from "../Button/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Select/Select";
 import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 import type { DataTableInstance } from "./features";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export interface DataTablePaginationProps<TData extends RowData> {
   table: DataTableInstance<TData>;
@@ -28,8 +29,6 @@ export interface DataTablePaginationProps<TData extends RowData> {
   className?: string;
 }
 
-const defaultSelectedRowsLabel = (selected: number, total: number) => `${selected} of ${total} row(s) selected.`;
-const defaultPageLabel = (page: number, pageCount: number) => `Page ${page} of ${pageCount}`;
 
 // Round ghost controls inside the pill (handoff: 28px).
 const controlClass = "size-7 rounded-full";
@@ -65,16 +64,24 @@ export function DataTablePagination<TData extends RowData>({
   table,
   pageSizeOptions = [10, 20, 30, 40, 50],
   showSelectedCount = true,
-  selectedRowsLabel = defaultSelectedRowsLabel,
-  rowsPerPageLabel = "Rows per page",
-  pageLabel = defaultPageLabel,
-  firstPageLabel = "Go to first page",
-  previousPageLabel = "Go to previous page",
-  nextPageLabel = "Go to next page",
-  lastPageLabel = "Go to last page",
+  selectedRowsLabel: selectedRowsLabelProp,
+  rowsPerPageLabel: rowsPerPageLabelProp,
+  pageLabel: pageLabelProp,
+  firstPageLabel: firstPageLabelProp,
+  previousPageLabel: previousPageLabelProp,
+  nextPageLabel: nextPageLabelProp,
+  lastPageLabel: lastPageLabelProp,
   pageTooltip,
   className,
 }: DataTablePaginationProps<TData>) {
+  const preuiLabels = usePreuiLabels();
+  const selectedRowsLabel = selectedRowsLabelProp ?? preuiLabels.selectedRows;
+  const rowsPerPageLabel = rowsPerPageLabelProp ?? preuiLabels.rowsPerPage;
+  const pageLabel = pageLabelProp ?? preuiLabels.pageOf;
+  const firstPageLabel = firstPageLabelProp ?? preuiLabels.firstPage;
+  const previousPageLabel = previousPageLabelProp ?? preuiLabels.previousPage;
+  const nextPageLabel = nextPageLabelProp ?? preuiLabels.nextPage;
+  const lastPageLabel = lastPageLabelProp ?? preuiLabels.lastPage;
   const ChevronLeft = useIcon("chevronLeft");
   const ChevronRight = useIcon("chevronRight");
   const ChevronsLeft = useIcon("chevronsLeft");

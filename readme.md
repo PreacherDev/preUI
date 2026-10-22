@@ -81,7 +81,7 @@ Names and parts follow [shadcn/ui](https://ui.shadcn.com/docs/components) — if
 | Selection | Autocomplete, Combobox, Select |
 | Menus & navigation | Breadcrumb, ContextMenu, DropdownMenu, Menubar, NavigationMenu, Pagination, Sidebar, Tabs |
 | Overlays | AlertDialog, Dialog, Drawer, HoverCard, Popover, Sheet, Toast (`Toaster` + `toast()`), Tooltip |
-| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ActionReason, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SortableList, Spinner, StatTile, Table |
+| Display & layout | Accordion, Alert, AspectRatio, Avatar, Badge, BentoGrid, Card, Collapsible, ActionReason, ContrastBadge, EditorWindow (+ `useDraftHistory`, `ConfirmDialog`), Empty, Item, Kanban, Kbd, ThemeEditor, Meter, Progress, ScrollArea, Separator, Skeleton, SortableList, Spinner, StatTile, Table, TruncateText |
 | Game UI | KeybindHint, KeybindHintBar, KeybindInput, ProgressCircle (see [Game UI](#game-ui)) |
 
 Components that build on another library have their own entry point, so you only install what you use:
@@ -513,9 +513,11 @@ The building blocks are exported too:
   Autocomplete or NavigationMenu popup, a Kanban drag or a recording `KeybindInput`. Never for toasts (which are
   `role="dialog"` too), tooltips or hover cards.
 - `useEscapeKey(handler, { enabled, ignoreWhenOverlayOpen, capture })`: Escape anywhere on the page, except while
-  an overlay owns it. With `capture: true` (default) it runs before popups react. With `capture: false` it runs after
-  your own components and also skips an Escape one of them handled (`preventDefault()` / `stopPropagation()`). Use
-  that when your window has inputs with their own Escape behaviour.
+  an overlay owns it. With `capture: true` (default) it runs before popups react, and the Escape it handled stops
+  there — so `useEscapeKey(() => setConfirmOpen(true))` opens a confirmation that stays open (before 0.15 the same key
+  press closed it again). Return `false` from the handler when it did nothing with the key. With `capture: false` it
+  runs after your own components and also skips an Escape one of them handled (`preventDefault()` /
+  `stopPropagation()`). Use that when your window has inputs with their own Escape behaviour.
 
 ### Long lists in Combobox and Autocomplete
 
@@ -626,6 +628,47 @@ const history = useDraftHistory(savedEntry, { key: selectedId, onKeyChange: setS
 For server-side steps use `history.record(label, { undo, redo })` (return `false` when it failed) and
 `history.run(task)` for a busy state with an optional `cooldown`.
 
+`ConfirmDialog` waits for the server on its own: when `onConfirm` returns a promise (or `confirmLoading` is set), the
+confirming button spins, the cancel button is disabled and Escape or a press outside don't close the dialog until it
+is through — the answer never lands in a closed dialog.
+
+### Texts of built-in controls (LabelsProvider)
+
+Close buttons, steppers, page buttons and copy buttons carry English texts. `LabelsProvider` sets them once for the
+whole UI, by meaning rather than by component — one `close` serves Dialog, Sheet, Drawer and toasts:
+
+```tsx
+<LabelsProvider labels={{ close: "Schließen", cancel: "Abbrechen", decrease: "Weniger", increase: "Mehr", open: "Öffnen", clear: "Leeren" }}>
+  <App />
+</LabelsProvider>
+```
+
+Keys: `close`, `confirm`, `cancel` (ConfirmDialog), `open`, `clear`, `remove` (Combobox, Autocomplete), `decrease`,
+`increase` (NumberField), `pagination`, `previous`, `next`, `firstPage`, `previousPage`, `nextPage`, `lastPage`,
+`morePages` (Pagination, DataTablePagination), `rowsPerPage`, `pageOf(page, count)`, `selectedRows(selected, total)`,
+`sortAscending`, `sortDescending`, `clearSort`, `hideColumn`, `columns`, `toggleColumns` (DataTable), `breadcrumb`,
+`more`, `previousSlide`, `nextSlide`, `copyCode`, `copied`, `toggleSidebar`, `toggleColorScheme`, `loading`. A prop on
+the component still wins, an inner provider changes only its own keys. `usePreuiLabels()` reads them,
+`defaultPreuiLabels` holds the English defaults. Components with a `labels` object of their own (Kanban, SortableList,
+ThemeEditor, EditorWindow, ColorPicker …) keep it.
+
+### Long texts: TruncateText
+
+`TruncateText` cuts text off with "…" after `lines` lines (default 1) and shows the whole text as a tooltip — only
+while it is actually cut off. Use it where a German or French text may not fit, instead of a `title` attribute (CEF
+never shows those). `EditorHeader` uses it for its status.
+
+```tsx
+<TruncateText className="text-xs">{t("status.saved")}</TruncateText>
+<TruncateText lines={2}>{vehicle.description}</TruncateText>
+```
+
+### Copy to the clipboard
+
+`copyText(text)` copies with the Clipboard API and falls back to a hidden textarea with `execCommand("copy")` where
+`navigator.clipboard` is missing (FiveM's CEF, pages on plain http). It resolves to whether it worked; call it from a
+click handler. `CodeBlock`'s copy button and the ThemeEditor use it.
+
 ### useListNavigation
 
 Keyboard navigation for lists you build yourself (garage, shop, job menu …): it tracks the highlighted row and handles
@@ -705,8 +748,10 @@ sets `--bento-columns` and `--bento-row-height`; `gap-3` is the default gap (ove
 
 A board of columns with cards you move with the pointer or the keyboard — orders in a business script, dispatch calls
 in an MDT, a workshop queue, a task board. Drag & drop uses pointer events (not HTML5 drag & drop, which is unreliable
-in FiveM's CEF): 4px threshold, a preview that follows the cursor, a line that shows the drop position, lists that
-scroll near their edges. The board only reports moves — your state decides what is rendered:
+in FiveM's CEF): 4px threshold, a see-through copy that follows the cursor; the cards of the column below it slide
+apart and a tinted slot shows where it lands, its own column closes the gap. Inside one column it moves exactly like
+`SortableList`. Columns and the board scroll near their edges. The board only reports moves — your state decides what
+is rendered:
 
 ```tsx
 import {
@@ -738,13 +783,18 @@ const [board, setBoard] = useState<Record<string, Order[]>>({ new: […], progre
   `onCardMove` the board is read-only.
 - Keyboard: Space/Enter picks the focused card up, ↑/↓ move it inside the column, ←/→ to the neighbouring column,
   Space/Enter drops, Escape (or leaving the card) cancels. Moves are announced in a live region; texts are English by
-  default — pass `labels={{ card, instructions, pickedUp, moving, dropped, cancelled }}`.
+  default — pass `labels={{ card, handle, instructions, pickedUp, moving, dropped, cancelled }}`. The card gets the
+  focus back after a keyboard drop, also in another column.
 - `KanbanColumn`: `id` (reported in events), `label` (screen readers and announcements), `disabled` (no drops into it).
   18rem wide by default; the board scrolls horizontally, give it a height so the columns scroll vertically.
 - `KanbanCard`: `id`, `disabled` (can't be moved); any content, clicks keep working (the click that ends a drag is
-  swallowed). `KanbanColumnContent` takes `empty` for an empty column.
-- State attributes for styling: `data-dragging` on the board and the moved card, `data-drop-target` on the column
-  under the card, `data-disabled`; the preview is `[data-slot="kanban-drag-preview"]`.
+  swallowed, presses on buttons, inputs and links inside never start one). `KanbanColumnContent` takes `empty` for an
+  empty column.
+- `KanbanCardHandle` inside a card: only the grip starts a drag and takes the keyboard moves (`labels.handle` names
+  it). `<Kanban disabled>` freezes the whole board.
+- State attributes for styling: `data-dragging` on the board, `data-dragging="pointer" | "keyboard"` and `data-away`
+  (over another column) on the moved card, `data-drop-target` on the column under the card, `data-disabled`; the
+  copy is `[data-slot="kanban-drag-preview"]`, the slot in another column `[data-slot="kanban-drop-slot"]`.
 
 ### Game UI
 

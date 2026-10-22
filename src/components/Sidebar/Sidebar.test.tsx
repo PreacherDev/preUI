@@ -160,6 +160,37 @@ describe("Sidebar", () => {
     expect(document.querySelector('[data-sidebar="separator"]')).toHaveClass("bg-pui-border");
   });
 
+  it("shows the trigger's label as a tooltip (like IconButton), or no tooltip with tooltip={false}", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <SidebarProvider tooltipDelay={0}>
+        <SidebarTrigger label="Navigation umschalten" />
+      </SidebarProvider>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Navigation umschalten" }));
+    expect(await screen.findByText("Navigation umschalten")).toHaveAttribute("data-slot", "tooltip-content");
+    unmount();
+    render(
+      <SidebarProvider tooltipDelay={0}>
+        <SidebarTrigger label="Umschalten" tooltip={false} />
+      </SidebarProvider>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Umschalten" }));
+    expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull();
+  });
+
+  it("writes no cookie with cookieName={false}", async () => {
+    const user = userEvent.setup();
+    document.cookie = "sidebar_state=true; path=/";
+    render(
+      <SidebarProvider cookieName={false}>
+        <SidebarTrigger />
+      </SidebarProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+    expect(document.cookie).toContain("sidebar_state=true");
+  });
+
   it("toggles expanded/collapsed with the trigger and stores the state in a cookie", async () => {
     const user = userEvent.setup();
     render(<Example />);

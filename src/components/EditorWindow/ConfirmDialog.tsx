@@ -13,6 +13,7 @@ import {
   type AlertDialogProps,
 } from "../AlertDialog/AlertDialog";
 import { Button } from "../Button/Button";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 /** Why the dialog closed without confirming. Anything else (e.g. closed from code) reports `"other"`. */
 export type ConfirmDialogCancelReason = "button" | "escape" | "outside" | "other";
@@ -35,8 +36,9 @@ export interface ConfirmDialogProps extends Omit<AlertDialogProps, "children"> {
   destructive?: boolean;
   /**
    * The confirming button was pressed. The dialog closes afterwards — unless the handler returns `false`, or a
-   * promise: then the confirming button spins and the dialog stays open until the promise settles and closes only
-   * if it did not resolve `false`. A rejected promise keeps the dialog open too (handle the error yourself).
+   * promise: then the confirming button spins and the dialog stays open until the promise settles (Escape and a press
+   * outside are ignored meanwhile) and closes only if it did not resolve `false`. A rejected promise keeps the dialog
+   * open too (handle the error yourself).
    */
   onConfirm?: () => ConfirmDialogConfirmResult;
   /**
@@ -44,7 +46,10 @@ export interface ConfirmDialogProps extends Omit<AlertDialogProps, "children"> {
    * (`"escape"`) and a press outside (`"outside"`).
    */
   onCancel?: (reason: ConfirmDialogCancelReason) => void;
-  /** Spinner on the confirming button, which is disabled while it shows (e.g. while the server answers). */
+  /**
+   * Spinner on the confirming button, which is disabled while it shows (e.g. while the server answers). Like a
+   * pending `onConfirm` promise, it also keeps Escape and a press outside from closing the dialog.
+   */
   confirmLoading?: boolean;
   /** Disables the confirming button, e.g. until the extra content is filled in. */
   confirmDisabled?: boolean;
@@ -84,8 +89,8 @@ export function ConfirmDialog({
   title,
   description,
   children,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel: confirmLabelProp,
+  cancelLabel: cancelLabelProp,
   destructive = false,
   onConfirm,
   onCancel,
@@ -98,6 +103,9 @@ export function ConfirmDialog({
   actionsRef,
   ...props
 }: ConfirmDialogProps) {
+  const preuiLabels = usePreuiLabels();
+  const confirmLabel = confirmLabelProp ?? preuiLabels.confirm;
+  const cancelLabel = cancelLabelProp ?? preuiLabels.cancel;
   const confirmed = useRef(false);
   const [pending, setPendingState] = useState(false);
   // Read synchronously in `onOpenChange`: while the promise runs, a dismissal is still a cancel.
@@ -157,6 +165,12 @@ export function ConfirmDialog({
       {...props}
       actionsRef={actions}
       onOpenChange={(open, details) => {
+        // While the confirmation runs (a pending `onConfirm` or `confirmLoading`), Escape and a press outside don't
+        // close the dialog — the cancel button is disabled too, and the answer must not land in a closed dialog.
+        if (!open && (pendingRef.current || confirmLoading) && (details?.reason === "escape-key" || details?.reason === "outside-press")) {
+          details.cancel();
+          return;
+        }
         if (!open) {
           if (!confirmed.current || pendingRef.current) {
             onCancel?.(cancelReasons[details?.reason as string] ?? "other");

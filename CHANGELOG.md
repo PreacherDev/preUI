@@ -15,6 +15,17 @@ changes; a patch version never does. The NUI helpers have their own section at t
 - **ThemeEditor presets are a list.** The small tiles became entries with a bigger dark | light swatch, the name, the
   `description` (visible now, it was only a `title`) and the contrast result as text ("3 problems"). Tests or styles
   that relied on the tile markup (`span.w-5` reserve, `title`) need updating; the `data-slot`s stayed.
+- **`useEscapeKey` uses up the Escape it handled** (default capture phase): it stops at the window, so a dialog the
+  handler opens doesn't close again on the same key press. Other listeners don't see that Escape any more; return
+  `false` from the handler when it did nothing with it. Workarounds with `event.stopPropagation()` in the handler or
+  `capture: false` can go.
+- **`SidebarTrigger` shows its `label` as a tooltip** (like `IconButton`); `tooltip` overrides it or `false` turns it
+  off. The label is now the button's `aria-label` instead of a visually hidden span.
+- **Kanban moves like SortableList.** It runs on a new engine for several columns: the cards of the column below the
+  pointer slide apart and a tinted slot (`[data-slot="kanban-drop-slot"]`) shows where the card lands, its own column
+  closes the gap; inside one column the card itself is the slot. The drop line (`kanban-drop-indicator`) is gone, the
+  moved card's `data-dragging` is `"pointer"` / `"keyboard"` instead of `""`. Presses on buttons, inputs and links
+  inside a card no longer start a drag. The API (`onCardMove`, `KanbanMoveEvent`, `moveKanbanItem`) is unchanged.
 - **ThemeEditor "Fix" may lower the accent strength.** When no small lightness change makes a colour readable on its
   own tint (a high accent strength), Fix lowers `--pui-tint-scale` just enough instead of pushing the colour to almost
   white or black. Before, Fix did nothing in that case.
@@ -39,12 +50,30 @@ changes; a patch version never does. The NUI helpers have their own section at t
   `render` (e.g. `render={<div />}` inside a page that has its own `<main>`).
 - Icons `palette`, `layers`, `slidersHorizontal`, `contrast`, `settings`, `share`, `panelLeftClose`, `panelLeftOpen`
   (default set and `lucideIcons`). A custom `IconProvider` set needs them too.
+- **`TruncateText`**: text cut off with "…" after `lines` lines that shows the whole text as a tooltip only while it
+  is cut off — the replacement for `title` attributes, which CEF never shows.
+- **`LabelsProvider`**: the texts of every built-in control set once at the app root, by meaning (`close`,
+  `decrease` / `increase`, `open` / `clear` / `remove`, page buttons, DataTable texts, `copyCode` …) — no more
+  `decrementLabel` / `incrementLabel` on every NumberField. A prop on the component still wins; `usePreuiLabels`,
+  `defaultPreuiLabels`, type `PreuiLabels`.
+- **`ConfirmDialog` ignores Escape and a press outside** while `onConfirm`'s promise runs or `confirmLoading` is set,
+  like its disabled cancel button. Own `pending` states with a guarded `onOpenChange` can go.
+- **`copyText(text)`**: copies with the Clipboard API, falls back to a textarea + `execCommand("copy")` where
+  `navigator.clipboard` is missing (FiveM's CEF, plain http). `CodeBlock`'s copy button uses it, so it works in FiveM
+  now.
+- **`KanbanCardHandle`** (only the grip starts a drag and takes the keyboard moves, `labels.handle`) and
+  **`<Kanban disabled>`**. After a keyboard drop the card keeps the focus, also in another column.
 - **`ThemePreset.group`**: presets with a group are listed under its heading, groups in the order of their first preset.
 - **ThemeEditor accent strength hint** (`labels.tintHint`): shown under the slider while coloured text on its own tint
   is unreadable.
 
 ### Fixed
 
+- **No more native `title` tooltips** (CEF never shows them): `EditorHeader`'s status is a `TruncateText` (long
+  French or German statuses were cut off with no way to read them), `ThemeToggle` and the icon-only `ThemeSelect`
+  trigger show their label as a real tooltip (`ThemeToggle` takes `tooltip` like `IconButton`), the ThemeEditor's
+  contrast badges and Fix buttons too; `SidebarRail` keeps only its `aria-label`. A test keeps `title=` out of the
+  components.
 - ThemeEditor: "All colours" showed two chevrons; undo / redo use `IconButton` tooltips instead of a native `title`
   (which CEF never shows).
 
@@ -681,6 +710,11 @@ A `preui.css` written earlier by `npx preui init` is yours and keeps its colours
 - Example resource `examples/fivem-theme` (fxmanifest, Lua, Vite project with an in-game theme editor).
 
 ## @pre_scripts/create-preui-nui
+
+### Unreleased
+
+- The template's code comments are ASCII only (no `→` / `—`), as the pre_ scripts require.
+- `web/src/vite-env.d.ts` with `/// <reference types="vite/client" />`, so `import.meta.env.DEV` type-checks.
 
 ### 0.4.1 - 2026-10-14
 

@@ -4,6 +4,7 @@ import { forwardRef, type ComponentPropsWithoutRef } from "react";
 import { useIcon } from "../../icons";
 import { cn, mergeClassName, type StateClassName } from "../../utils/cn";
 import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export const numberFieldVariants = /* @__PURE__ */ cva(
   [
@@ -83,8 +84,8 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
     size,
     steppers = true,
     placeholder,
-    decrementLabel = "Decrease",
-    incrementLabel = "Increase",
+    decrementLabel: decrementLabelProp,
+    incrementLabel: incrementLabelProp,
     stepperTooltip,
     inputClassName,
     inputProps,
@@ -93,6 +94,9 @@ export const NumberField = /* @__PURE__ */ forwardRef<HTMLDivElement, NumberFiel
   },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const decrementLabel = decrementLabelProp ?? preuiLabels.decrease;
+  const incrementLabel = incrementLabelProp ?? preuiLabels.increase;
   const Minus = useIcon("minus");
   const Plus = useIcon("plus");
 

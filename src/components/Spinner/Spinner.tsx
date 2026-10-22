@@ -1,6 +1,7 @@
 import { forwardRef, type HTMLAttributes } from "react";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export interface SpinnerProps extends HTMLAttributes<HTMLSpanElement> {
   /** Accessible name announced by screen readers. */
@@ -12,9 +13,11 @@ export interface SpinnerProps extends HTMLAttributes<HTMLSpanElement> {
  * Size it with `className` (`size-4` by default); the icon inherits the text color.
  */
 export const Spinner = /* @__PURE__ */ forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
-  { label = "Loading", className, ...props },
+  { label: labelProp, className, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.loading;
   const SpinnerIcon = useIcon("spinner");
 
   return (

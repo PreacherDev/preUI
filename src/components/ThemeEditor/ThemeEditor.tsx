@@ -32,6 +32,7 @@ import { ColorPicker } from "../ColorPicker/ColorPicker";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../Collapsible/Collapsible";
 import { ContrastBadge, type ContrastBadgeLabels } from "../ContrastBadge/ContrastBadge";
 import { IconButton } from "../IconButton/IconButton";
+import { WithTooltip } from "../Tooltip/IconTooltip";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "../Item/Item";
 import { ScrollArea } from "../ScrollArea/ScrollArea";
 import { Separator } from "../Separator/Separator";
@@ -918,7 +919,6 @@ export const ThemeEditor = /* @__PURE__ */ forwardRef<HTMLDivElement, ThemeEdito
               <Button
                 variant="outline"
                 size="sm"
-                title={labels.deriveLightHint}
                 onClick={() => update((current) => deriveLightFromDark(current, minContrast))}
               >
                 {labels.deriveLight}
@@ -1691,28 +1691,31 @@ function ColorField({
         )}
       </span>
       {worst && (
-        <ContrastBadge
-          ratio={worst.ratio}
-          showRatio
-          locale={locale}
-          labels={labels.contrastBadge}
-          data-slot="theme-editor-field-contrast"
-          title={labels.pairs[pairKey(worst)]}
-          className="shrink-0"
-        />
+        // The failing pair ("Text on primary") as a tooltip.
+        <WithTooltip label={labels.pairs[pairKey(worst)]}>
+          <ContrastBadge
+            ratio={worst.ratio}
+            showRatio
+            locale={locale}
+            labels={labels.contrastBadge}
+            data-slot="theme-editor-field-contrast"
+            className="shrink-0"
+          />
+        </WithTooltip>
       )}
       {worst && onFix && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onFix}
-          aria-label={labels.fixContrastField(label)}
-          title={labels.fixContrastField(label)}
-          data-slot="theme-editor-field-fix"
-          className="h-7 shrink-0 px-2 text-xs"
-        >
-          {labels.fixContrast}
-        </Button>
+        <WithTooltip label={labels.fixContrastField(label)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onFix}
+            aria-label={labels.fixContrastField(label)}
+            data-slot="theme-editor-field-fix"
+            className="h-7 shrink-0 px-2 text-xs"
+          >
+            {labels.fixContrast}
+          </Button>
+        </WithTooltip>
       )}
       <span className="w-16 shrink-0 font-mono text-xs uppercase text-pui-muted-foreground">{hex}</span>
       <Button

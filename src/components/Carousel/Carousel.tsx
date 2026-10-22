@@ -12,6 +12,7 @@ import {
 import { useIcon } from "../../icons";
 import { cn, mergeClassName } from "../../utils/cn";
 import { Button, type ButtonProps } from "../Button/Button";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -179,9 +180,11 @@ const navButtonBase = "absolute rounded-full";
 
 /** Scrolls to the previous slide; disabled at the start (unless `loop`). */
 export const CarouselPrevious = /* @__PURE__ */ forwardRef<HTMLElement, CarouselPreviousProps>(function CarouselPrevious(
-  { className, variant = "outline", size = "icon-sm", label = "Previous slide", onClick, ...props },
+  { className, variant = "outline", size = "icon-sm", label: labelProp, onClick, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.previousSlide;
   const { orientation, scrollPrev, canScrollPrev } = useCarousel();
   const ChevronLeft = useIcon("chevronLeft");
   return (
@@ -214,9 +217,11 @@ export const CarouselPrevious = /* @__PURE__ */ forwardRef<HTMLElement, Carousel
 
 /** Scrolls to the next slide; disabled at the end (unless `loop`). */
 export const CarouselNext = /* @__PURE__ */ forwardRef<HTMLElement, CarouselNextProps>(function CarouselNext(
-  { className, variant = "outline", size = "icon-sm", label = "Next slide", onClick, ...props },
+  { className, variant = "outline", size = "icon-sm", label: labelProp, onClick, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.nextSlide;
   const { orientation, scrollNext, canScrollNext } = useCarousel();
   const ChevronRight = useIcon("chevronRight");
   return (

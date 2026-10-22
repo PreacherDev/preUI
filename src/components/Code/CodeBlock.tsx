@@ -20,6 +20,8 @@ import {
   type HighlightToken,
 } from "./highlighter";
 import { syntaxColor } from "./syntax-theme";
+import { copyText } from "../../utils/copy-text";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 /* ------------------------------------------------------------------------------------------------
  * CodeBlock
@@ -133,11 +135,8 @@ function CopyButton({ code, copyLabel, copiedLabel, onCopy, className }: CopyBut
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-    } catch {
-      return;
-    }
+    // With the textarea fallback FiveM's CEF needs (it has no navigator.clipboard).
+    if (!(await copyText(code))) return;
     setCopied(true);
     onCopy?.(code);
     clearTimeout(timer.current);
@@ -177,8 +176,8 @@ export const CodeBlock = /* @__PURE__ */ forwardRef<HTMLDivElement, CodeBlockPro
     highlightLines,
     wrap = false,
     copyable = true,
-    copyLabel = "Copy code",
-    copiedLabel = "Copied",
+    copyLabel: copyLabelProp,
+    copiedLabel: copiedLabelProp,
     onCopy,
     className,
     style,
@@ -186,6 +185,9 @@ export const CodeBlock = /* @__PURE__ */ forwardRef<HTMLDivElement, CodeBlockPro
   },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const copyLabel = copyLabelProp ?? preuiLabels.copyCode;
+  const copiedLabel = copiedLabelProp ?? preuiLabels.copied;
   // A single trailing newline (template literals, files) would render as an empty last line.
   const source = code.endsWith("\n") ? code.slice(0, -1) : code;
   const { lines, highlighted } = useHighlightedLines(source, language);

@@ -180,6 +180,30 @@ describe("useEscapeKey", () => {
     expect(onEscape).toHaveBeenCalledTimes(1);
   });
 
+  it("uses up the Escape it handled, so a dialog opened from the handler doesn't get it too", () => {
+    const onEscape = vi.fn();
+    const later = vi.fn();
+    document.addEventListener("keydown", later);
+    render(<Page onEscape={onEscape} />);
+    escape();
+    expect(onEscape).toHaveBeenCalledTimes(1);
+    expect(later).not.toHaveBeenCalled();
+    document.removeEventListener("keydown", later);
+  });
+
+  it("lets the Escape go on when the handler returns false", () => {
+    const later = vi.fn();
+    document.addEventListener("keydown", later);
+    function Passing() {
+      useEscapeKey(() => false);
+      return null;
+    }
+    render(<Passing />);
+    escape();
+    expect(later).toHaveBeenCalledTimes(1);
+    document.removeEventListener("keydown", later);
+  });
+
   it("respects enabled={false}", () => {
     const onEscape = vi.fn();
     render(<Page onEscape={onEscape} enabled={false} />);

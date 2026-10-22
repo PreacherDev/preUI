@@ -13,6 +13,7 @@ import {
 import { sortHeadButtonClass } from "../Table/TableSortHead";
 import { DataTableRowMoveContext } from "./createDragColumn";
 import type { DataTableColumn } from "./features";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export interface DataTableColumnHeaderProps<TData extends RowData, TValue = unknown>
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -43,13 +44,18 @@ export function DataTableColumnHeader<TData extends RowData, TValue = unknown>({
   column,
   title,
   menu = false,
-  sortAscLabel = "Asc",
-  sortDescLabel = "Desc",
-  hideLabel = "Hide",
-  clearSortLabel = "Clear sort",
+  sortAscLabel: sortAscLabelProp,
+  sortDescLabel: sortDescLabelProp,
+  hideLabel: hideLabelProp,
+  clearSortLabel: clearSortLabelProp,
   className,
   ...props
 }: DataTableColumnHeaderProps<TData, TValue>) {
+  const preuiLabels = usePreuiLabels();
+  const sortAscLabel = sortAscLabelProp ?? preuiLabels.sortAscending;
+  const sortDescLabel = sortDescLabelProp ?? preuiLabels.sortDescending;
+  const hideLabel = hideLabelProp ?? preuiLabels.hideColumn;
+  const clearSortLabel = clearSortLabelProp ?? preuiLabels.clearSort;
   const ArrowUp = useIcon("arrowUp");
   const ArrowDown = useIcon("arrowDown");
   const ArrowUpDown = useIcon("arrowUpDown");

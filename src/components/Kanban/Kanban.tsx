@@ -8,13 +8,14 @@ import {
   useMemo,
   useRef,
   useState,
+  type ButtonHTMLAttributes,
   type HTMLAttributes,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
-import { autoScroll, createDragPreview, startPointerDrag } from "../../utils/pointer-drag";
+import { canStartDragFrom } from "../../utils/pointer-drag-sort";
+import { COLUMNS_BOARD_ATTRIBUTE, useColumnsEngine, type ColumnsEngine } from "../../utils/pointer-drag-columns";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Types
@@ -39,6 +40,8 @@ export interface KanbanMoveEvent {
 export interface KanbanLabels {
   /** Role description of a card for screen readers. */
   card: string;
+  /** Accessible name of a `KanbanCardHandle`. */
+  handle: string;
   /** How to move a card with the keyboard (read with the focused card). */
   instructions: string;
   pickedUp: (column: string, position: number) => string;
@@ -49,6 +52,7 @@ export interface KanbanLabels {
 
 export const defaultKanbanLabels: KanbanLabels = {
   card: "Draggable card",
+  handle: "Drag to move",
   instructions:
     "Press Space or Enter to pick the card up. Move it with the arrow keys, press Space or Enter to drop it, Escape to cancel.",
   pickedUp: (column, position) => `Picked up from ${column}, position ${position}.`,
@@ -57,31 +61,21 @@ export const defaultKanbanLabels: KanbanLabels = {
   cancelled: "Move cancelled.",
 };
 
-interface DragState {
-  cardId: string;
-  from: KanbanLocation;
-  /** `null` while the pointer is outside every column (dropping then cancels). */
-  to: KanbanLocation | null;
-  /** Drop line, in px from the top of the target column's content (incl. its scroll). */
-  indicatorY: number | null;
-  mode: "pointer" | "keyboard";
-}
-
 interface KanbanContextValue {
-  boardRef: React.RefObject<HTMLDivElement | null>;
-  drag: DragState | null;
-  movable: boolean;
+  engine: ColumnsEngine;
   instructionsId: string;
   labels: KanbanLabels;
-  startPointer: (event: ReactPointerEvent<HTMLElement>, cardId: string) => void;
-  handleCardKeyDown: (event: ReactKeyboardEvent<HTMLElement>, cardId: string) => void;
-  cancelKeyboard: (cardId: string) => void;
-  /** `true` once for the click that ends a pointer drag of this card (so the card's onClick doesn't fire). */
-  consumeDragClick: (cardId: string) => boolean;
+}
+
+interface KanbanCardContextValue {
+  id: string;
+  disabled: boolean;
+  registerHandle: () => () => void;
 }
 
 const KanbanContext = /* @__PURE__ */ createContext<KanbanContextValue | null>(null);
 const ColumnContext = /* @__PURE__ */ createContext<{ columnId: string; disabled: boolean } | null>(null);
+const KanbanCardContext = /* @__PURE__ */ createContext<KanbanCardContextValue | null>(null);
 
 function useKanban(part: string) {
   const context = useContext(KanbanContext);
@@ -89,62 +83,15 @@ function useKanban(part: string) {
   return context;
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
-// DOM helpers (all reads happen in event handlers, never during render)
-// ---------------------------------------------------------------------------------------------------------------------
+const selectors = {
+  column: '[data-slot="kanban-column"]',
+  content: '[data-slot="kanban-column-content"]',
+  item: '[data-slot="kanban-card"]',
+  itemId: "cardId",
+  handle: "[data-sortable-handle]",
+};
 
-const COLUMN_SELECTOR = '[data-slot="kanban-column"]';
-const CONTENT_SELECTOR = '[data-slot="kanban-column-content"]';
-const CARD_SELECTOR = '[data-slot="kanban-card"]';
-
-function columnsOf(board: HTMLElement): HTMLElement[] {
-  return Array.from(board.querySelectorAll<HTMLElement>(COLUMN_SELECTOR)).filter(
-    (column) => column.closest('[data-slot="kanban"]') === board,
-  );
-}
-
-function contentOf(column: HTMLElement): HTMLElement | null {
-  return column.querySelector<HTMLElement>(CONTENT_SELECTOR);
-}
-
-/** The cards of a column in DOM order, optionally without the dragged one. */
-function cardsOf(column: HTMLElement, exclude?: string): HTMLElement[] {
-  const content = contentOf(column);
-  if (!content) return [];
-  return Array.from(content.querySelectorAll<HTMLElement>(CARD_SELECTOR)).filter(
-    (card) => card.closest(COLUMN_SELECTOR) === column && card.dataset.cardId !== exclude,
-  );
-}
-
-function columnById(board: HTMLElement, columnId: string) {
-  return columnsOf(board).find((column) => column.dataset.columnId === columnId) ?? null;
-}
-
-const columnName = (column: HTMLElement | null) =>
-  column?.getAttribute("aria-label") || column?.dataset.columnId || "";
-
-/** Where the drop line goes for `index` (cards without the dragged one), relative to the content's scroll box. */
-function indicatorFor(column: HTMLElement, index: number, exclude: string): number | null {
-  const content = contentOf(column);
-  if (!content) return null;
-  const box = content.getBoundingClientRect();
-  const cards = cardsOf(column, exclude);
-  const offset = (y: number) => y - box.top + content.scrollTop;
-  if (cards.length === 0) return offset(box.top) + parseFloat(getComputedStyle(content).paddingTop || "0") / 2;
-  if (index < cards.length) return offset(cards[index].getBoundingClientRect().top) - 4;
-  return offset(cards[cards.length - 1].getBoundingClientRect().bottom) + 4;
-}
-
-/** Index where a pointer at `y` would drop (between the cards, by their vertical middles). */
-function indexAt(column: HTMLElement, y: number, exclude: string) {
-  const cards = cardsOf(column, exclude);
-  let index = 0;
-  for (const card of cards) {
-    const rect = card.getBoundingClientRect();
-    if (y > rect.top + rect.height / 2) index += 1;
-  }
-  return index;
-}
+const columnName = (column: HTMLElement | null) => column?.getAttribute("aria-label") || column?.dataset.columnId || "";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Kanban (board)
@@ -156,45 +103,41 @@ export interface KanbanProps extends HTMLAttributes<HTMLDivElement> {
    * the board is read-only. Update your own state here, e.g. with `moveKanbanItem`.
    */
   onCardMove?: (event: KanbanMoveEvent) => void;
+  /** No card can be moved (handles are disabled). */
+  disabled?: boolean;
   /** Screen-reader texts (partial overrides, English by default). */
   labels?: Partial<KanbanLabels>;
 }
 
 /**
- * Kanban board: columns (`KanbanColumn`) with cards (`KanbanCard`) that can be moved with the pointer (4px threshold,
- * a preview follows the cursor, a line shows the drop position, lists scroll near their edges) or the keyboard
- * (Space/Enter, arrows, Escape). Pointer events instead of HTML5 drag & drop, so it works in FiveM's CEF. The board
- * only reports moves (`onCardMove`); your state decides what is rendered.
+ * Kanban board: columns (`KanbanColumn`) with cards (`KanbanCard`) that can be moved with the pointer (4px threshold;
+ * a see-through copy follows the cursor, the cards of the column below it slide apart and a tinted slot shows where
+ * it lands, its own column closes the gap; columns scroll near their edges) or the keyboard (Space/Enter, arrows,
+ * Escape). Inside one column it moves exactly like `SortableList`. Pointer events instead of HTML5 drag & drop, so it
+ * works in FiveM's CEF. The board only reports moves (`onCardMove`); your state decides what is rendered.
  */
 export const Kanban = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanProps>(function Kanban(
-  { onCardMove, labels: labelOverrides, className, children, ...props },
+  { onCardMove, disabled = false, labels: labelOverrides, className, children, ...props },
   forwardedRef,
 ) {
   const boardRef = useRef<HTMLDivElement | null>(null);
-  const [drag, setDrag] = useState<DragState | null>(null);
-  const [announcement, setAnnouncement] = useState("");
   const instructionsId = useId();
   const labels = useMemo(() => ({ ...defaultKanbanLabels, ...labelOverrides }), [labelOverrides]);
-  const movable = typeof onCardMove === "function";
-
-  const dragRef = useRef<DragState | null>(null);
-  const update = useCallback((next: DragState | null) => {
-    dragRef.current = next;
-    setDrag(next);
-  }, []);
   const onMoveRef = useRef(onCardMove);
   onMoveRef.current = onCardMove;
-  const labelsRef = useRef(labels);
-  labelsRef.current = labels;
-  const cleanupRef = useRef<(() => void) | null>(null);
-  const draggedClickRef = useRef<string | null>(null);
-  const consumeDragClick = useCallback((cardId: string) => {
-    if (draggedClickRef.current !== cardId) return false;
-    draggedClickRef.current = null;
-    return true;
-  }, []);
-
-  useEffect(() => () => cleanupRef.current?.(), []);
+  const onMove = useCallback(
+    ({ id, from, to }: { id: string; from: KanbanLocation; to: KanbanLocation }) => onMoveRef.current?.({ cardId: id, from, to }),
+    [],
+  );
+  const engine = useColumnsEngine({
+    boardRef,
+    selectors,
+    onMove: onCardMove ? onMove : undefined,
+    labels,
+    disabled,
+    previewSlot: "kanban-drag-preview",
+    columnName,
+  });
 
   const setRefs = useCallback(
     (node: HTMLDivElement | null) => {
@@ -205,177 +148,28 @@ export const Kanban = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanProps>(fu
     [forwardedRef],
   );
 
-  const finish = useCallback(
-    (state: DragState | null, commit: boolean) => {
-      const board = boardRef.current;
-      update(null);
-      if (!state || !board) return;
-      const { to, from, cardId } = state;
-      if (!commit || !to) {
-        setAnnouncement(labelsRef.current.cancelled);
-        return;
-      }
-      setAnnouncement(labelsRef.current.dropped(columnName(columnById(board, to.columnId)), to.index + 1));
-      if (to.columnId === from.columnId && to.index === from.index) return;
-      onMoveRef.current?.({ cardId, from, to });
-    },
-    [update],
-  );
-
-  const locate = useCallback((cardId: string): KanbanLocation | null => {
-    const board = boardRef.current;
-    if (!board) return null;
-    for (const column of columnsOf(board)) {
-      const index = cardsOf(column).findIndex((card) => card.dataset.cardId === cardId);
-      if (index !== -1) return { columnId: column.dataset.columnId!, index };
-    }
-    return null;
-  }, []);
-
-  const startPointer = useCallback(
-    (event: ReactPointerEvent<HTMLElement>, cardId: string) => {
-      const board = boardRef.current;
-      if (!board || !movable || event.button !== 0 || dragRef.current) return;
-      draggedClickRef.current = null;
-      const card = event.currentTarget;
-      const from = locate(cardId);
-      if (!from) return;
-      let preview: HTMLElement | null = null;
-
-      cleanupRef.current?.();
-      cleanupRef.current = startPointerDrag(event, {
-        onActivate: () => {
-          preview = createDragPreview(card, board, { slot: "kanban-drag-preview" });
-          setAnnouncement(labelsRef.current.pickedUp(columnName(columnById(board, from.columnId)), from.index + 1));
-        },
-        onMove: (e, dx, dy) => {
-          preview!.style.transform = `translate(${dx}px, ${dy}px)`;
-          const hit = document.elementFromPoint(e.clientX, e.clientY);
-          const column = hit?.closest<HTMLElement>(COLUMN_SELECTOR) ?? null;
-          autoScroll(board, e.clientX, e.clientY, "x");
-          if (!column || !board.contains(column) || column.hasAttribute("data-disabled")) {
-            update({ cardId, from, to: null, indicatorY: null, mode: "pointer" });
-            return;
-          }
-          autoScroll(contentOf(column), e.clientX, e.clientY, "y");
-          const index = indexAt(column, e.clientY, cardId);
-          const current = dragRef.current;
-          const columnId = column.dataset.columnId!;
-          if (current?.to?.columnId === columnId && current.to.index === index) return;
-          update({ cardId, from, to: { columnId, index }, indicatorY: indicatorFor(column, index, cardId), mode: "pointer" });
-        },
-        onEnd: (commit) => {
-          // A click that follows the drag on this card must not trigger its onClick.
-          draggedClickRef.current = cardId;
-          finish(dragRef.current, commit);
-        },
-        onCleanup: () => {
-          preview?.remove();
-          preview = null;
-          cleanupRef.current = null;
-        },
-      });
-    },
-    [finish, locate, movable, update],
-  );
-
-  const handleCardKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLElement>, cardId: string) => {
-      const board = boardRef.current;
-      if (!board || !movable || event.target !== event.currentTarget) return;
-      const current = dragRef.current;
-      const pick = event.key === " " || event.key === "Enter";
-
-      if (!current) {
-        if (!pick) return;
-        event.preventDefault();
-        const from = locate(cardId);
-        if (!from) return;
-        const column = columnById(board, from.columnId)!;
-        update({ cardId, from, to: from, indicatorY: indicatorFor(column, from.index, cardId), mode: "keyboard" });
-        setAnnouncement(labelsRef.current.pickedUp(columnName(column), from.index + 1));
-        return;
-      }
-      if (current.mode !== "keyboard" || current.cardId !== cardId) return;
-
-      if (pick) {
-        event.preventDefault();
-        finish(current, true);
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        finish(current, false);
-        return;
-      }
-      const to = current.to ?? current.from;
-      const columns = columnsOf(board);
-      let columnIndex = columns.findIndex((column) => column.dataset.columnId === to.columnId);
-      let index = to.index;
-      if (event.key === "ArrowUp") index -= 1;
-      else if (event.key === "ArrowDown") index += 1;
-      else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        const step = event.key === "ArrowLeft" ? -1 : 1;
-        let next = columnIndex + step;
-        while (columns[next]?.hasAttribute("data-disabled")) next += step;
-        if (!columns[next]) {
-          event.preventDefault();
-          return;
-        }
-        columnIndex = next;
-      } else return;
-      event.preventDefault();
-      const column = columns[columnIndex];
-      const max = cardsOf(column, cardId).length;
-      index = Math.max(0, Math.min(index, max));
-      const columnId = column.dataset.columnId!;
-      update({ ...current, to: { columnId, index }, indicatorY: indicatorFor(column, index, cardId) });
-      setAnnouncement(labelsRef.current.moving(columnName(column), index + 1));
-    },
-    [finish, locate, movable, update],
-  );
-
-  const cancelKeyboard = useCallback(
-    (cardId: string) => {
-      const current = dragRef.current;
-      if (current?.mode === "keyboard" && current.cardId === cardId) finish(current, false);
-    },
-    [finish],
-  );
-
-  const value = useMemo<KanbanContextValue>(
-    () => ({
-      boardRef,
-      drag,
-      movable,
-      instructionsId,
-      labels,
-      startPointer,
-      handleCardKeyDown,
-      cancelKeyboard,
-      consumeDragClick,
-    }),
-    [drag, movable, instructionsId, labels, startPointer, handleCardKeyDown, cancelKeyboard, consumeDragClick],
-  );
+  const value = useMemo<KanbanContextValue>(() => ({ engine, instructionsId, labels }), [engine, instructionsId, labels]);
+  const { drag } = engine;
 
   return (
     <KanbanContext.Provider value={value}>
       <div
         ref={setRefs}
         data-slot="kanban"
+        {...{ [COLUMNS_BOARD_ATTRIBUTE]: "" }}
         data-dragging={drag ? "" : undefined}
+        data-disabled={disabled ? "" : undefined}
         className={cn("flex items-stretch gap-3 overflow-x-auto pb-1", drag?.mode === "pointer" && "select-none", className)}
         {...props}
       >
         {children}
-        {movable && (
+        {engine.movable && (
           <span id={instructionsId} hidden>
             {labels.instructions}
           </span>
         )}
         <span className="sr-only" role="status" aria-live="assertive" aria-atomic="true">
-          {announcement}
+          {engine.announcement}
         </span>
       </div>
     </KanbanContext.Provider>
@@ -400,10 +194,11 @@ export const KanbanColumn = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanCol
   { id, label, disabled = false, className, children, ...props },
   ref,
 ) {
-  const { drag } = useKanban("KanbanColumn");
-  const target = drag?.to?.columnId === id;
+  const { engine } = useKanban("KanbanColumn");
+  const target = engine.drag?.to?.columnId === id;
+  const column = useMemo(() => ({ columnId: id, disabled }), [id, disabled]);
   return (
-    <ColumnContext.Provider value={{ columnId: id, disabled }}>
+    <ColumnContext.Provider value={column}>
       <div
         ref={ref}
         role="group"
@@ -465,14 +260,15 @@ export interface KanbanColumnContentProps extends HTMLAttributes<HTMLDivElement>
   empty?: ReactNode;
 }
 
-/** The scrolling card list of a column; shows the drop line while a card is moved over it. */
+/** The scrolling card list of a column; shows the slot a card from another column would land in. */
 export const KanbanColumnContent = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanColumnContentProps>(function KanbanColumnContent(
   { empty, className, children, ...props },
   ref,
 ) {
-  const { drag } = useKanban("KanbanColumnContent");
+  const { engine } = useKanban("KanbanColumnContent");
   const column = useContext(ColumnContext);
-  const showIndicator = drag?.to && column && drag.to.columnId === column.columnId && drag.indicatorY !== null;
+  const drag = engine.drag;
+  const slot = drag?.slot && column && drag.slot.columnId === column.columnId ? drag.slot : null;
   const hasChildren = Array.isArray(children) ? children.some((child) => child != null && child !== false) : children != null;
   return (
     <div
@@ -482,7 +278,7 @@ export const KanbanColumnContent = /* @__PURE__ */ forwardRef<HTMLDivElement, Ka
       {...props}
     >
       {children}
-      {!hasChildren && empty != null && !showIndicator ? (
+      {!hasChildren && empty != null && !slot ? (
         <div
           data-slot="kanban-column-empty"
           className="flex flex-1 items-center justify-center rounded-pui-md border border-dashed border-pui-border p-4 text-center text-xs text-pui-muted-foreground"
@@ -490,12 +286,17 @@ export const KanbanColumnContent = /* @__PURE__ */ forwardRef<HTMLDivElement, Ka
           {empty}
         </div>
       ) : null}
-      {showIndicator ? (
+      {slot ? (
+        // Where a card from another column lands: the same slot SortableList shows (the cards below slide down).
         <span
           aria-hidden="true"
-          data-slot="kanban-drop-indicator"
-          className="pointer-events-none absolute inset-x-2 h-0.5 -translate-y-1/2 rounded-full bg-pui-primary"
-          style={{ top: drag!.indicatorY! }}
+          data-slot="kanban-drop-slot"
+          data-mode={drag!.mode}
+          className={cn(
+            "pointer-events-none absolute inset-x-2 rounded-pui-md border bg-pui-primary/tint",
+            drag!.mode === "pointer" ? "border-dashed border-pui-primary/tint-border" : "border-pui-primary",
+          )}
+          style={{ top: slot.top, height: slot.height }}
         />
       ) : null}
     </div>
@@ -513,60 +314,139 @@ export interface KanbanCardProps extends HTMLAttributes<HTMLDivElement> {
   disabled?: boolean;
 }
 
-/** A card. Put any content inside; clicks still work (a drag never fires the click). */
+/**
+ * A card. Put any content inside; clicks still work (a drag never fires the click). With a `KanbanCardHandle` inside,
+ * only the handle starts a drag and takes the keyboard moves; without one the whole card does (presses on inputs,
+ * buttons and links inside are ignored).
+ */
 export const KanbanCard = /* @__PURE__ */ forwardRef<HTMLDivElement, KanbanCardProps>(function KanbanCard(
-  { id, disabled = false, className, onPointerDown, onKeyDown, onBlur, onClickCapture, children, ...props },
+  { id, disabled = false, className, style, onPointerDown, onKeyDown, onBlur, onClickCapture, children, ...props },
   ref,
 ) {
-  const { drag, movable, instructionsId, labels, startPointer, handleCardKeyDown, cancelKeyboard, consumeDragClick } =
-    useKanban("KanbanCard");
+  const { engine, instructionsId, labels } = useKanban("KanbanCard");
+  const [handles, setHandles] = useState(0);
+  const registerHandle = useCallback(() => {
+    setHandles((count) => count + 1);
+    return () => setHandles((count) => count - 1);
+  }, []);
+  const cardContext = useMemo(() => ({ id, disabled, registerHandle }), [id, disabled, registerHandle]);
+
+  const { drag, settling, movable } = engine;
   const draggable = movable && !disabled;
-  const dragging = drag?.cardId === id;
+  const selfHandle = draggable && handles === 0;
+  const dragging = drag?.id === id ? drag.mode : undefined;
+  // Over another column: the card's own place closes, the slot there shows where it lands.
+  const away = dragging !== undefined && drag?.slot != null;
+
   return (
-    <div
+    <KanbanCardContext.Provider value={cardContext}>
+      <div
+        ref={ref}
+        data-slot="kanban-card"
+        data-card-id={id}
+        data-disabled={disabled ? "" : undefined}
+        data-dragging={dragging}
+        data-away={away ? "" : undefined}
+        tabIndex={0}
+        aria-roledescription={selfHandle ? labels.card : undefined}
+        aria-describedby={selfHandle ? instructionsId : undefined}
+        aria-pressed={selfHandle ? dragging !== undefined : undefined}
+        style={engine.itemStyle(id, style)}
+        className={cn(
+          // min-w-0 + overflow-wrap:anywhere: long unbreakable text wraps inside the card instead of widening it.
+          "relative min-w-0 shrink-0 rounded-pui-md border border-pui-border bg-pui-background p-3 text-sm text-pui-foreground [overflow-wrap:anywhere]",
+          "outline-none transition-colors duration-pui-fast ease-pui hover:border-pui-input",
+          "focus-visible:ring-pui focus-visible:ring-pui-ring",
+          drag && !settling && "transition-[transform,border-color] duration-pui-base",
+          selfHandle && "cursor-grab touch-none",
+          // Pointer: an empty, tinted slot marks where the card lands (the see-through copy follows the cursor).
+          // Keyboard: the card itself moves, highlighted. Over another column it leaves an invisible gap that closes.
+          "data-[dragging=pointer]:border-dashed data-[dragging=pointer]:border-pui-primary/tint-border data-[dragging=pointer]:bg-pui-primary/tint data-[dragging=pointer]:text-transparent [&[data-dragging=pointer]>*]:invisible",
+          "data-[dragging=keyboard]:z-10 data-[dragging=keyboard]:border-pui-primary data-[dragging=keyboard]:bg-pui-primary/tint",
+          "data-[away]:invisible",
+          "data-[disabled]:cursor-default",
+          className,
+        )}
+        onPointerDown={(event) => {
+          onPointerDown?.(event);
+          if (!draggable || event.defaultPrevented) return;
+          if (!canStartDragFrom(event.currentTarget, event.target)) return;
+          engine.startPointer(event, id);
+        }}
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          if (selfHandle && !event.defaultPrevented) engine.handleKeyDown(event, id);
+        }}
+        onBlur={(event) => {
+          onBlur?.(event);
+          if (event.target === event.currentTarget) engine.cancelKeyboard(id);
+        }}
+        onClickCapture={(event) => {
+          if (engine.consumeDragClick(id)) {
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+          }
+          onClickCapture?.(event);
+        }}
+        {...props}
+      >
+        {children}
+      </div>
+    </KanbanCardContext.Provider>
+  );
+});
+
+export type KanbanCardHandleProps = ButtonHTMLAttributes<HTMLButtonElement>;
+
+/**
+ * The grip of a `KanbanCard` (a `GripVertical` icon unless you pass children). Starts pointer drags and is the
+ * keyboard stop of the move: Space/Enter lifts and drops, arrows move, Escape cancels.
+ */
+export const KanbanCardHandle = /* @__PURE__ */ forwardRef<HTMLButtonElement, KanbanCardHandleProps>(function KanbanCardHandle(
+  { className, disabled: disabledProp, onKeyDown, onBlur, children, ...props },
+  ref,
+) {
+  const { engine, instructionsId, labels } = useKanban("KanbanCardHandle");
+  const card = useContext(KanbanCardContext);
+  if (!card) throw new Error("KanbanCardHandle must be used within <KanbanCard />");
+  const GripVertical = useIcon("gripVertical");
+  const { registerHandle } = card;
+  useEffect(() => registerHandle(), [registerHandle]);
+
+  const disabled = disabledProp || card.disabled || !engine.movable;
+  const dragging = engine.drag?.id === card.id;
+
+  return (
+    <button
       ref={ref}
-      data-slot="kanban-card"
-      data-card-id={id}
-      data-disabled={disabled ? "" : undefined}
-      data-dragging={dragging ? "" : undefined}
-      tabIndex={0}
-      aria-roledescription={draggable ? labels.card : undefined}
-      aria-describedby={draggable ? instructionsId : undefined}
-      aria-pressed={draggable ? dragging : undefined}
+      type="button"
+      data-slot="kanban-card-handle"
+      data-sortable-handle=""
+      disabled={disabled}
+      aria-label={labels.handle}
+      aria-roledescription={disabled ? undefined : labels.card}
+      aria-describedby={disabled ? undefined : instructionsId}
+      aria-pressed={disabled ? undefined : dragging}
       className={cn(
-        // min-w-0 + overflow-wrap:anywhere: long unbreakable text wraps inside the card instead of widening it.
-        "relative min-w-0 shrink-0 rounded-pui-md border border-pui-border bg-pui-background p-3 text-sm text-pui-foreground [overflow-wrap:anywhere]",
-        "outline-none transition-colors duration-pui-fast ease-pui hover:border-pui-input",
+        "-ml-1 inline-flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-pui-sm text-pui-muted-foreground",
+        "outline-none transition-colors duration-pui-fast ease-pui hover:bg-pui-accent hover:text-pui-foreground",
         "focus-visible:ring-pui focus-visible:ring-pui-ring",
-        draggable && "cursor-grab touch-none",
-        "data-[dragging]:border-pui-primary data-[dragging]:opacity-40",
-        "data-[disabled]:cursor-default",
+        "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
         className,
       )}
-      onPointerDown={(event) => {
-        onPointerDown?.(event);
-        if (draggable && !event.defaultPrevented) startPointer(event, id);
-      }}
       onKeyDown={(event) => {
         onKeyDown?.(event);
-        if (draggable && !event.defaultPrevented) handleCardKeyDown(event, id);
+        if (!disabled && !event.defaultPrevented) engine.handleKeyDown(event, card.id);
       }}
       onBlur={(event) => {
         onBlur?.(event);
-        cancelKeyboard(id);
-      }}
-      onClickCapture={(event) => {
-        if (consumeDragClick(id)) {
-          event.stopPropagation();
-          event.preventDefault();
-          return;
-        }
-        onClickCapture?.(event);
+        engine.cancelKeyboard(card.id);
       }}
       {...props}
     >
-      {children}
-    </div>
+      {children ?? <GripVertical aria-hidden="true" className="size-4" />}
+    </button>
   );
 });
 

@@ -28,6 +28,7 @@ import {
   useVirtualRow,
   type VirtualListOptions,
 } from "../Combobox/virtual-list";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 function AutocompleteRoot(props: Parameters<typeof BaseAutocomplete.Root>[0]) {
   const { bridge, onItemHighlighted } = useVirtualRoot(props.virtualized, props.onItemHighlighted);
@@ -86,12 +87,15 @@ export const AutocompleteInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof 
       icon,
       showClear = true,
       showTrigger = false,
-      clearLabel = "Clear",
-      triggerLabel = "Open",
+      clearLabel: clearLabelProp,
+      triggerLabel: triggerLabelProp,
       ...props
     },
     ref,
   ) {
+    const preuiLabels = usePreuiLabels();
+    const clearLabel = clearLabelProp ?? preuiLabels.clear;
+    const triggerLabel = triggerLabelProp ?? preuiLabels.open;
     const Search = useIcon("search");
     const Close = useIcon("close");
     const ChevronDown = useIcon("chevronDown");

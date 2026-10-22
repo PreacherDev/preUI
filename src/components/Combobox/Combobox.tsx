@@ -29,6 +29,7 @@ import {
   useVirtualRow,
   type VirtualListOptions,
 } from "./virtual-list";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 function ComboboxRoot(props: Parameters<typeof BaseCombobox.Root>[0]) {
   const { bridge, onItemHighlighted } = useVirtualRoot(props.virtualized, props.onItemHighlighted);
@@ -89,12 +90,15 @@ export const ComboboxInput = /* @__PURE__ */ forwardRef<ComponentRef<typeof Base
       icon,
       showClear = true,
       showTrigger = true,
-      clearLabel = "Clear",
-      triggerLabel = "Open",
+      clearLabel: clearLabelProp,
+      triggerLabel: triggerLabelProp,
       ...props
     },
     ref,
   ) {
+    const preuiLabels = usePreuiLabels();
+    const clearLabel = clearLabelProp ?? preuiLabels.clear;
+    const triggerLabel = triggerLabelProp ?? preuiLabels.open;
     const Search = useIcon("search");
     const Close = useIcon("close");
     const ChevronDown = useIcon("chevronDown");
@@ -189,9 +193,11 @@ export interface ComboboxChipProps extends ComponentPropsWithoutRef<typeof BaseC
 
 /** Selected value as a tinted pill with a remove button. */
 export const ComboboxChip = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseCombobox.Chip>, ComboboxChipProps>(function ComboboxChip(
-  { className, children, removeLabel = "Remove", hideRemove = false, ...props },
+  { className, children, removeLabel: removeLabelProp, hideRemove = false, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const removeLabel = removeLabelProp ?? preuiLabels.remove;
   const Close = useIcon("close");
   return (
     <BaseCombobox.Chip

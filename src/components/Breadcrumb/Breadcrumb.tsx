@@ -2,14 +2,17 @@ import { useRender } from "@base-ui/react/use-render";
 import { forwardRef, type ComponentPropsWithoutRef } from "react";
 import { useIcon } from "../../icons";
 import { cn } from "../../utils/cn";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export type BreadcrumbProps = ComponentPropsWithoutRef<"nav">;
 
 /** Navigation landmark for a breadcrumb trail. Override the label with `aria-label`. */
 export const Breadcrumb = /* @__PURE__ */ forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
-  { "aria-label": ariaLabel = "Breadcrumb", ...props },
+  { "aria-label": ariaLabelProp, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const ariaLabel = ariaLabelProp ?? preuiLabels.breadcrumb;
   return <nav ref={ref} aria-label={ariaLabel} data-slot="breadcrumb" {...props} />;
 });
 
@@ -117,9 +120,11 @@ export interface BreadcrumbEllipsisProps extends ComponentPropsWithoutRef<"span"
 
 /** Placeholder for collapsed items (e.g. as a dropdown trigger). */
 export const BreadcrumbEllipsis = /* @__PURE__ */ forwardRef<HTMLSpanElement, BreadcrumbEllipsisProps>(function BreadcrumbEllipsis(
-  { className, label = "More", ...props },
+  { className, label: labelProp, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.more;
   const More = useIcon("more");
   return (
     <span

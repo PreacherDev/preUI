@@ -41,6 +41,9 @@ import {
   type ThemeStorage,
   type ThemeSupport,
 } from "./theme-script";
+import { IconButton } from "../IconButton/IconButton";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
+import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 
 // ---------------------------------------------------------------------------
 // External stores (SSR-safe: the server render and the hydration pass use the server snapshots)
@@ -358,8 +361,10 @@ export function ThemeScript({ nonce, ...options }: ThemeScriptProps) {
 // ---------------------------------------------------------------------------
 
 export interface ThemeToggleProps extends Omit<ButtonProps, "onClick" | "children"> {
-  /** Accessible label. @default "Toggle color scheme" */
+  /** Accessible label and, by default, the tooltip text. @default "Toggle color scheme" */
   label?: string;
+  /** Like `IconButton`: `false` = no tooltip, a string or node = other text, an options object = text plus `side` … */
+  tooltip?: IconTooltip;
   onClick?: ButtonProps["onClick"];
 }
 
@@ -368,31 +373,34 @@ export interface ThemeToggleProps extends Omit<ButtonProps, "onClick" | "childre
  * Disabled while the scheme is locked (forced scheme or a light-/dark-only theme).
  */
 export const ThemeToggle = /* @__PURE__ */ forwardRef<HTMLElement, ThemeToggleProps>(function ThemeToggle(
-  { label = "Toggle color scheme", variant = "ghost", size = "icon", disabled, onClick, ...props },
+  { label: labelProp, tooltip, variant = "ghost", size = "icon", disabled, onClick, ...props },
   ref,
 ) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.toggleColorScheme;
   const { resolvedScheme, setScheme, canToggleScheme } = useTheme();
   const Sun = useIcon("sun");
   const Moon = useIcon("moon");
   const Icon = resolvedScheme === "light" ? Sun : Moon;
   return (
-    <Button
-      ref={ref}
-      variant={variant}
-      size={size}
-      aria-label={label}
-      title={label}
-      disabled={disabled || !canToggleScheme}
-      data-slot="theme-toggle"
-      data-scheme={resolvedScheme}
-      onClick={(event) => {
-        onClick?.(event);
-        if (!event.defaultPrevented) setScheme(resolvedScheme === "dark" ? "light" : "dark");
-      }}
-      {...props}
-    >
-      <Icon data-slot="theme-toggle-icon" aria-hidden="true" />
-    </Button>
+    <WithTooltip tooltip={tooltip} label={label}>
+      <Button
+        ref={ref}
+        variant={variant}
+        size={size}
+        aria-label={label}
+        disabled={disabled || !canToggleScheme}
+        data-slot="theme-toggle"
+        data-scheme={resolvedScheme}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented) setScheme(resolvedScheme === "dark" ? "light" : "dark");
+        }}
+        {...props}
+      >
+        <Icon data-slot="theme-toggle-icon" aria-hidden="true" />
+      </Button>
+    </WithTooltip>
   );
 });
 
@@ -463,18 +471,29 @@ export const ThemeSelect = /* @__PURE__ */ forwardRef<HTMLButtonElement, ThemeSe
       <DropdownMenuTrigger
         ref={ref}
         render={
-          <Button
-            variant={variant}
-            size={size ?? (children ? "default" : "icon")}
-            aria-label={children ? undefined : labels.trigger}
-            title={children ? undefined : labels.trigger}
-            data-slot="theme-select-trigger"
-            data-scheme={resolvedScheme}
-            {...(props as ComponentPropsWithoutRef<typeof Button>)}
-          />
+          children ? (
+            <Button
+              variant={variant}
+              size={size ?? "default"}
+              data-slot="theme-select-trigger"
+              data-scheme={resolvedScheme}
+              {...(props as ComponentPropsWithoutRef<typeof Button>)}
+            />
+          ) : (
+            // Icon only: the label is its name and its tooltip.
+            <IconButton
+              variant={variant}
+              size={size ?? "icon"}
+              label={labels.trigger}
+              icon={<Current data-slot="theme-select-icon" aria-hidden="true" />}
+              data-slot="theme-select-trigger"
+              data-scheme={resolvedScheme}
+              {...(props as Omit<ComponentPropsWithoutRef<typeof Button>, "children">)}
+            />
+          )
         }
       >
-        {children ?? <Current data-slot="theme-select-icon" aria-hidden="true" />}
+        {children}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" {...contentProps}>
         <DropdownMenuGroup>

@@ -21,6 +21,7 @@ import { ScrollArea, type ScrollAreaProps } from "../ScrollArea/ScrollArea";
 import { Textarea } from "../Textarea/Textarea";
 import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
 import type { DraftHistory } from "./use-draft-history";
+import { TruncateText } from "../TruncateText/TruncateText";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Labels
@@ -364,19 +365,16 @@ export const EditorHeader = /* @__PURE__ */ forwardRef<HTMLElement, EditorHeader
       )}
       <div data-slot="editor-header-actions" className="ml-auto flex min-w-0 items-center gap-2">
         {showStatus && (
-          <span
+          // Cut off with "…" in a narrow header (long French or German texts); the whole text shows as a tooltip.
+          <TruncateText
             role="status"
             data-slot="editor-status"
             data-problem={hasProblem ? "" : undefined}
-            title={typeof statusText === "string" ? statusText : undefined}
-            className={cn(
-              "min-w-0 truncate text-xs",
-              hasProblem ? "text-pui-warning" : "text-pui-muted-foreground",
-              keepSpace(!hasProblem && dirty),
-            )}
+            tooltipProps={{ side: "bottom" }}
+            className={cn("text-xs", hasProblem ? "text-pui-warning" : "text-pui-muted-foreground", keepSpace(!hasProblem && dirty))}
           >
             {statusText}
-          </span>
+          </TruncateText>
         )}
         {actions}
       </div>

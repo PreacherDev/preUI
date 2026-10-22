@@ -12,6 +12,7 @@ import {
 } from "../DropdownMenu/DropdownMenu";
 import type { DataTableInstance } from "./features";
 import { getColumnLabel } from "./utils";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export interface DataTableViewOptionsProps<TData extends RowData> {
   table: DataTableInstance<TData>;
@@ -28,10 +29,13 @@ export interface DataTableViewOptionsProps<TData extends RowData> {
  */
 export function DataTableViewOptions<TData extends RowData>({
   table,
-  label = "Columns",
-  heading = "Toggle columns",
+  label: labelProp,
+  heading: headingProp,
   className,
 }: DataTableViewOptionsProps<TData>) {
+  const preuiLabels = usePreuiLabels();
+  const label = labelProp ?? preuiLabels.columns;
+  const heading = headingProp ?? preuiLabels.toggleColumns;
   const ChevronDown = useIcon("chevronDown");
   const columns = table.getAllLeafColumns().filter((column) => column.getCanHide());
 

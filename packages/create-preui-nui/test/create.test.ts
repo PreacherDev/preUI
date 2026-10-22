@@ -191,6 +191,17 @@ describe("create-preui-nui", () => {
     expect(result.stdout).toContain("ensure pre_lib");
   });
 
+  it("--pre-lib: code and comments are ASCII only, and import.meta.env has its types", () => {
+    const result = run(["pre_demo", "--pre-lib"]);
+    expect(result.status, result.stderr).toBe(0);
+    expect(read("pre_demo", "web", "src", "vite-env.d.ts")).toContain('/// <reference types="vite/client" />');
+    // The pre_ scripts allow only ASCII in code; texts live in locales/ (de / fr need their letters).
+    for (const path of ["web/vite.config.ts", "web/tailwind.config.js", "web/src/index.css", "web/src/main.tsx", "web/src/App.tsx", "client/main.lua", "fxmanifest.lua", "config.lua"]) {
+      const text = read("pre_demo", ...path.split("/"));
+      expect([...text].filter((char) => char.charCodeAt(0) > 127), path).toEqual([]);
+    }
+  });
+
   it("--pre-lib refuses --no-theme", () => {
     const result = run(["pre_demo", "--pre-lib", "--no-theme"]);
     expect(result.status).toBe(1);

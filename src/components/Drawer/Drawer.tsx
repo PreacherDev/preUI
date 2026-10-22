@@ -18,6 +18,7 @@ import {
   type ModalPortalOptions,
 } from "../Dialog/Dialog";
 import { WithTooltip, type IconTooltip } from "../Tooltip/IconTooltip";
+import { usePreuiLabels } from "../Labels/LabelsProvider";
 
 export type DrawerProps = BaseDrawer.Root.Props;
 
@@ -143,9 +144,11 @@ export interface DrawerPopupProps extends ComponentPropsWithoutRef<typeof BaseDr
  */
 export const DrawerPopup = /* @__PURE__ */ forwardRef<ComponentRef<typeof BaseDrawer.Popup>, DrawerPopupProps>(
   function DrawerPopup(
-    { className, children, showCloseButton = false, closeLabel = "Close", closeTooltip, initialFocus, ...props },
+    { className, children, showCloseButton = false, closeLabel: closeLabelProp, closeTooltip, initialFocus, ...props },
     ref,
   ) {
+    const preuiLabels = usePreuiLabels();
+    const closeLabel = closeLabelProp ?? preuiLabels.close;
     const CloseIcon = useIcon("close");
     const contained = useModalContained();
     const focus = useInitialFocusWithoutScroll(initialFocus, ref, true);

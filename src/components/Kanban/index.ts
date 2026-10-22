@@ -1,6 +1,7 @@
 export {
   Kanban,
   KanbanCard,
+  KanbanCardHandle,
   KanbanColumn,
   KanbanColumnContent,
   KanbanColumnHeader,
@@ -9,6 +10,7 @@ export {
   moveKanbanItem,
 } from "./Kanban";
 export type {
+  KanbanCardHandleProps,
   KanbanCardProps,
   KanbanColumnContentProps,
   KanbanColumnHeaderProps,
