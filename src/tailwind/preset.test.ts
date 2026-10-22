@@ -121,6 +121,11 @@ describe("colour schemes", () => {
     expect(bases[schemeSelectors.light]).not.toHaveProperty("--pui-radius");
   });
 
+  it("gives the scroll-locked body a vh height where the dvh one is dropped (Chromium < 108)", () => {
+    const bases = baseStyles();
+    expect(bases['html[data-base-ui-scroll-locked] > body[style*="100vw"]']).toEqual({ height: "100vh" });
+  });
+
   it("injects a single scheme on :root, or nothing with injectTokens: false", () => {
     expect(baseStyles({ scheme: "light" })[":root"]).toMatchObject({ "--pui-primary": lightTokens["--pui-primary"], colorScheme: "light" });
     const none = baseStyles({ injectTokens: false });

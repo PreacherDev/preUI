@@ -2,6 +2,7 @@ import {
   forwardRef,
   Fragment,
   useCallback,
+  useEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -297,6 +298,29 @@ export const KeybindInput = /* @__PURE__ */ forwardRef<HTMLButtonElement, Keybin
 
   const parts = formatKeybind(value, { formatKey });
   const bindingText = parts.length ? parts.join(` ${separator} `) : null;
+
+  // A binding too long for the field is clipped at the start; a "…" in front says so. Measured after layout and on
+  // resize (never during render); stable, because a binding that fits without the "…" never gets one.
+  const keysRef = useRef<HTMLSpanElement | null>(null);
+  const [clipped, setClipped] = useState(false);
+  useEffect(() => {
+    const keys = keysRef.current;
+    if (!keys) {
+      setClipped(false);
+      return;
+    }
+    // The caps sit at the end (justify-end), so they overflow at the start — which scrollWidth doesn't count:
+    // compare where the first cap begins with where the field begins.
+    const check = () => {
+      const first = keys.firstElementChild;
+      setClipped(first ? first.getBoundingClientRect().left < keys.getBoundingClientRect().left - 1 : false);
+    };
+    check();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(check);
+    observer.observe(keys);
+    return () => observer.disconnect();
+  }, [bindingText, listening]);
   const description = listening
     ? labels.listening
     : ariaLabel
@@ -347,22 +371,31 @@ export const KeybindInput = /* @__PURE__ */ forwardRef<HTMLButtonElement, Keybin
           </span>
         ) : parts.length ? (
           // Caps never shrink. Too long for the field: clipped at the start (justify-end), so the main key stays
-          // visible and nothing runs under the clear button.
-          <span
-            data-slot="keybind-input-keys"
-            className="flex min-w-0 items-center justify-end gap-1 overflow-hidden whitespace-nowrap [&>*]:shrink-0"
-          >
-            {parts.map((part, index) => (
-              <Fragment key={index}>
-                {index > 0 && separator !== "" && (
-                  <span data-slot="keybind-input-separator" className="text-xs text-pui-muted-foreground">
-                    {separator}
-                  </span>
-                )}
-                <Kbd data-slot="keybind-input-key">{part}</Kbd>
-              </Fragment>
-            ))}
-          </span>
+          // visible and nothing runs under the clear button; the "…" before them shows that something is cut off.
+          <>
+            {clipped && (
+              <span data-slot="keybind-input-clipped" aria-hidden="true" className="shrink-0 text-pui-muted-foreground">
+                …
+              </span>
+            )}
+            <span
+              ref={keysRef}
+              data-slot="keybind-input-keys"
+              data-clipped={clipped ? "" : undefined}
+              className="flex min-w-0 items-center justify-end gap-1 overflow-hidden whitespace-nowrap [&>*]:shrink-0"
+            >
+              {parts.map((part, index) => (
+                <Fragment key={index}>
+                  {index > 0 && separator !== "" && (
+                    <span data-slot="keybind-input-separator" className="text-xs text-pui-muted-foreground">
+                      {separator}
+                    </span>
+                  )}
+                  <Kbd data-slot="keybind-input-key">{part}</Kbd>
+                </Fragment>
+              ))}
+            </span>
+          </>
         ) : (
           <span data-slot="keybind-input-placeholder" className="truncate text-pui-muted-foreground">
             {labels.placeholder}

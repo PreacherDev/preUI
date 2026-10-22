@@ -5,12 +5,11 @@ import {
   CardTitle,
   KeybindHint,
   KeybindHintBar,
-  ThemeEditor as PreuiThemeEditor,
   defaultThemePresets,
   useTheme,
   type ThemeConfig,
-  type ThemeEditorProps,
 } from "@pre_scripts/preui";
+import { ThemeEditor as PreuiThemeEditor, type ThemeEditorProps } from "@pre_scripts/preui/theme-editor";
 import { fetchNui } from "@pre_scripts/preui-nui";
 
 /** German texts of the editor (the component ships English defaults). */

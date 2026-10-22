@@ -92,7 +92,7 @@ Components that build on another library have their own entry point, so you only
 | `@pre_scripts/preui/calendar` | Calendar, CalendarDayButton, DatePicker, DateRangePicker | `react-day-picker` |
 | `@pre_scripts/preui/carousel` | Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, `useCarousel` | `embla-carousel-react` |
 | `@pre_scripts/preui/command` | Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator, CommandShortcut | `cmdk` |
-| `@pre_scripts/preui/theme-editor` | ThemeEditor, ThemeEditorPreview, `defaultThemeEditorLabels`, `defaultThemeEditorFonts`, `defaultThemeEditorPreviewLabels`, `themeEditorColorKeys` (also in the main entry; this entry lets a lazily loaded theme tool get its own chunk) | - |
+| `@pre_scripts/preui/theme-editor` | ThemeEditor, ThemeEditorPreview, `defaultThemeEditorLabels`, `defaultThemeEditorFonts`, `defaultThemeEditorPreviewLabels`, `themeEditorColorKeys` (only here since 0.15, so a lazily loaded theme tool gets its own chunk) | - |
 | `@pre_scripts/preui/resizable` | ResizablePanelGroup, ResizablePanel, ResizableHandle | `react-resizable-panels` |
 | `@pre_scripts/preui/form` | Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, `useFormField` | `react-hook-form` |
 | `@pre_scripts/preui/data-table` | DataTable, DataTableColumnHeader, DataTablePagination, DataTableToolbar, DataTableViewOptions, `createSelectColumn`, `createDragColumn`, DataTableDragHandle, `createDataTableColumnHelper`, `dataTableFeatures`, re-exported `createColumnHelper` / `flexRender` | `@tanstack/react-table` `@tanstack/table-core` |
@@ -1270,8 +1270,8 @@ CSS export.
 
 ### ThemeEditor
 
-One theme editor for websites and FiveM NUI. It is also available from its own entry,
-`@pre_scripts/preui/theme-editor`, so a lazily loaded settings screen gets its own chunk. `samples={["web"]}` shows only
+One theme editor for websites and FiveM NUI, imported from its own entry `@pre_scripts/preui/theme-editor` (since 0.15
+only there), so a lazily loaded settings screen gets its own chunk. `samples={["web"]}` shows only
 the interface sample of the split preview and hides the web/game switch. Sliders and colour edits never shift the
 layout: the contrast list always shows the same rows. It edits a `ThemeConfig` (theme protocol v1): the exact object
 `NuiThemeBridge` / `GlobalState.theme` use, so a saved value needs no conversion. The component never talks to a
@@ -1327,7 +1327,8 @@ All texts come from `labels` (English defaults), numbers use `locale`. SSR-safe 
 Website (persistence by the page):
 
 ```tsx
-import { ThemeEditor, ThemeProvider, resolveThemeConfig, type ThemeConfig } from "@pre_scripts/preui";
+import { ThemeProvider, resolveThemeConfig, type ThemeConfig } from "@pre_scripts/preui";
+import { ThemeEditor } from "@pre_scripts/preui/theme-editor";
 
 function ThemeSettings() {
   const [theme, setTheme] = useState<ThemeConfig>(() => JSON.parse(localStorage.getItem("theme") ?? "{}"));
@@ -1351,7 +1352,8 @@ function ThemeSettings() {
 FiveM NUI (server-wide theme, see `examples/fivem-theme`):
 
 ```tsx
-import { ThemeEditor, ThemeProvider, type ThemeConfig } from "@pre_scripts/preui";
+import { ThemeProvider, type ThemeConfig } from "@pre_scripts/preui";
+import { ThemeEditor } from "@pre_scripts/preui/theme-editor";
 import { NuiThemeBridge, fetchNui } from "@pre_scripts/preui-nui";
 
 export function App() {

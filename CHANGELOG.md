@@ -7,6 +7,13 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ### Updating from 0.14
 
+- **The ThemeEditor is only in `@pre_scripts/preui/theme-editor` now.** Change
+  `import { ThemeEditor } from "@pre_scripts/preui"` to `from "@pre_scripts/preui/theme-editor"` (also
+  `ThemeEditorPreview`, `defaultThemeEditorLabels`, `defaultThemeEditorFonts`, `themeEditorColorKeys` and the
+  `ThemeEditor*` types). Re-exporting it from the main entry made every bundle that imports the main entry load the
+  whole editor, so a lazily imported theme tool could never be split off (bug since 0.12). The theme helpers
+  (`resolveThemeConfig`, `defaultThemePresets`, `encodeThemeCode` …) stay in the main entry.
+
 - **Tooltips are on the panel surface.** `TooltipContent` and `ChartTooltipContent` now look like popovers and hover
   cards: `--pui-tooltip` / `--pui-tooltip-foreground` default to the popover colours in both schemes (dark was a
   lighter grey, light a dark inverse tooltip) and the surface got a `border-pui-border` edge. `deriveTokens` keeps
@@ -69,6 +76,12 @@ changes; a patch version never does. The NUI helpers have their own section at t
 
 ### Fixed
 
+- **The ThemeEditor splits off for real**: the main entry no longer re-exports it (see "Updating"), so a lazily
+  imported `@pre_scripts/preui/theme-editor` gets its own chunk — checked with Vite 7 / Rollup: the main chunk holds
+  no editor code, the editor is a 118 kB lazy chunk (before: everything in an 809 kB main chunk).
+- **Dialogs in Chromium < 108 (FiveM's CEF)**: Base UI's scroll lock sizes `<body>` with `100dvh` where
+  `scrollbar-gutter` can't be used; Chromium 103 drops that. The preset now gives the locked body `100vh` there.
+- **`KeybindInput`**: a binding too long for the field shows a "…" in front of the clipped caps.
 - **No more native `title` tooltips** (CEF never shows them): `EditorHeader`'s status is a `TruncateText` (long
   French or German statuses were cut off with no way to read them), `ThemeToggle` and the icon-only `ThemeSelect`
   trigger show their label as a real tooltip (`ThemeToggle` takes `tooltip` like `IconButton`), the ThemeEditor's

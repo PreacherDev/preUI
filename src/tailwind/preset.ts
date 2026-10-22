@@ -314,6 +314,11 @@ export function createPreuiPreset({ injectTokens = true, scheme = "both", colorS
         // Small-viewport height for full-height layouts (Sidebar); browsers without svh units (Chromium < 108,
         // e.g. CEF / FiveM) fall back to 100vh via var(--pui-viewport-height, 100vh).
         "@supports (height: 100svh)": { ":root": { "--pui-viewport-height": "100svh" } },
+        // Base UI's scroll lock (open Dialog, Sheet …) sizes <body> with `100dvh` where `scrollbar-gutter` can't be
+        // used — FiveM's CEF among them. Chromium < 108 drops that inline height, so the locked body falls back to
+        // 100vh here. Only while the lock sized the body (its inline width, `100vw`, is valid everywhere); where the
+        // dvh height is valid, the inline style wins anyway.
+        'html[data-base-ui-scroll-locked] > body[style*="100vw"]': { height: "100vh" },
         "@supports (-moz-appearance: none)": {
           "*": { scrollbarWidth: "thin", scrollbarColor: "transparent transparent" },
           "*:hover": { scrollbarColor: "hsl(var(--pui-muted-foreground) / 0.35) transparent" },

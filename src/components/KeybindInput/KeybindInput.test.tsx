@@ -50,6 +50,25 @@ describe("KeybindInput", () => {
     expect(screen.getByText("Not set")).toHaveAttribute("data-slot", "keybind-input-placeholder");
   });
 
+  it("puts a … in front of a binding that is clipped at the start, and none when it fits", () => {
+    // jsdom has no layout: the first cap starts left of the field when clipped (caps are aligned to the end).
+    let firstCapLeft = 0;
+    const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      const left = this.getAttribute("data-slot") === "keybind-input-keys" ? 10 : firstCapLeft;
+      return { left, top: 0, right: left + 20, bottom: 20, width: 20, height: 20, x: left, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    const binding: Keybind = { key: "f", code: "KeyF", ctrl: true, alt: true, shift: true };
+    firstCapLeft = -60;
+    const { container, unmount } = render(<KeybindInput value={binding} aria-label="Taste" />);
+    expect(container.querySelector('[data-slot="keybind-input-clipped"]')).toHaveTextContent("…");
+    expect(container.querySelector('[data-slot="keybind-input-keys"]')).toHaveAttribute("data-clipped");
+    unmount();
+    firstCapLeft = 10;
+    const fits = render(<KeybindInput value={binding} aria-label="Taste" />);
+    expect(fits.container.querySelector('[data-slot="keybind-input-clipped"]')).toBeNull();
+    rect.mockRestore();
+  });
+
   it("shows the value as key caps and describes it", () => {
     render(<KeybindInput defaultValue={{ key: "f", code: "KeyF", shift: true }} aria-label="Open menu" />);
     expect(keys()).toEqual(["Shift", "F"]);

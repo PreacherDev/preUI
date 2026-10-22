@@ -85,7 +85,7 @@ export * from "./components/ProgressCircle";
 // Theming (scheme + named themes, runtime tokens, palettes, contrast)
 export * from "./components/Theme";
 export * from "./components/ContrastBadge";
-export * from "./components/ThemeEditor";
+// ThemeEditor: only from `@pre_scripts/preui/theme-editor` (its own entry), so the main entry never pulls it in.
 export * from "./theming";
 export type { PreuiScheme, PreuiTokenName, PreuiTokens } from "./tailwind/tokens";
 
